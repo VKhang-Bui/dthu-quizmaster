@@ -1,0 +1,42 @@
+{
+  "subjectId": "MA_MON_HOC_VIET_LIEN",
+  "subjectCode": "BIO101",
+  "subjectName": "Tên môn học (Ví dụ: Vi sinh vật đại cương)",
+  "department": "Khoa Nông nghiệp - Sinh học",
+  "author": "Họ và Tên sinh viên đóng góp",
+  "version": "1.0",
+  "chapters": [
+    { "id": "c1", "name": "Chương 1: Mở đầu" },
+    { "id": "c2", "name": "Chương 2: Cấu tạo tế bào" }
+  ],
+  "questions": [
+    {
+      "id": "Q-001",
+      "chapterId": "c1",
+      "question": "Nội dung câu hỏi số 1 ở đây?",
+      "options": [
+        {
+          "text": "Nội dung đáp án A",
+          "isCorrect": true,
+          "note": "Giải thích chi tiết tại sao A là đáp án Đúng."
+        },
+        {
+          "text": "Nội dung đáp án B",
+          "isCorrect": false,
+          "note": "Giải thích chi tiết tại sao B Sai."
+        },
+        {
+          "text": "Nội dung đáp án C",
+          "isCorrect": false,
+          "note": "Giải thích chi tiết tại sao C Sai."
+        },
+        {
+          "text": "Nội dung đáp án D",
+          "isCorrect": false,
+          "note": "Giải thích chi tiết tại sao D Sai."
+        }
+      ],
+      "answerIndex": 0
+    }
+  ]
+}
