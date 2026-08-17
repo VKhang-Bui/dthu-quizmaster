@@ -13,7 +13,9 @@ const StorageService = {
     USERS_LIST: "dthu_quiz_users_list_v2",
     MATERIALS: "dthu_quiz_materials_v2",
     SUPPRESSED_WARNINGS: "dthu_quiz_suppressed_warnings_v2",
-    SETTINGS: "dthu_quiz_app_settings_v2"
+    SETTINGS: "dthu_quiz_app_settings_v2",
+    RESET_REQUESTS: "dthu_quiz_reset_requests_v2",
+    EMAIL_OTPS: "dthu_quiz_email_otps_v2"
   },
 
   // Danh mục tất cả các loại cảnh báo hệ thống hỗ trợ ẩn/bật
@@ -63,63 +65,32 @@ const StorageService = {
     localStorage.setItem(this.KEYS.SUBJECTS, JSON.stringify(subjects));
   },
 
-  getSubjectById(subjectId) {
-    const subjects = this.getSubjects();
-    const match = subjects.find(s => s.id === subjectId);
-    if (match) return match;
-
-    // Nếu không có trong chính thức, tìm trong danh sách Drafts
+  getSubjectById(id) {
+    const list = this.getSubjects();
+    let sub = list.find(s => s.id === id);
+    if (sub) return sub;
     const drafts = this.getDraftSubjects();
-    return drafts.find(d => d.id === subjectId) || null;
+    return drafts.find(d => d.id === id) || null;
   },
 
   saveSubject(subject) {
     const subjects = this.getSubjects();
-    const existingIndex = subjects.findIndex(s => s.id === subject.id);
-    if (existingIndex >= 0) {
-      subjects[existingIndex] = subject;
+    const idx = subjects.findIndex(s => s.id === subject.id);
+    if (idx !== -1) {
+      subjects[idx] = subject;
     } else {
       subjects.push(subject);
     }
     this.saveSubjects(subjects);
-    return subject;
   },
 
-  deleteSubject(subjectId) {
+  deleteSubject(id) {
     let subjects = this.getSubjects();
-    subjects = subjects.filter(s => s.id !== subjectId);
+    subjects = subjects.filter(s => s.id !== id);
     this.saveSubjects(subjects);
-
-    // Cũng xóa khỏi drafts nếu có
-    let drafts = this.getDraftSubjects();
-    drafts = drafts.filter(d => d.id !== subjectId);
-    this.saveDraftSubjects(drafts);
   },
 
-  addQuestionToSubject(subjectId, questionData) {
-    let isDraft = false;
-    let subjects = this.getSubjects();
-    let sub = subjects.find(s => s.id === subjectId);
-    
-    if (!sub) {
-      subjects = this.getDraftSubjects();
-      sub = subjects.find(s => s.id === subjectId);
-      isDraft = true;
-    }
-
-    if (!sub) return false;
-    if (!sub.questions) sub.questions = [];
-    sub.questions.push(questionData);
-
-    if (isDraft) {
-      this.saveDraftSubjects(subjects);
-    } else {
-      this.saveSubjects(subjects);
-    }
-    return true;
-  },
-
-  // ── 2. Quản lý Đề thi Draft & Cộng đồng (Community Submissions) ──
+  // ── 2. Quản lý Bộ Đề Draft do Sinh Viên Đóng Góp ────────────
   getDraftSubjects() {
     try {
       const data = localStorage.getItem(this.KEYS.DRAFTS);
@@ -128,6 +99,7 @@ const StorageService = {
       }
       return JSON.parse(data);
     } catch (e) {
+      console.error("Error reading drafts from localStorage", e);
       return [];
     }
   },
@@ -136,45 +108,64 @@ const StorageService = {
     localStorage.setItem(this.KEYS.DRAFTS, JSON.stringify(drafts));
   },
 
-  getDraftById(draftId) {
+  addDraftSubject(draftData) {
     const drafts = this.getDraftSubjects();
-    return drafts.find(d => d.id === draftId) || null;
-  },
-
-  addDraftSubmission(submission) {
-    const drafts = this.getDraftSubjects();
-    const newSubmission = {
-      ...submission,
-      id: submission.id || ("DRAFT_" + Date.now()),
-      status: "draft",
-      submissionDate: new Date().toISOString().split("T")[0]
+    const newDraft = {
+      id: "draft-" + Date.now(),
+      name: draftData.name || "Bộ đề đóng góp mới",
+      code: draftData.code || "CONTRIB-" + Math.floor(100 + Math.random() * 900),
+      department: draftData.department || "Khoa Nông nghiệp - Sinh học",
+      description: draftData.description || "Bộ đề đóng góp từ sinh viên đang chờ Ban biên tập phê duyệt.",
+      icon: draftData.icon || "📝",
+      author: draftData.author || "Sinh viên DThu",
+      authorEmail: draftData.authorEmail || "",
+      submissionDate: new Date().toLocaleDateString("vi-VN"),
+      isDraft: true,
+      status: "pending",
+      questions: draftData.questions || []
     };
-    drafts.unshift(newSubmission);
+
+    drafts.unshift(newDraft);
     this.saveDraftSubjects(drafts);
-    return newSubmission;
+    return newDraft;
   },
 
-  // Duyệt một bộ đề Draft thành đề Chính thức
   approveDraft(draftId) {
     const drafts = this.getDraftSubjects();
-    const draftIndex = drafts.findIndex(d => d.id === draftId);
-    if (draftIndex === -1) return false;
+    const idx = drafts.findIndex(d => d.id === draftId);
+    if (idx === -1) return null;
 
-    const [approvedSubject] = drafts.splice(draftIndex, 1);
-    approvedSubject.status = "official";
-    approvedSubject.approvedAt = new Date().toISOString();
+    const draft = drafts[idx];
+    const officialSubject = {
+      id: "subj-" + Date.now(),
+      name: draft.name,
+      code: draft.code,
+      department: draft.department,
+      description: draft.description,
+      icon: draft.icon || "🧪",
+      credits: 2,
+      durationMinutes: 45,
+      passScore: 5.0,
+      chapters: [
+        { id: "c1", name: "Toàn bộ câu hỏi đóng góp", questionCount: draft.questions ? draft.questions.length : 0 }
+      ],
+      questions: (draft.questions || []).map((q, qIdx) => ({
+        id: `q-${Date.now()}-${qIdx}`,
+        chapterId: "c1",
+        question: q.question,
+        options: q.options,
+        answerIndex: q.answerIndex
+      }))
+    };
 
-    // Lưu vào môn học chính thức
-    this.saveSubject(approvedSubject);
+    this.saveSubject(officialSubject);
+    drafts.splice(idx, 1);
     this.saveDraftSubjects(drafts);
-
-    // Cộng điểm thưởng EXP cho người dùng
-    this.addExp(50, "Đóng góp đề thi được duyệt thành công (+50 EXP)");
-    return approvedSubject;
+    this.addExp(50, `Phê duyệt bộ đề: ${draft.name}`);
+    return officialSubject;
   },
 
-  // Từ chối một bộ đề Draft
-  rejectDraft(draftId, reason = "") {
+  rejectDraft(draftId) {
     let drafts = this.getDraftSubjects();
     drafts = drafts.filter(d => d.id !== draftId);
     this.saveDraftSubjects(drafts);
@@ -187,6 +178,7 @@ const StorageService = {
       id: "USR-01",
       fullName: "Bùi Văn Khang",
       studentId: "220101001",
+      email: "bvkhang.cnsh@dthu.edu.vn",
       department: "Khoa Nông nghiệp - Sinh học",
       role: "admin", // 'admin' | 'editor' | 'student'
       avatar: "👨‍🎓",
@@ -200,13 +192,14 @@ const StorageService = {
       totalExp: 520,
       streakDays: 7,
       quizzesCompleted: 18,
-      status: "active", // 'active' | 'suspended'
+      status: "active", // 'active' | 'pending_approval' | 'suspended'
       createdAt: "2026-01-10T08:00:00.000Z"
     },
     {
       id: "USR-02",
       fullName: "Nguyễn Thị Mai",
       studentId: "220102045",
+      email: "ntmai.supham@dthu.edu.vn",
       department: "Khoa Sư phạm Khoa học Xã hội",
       role: "editor",
       avatar: "👩‍🎓",
@@ -227,6 +220,7 @@ const StorageService = {
       id: "USR-03",
       fullName: "Trần Minh Hoàng",
       studentId: "220103112",
+      email: "tmhoang.cntt@dthu.edu.vn",
       department: "Khoa Kỹ thuật - Công nghệ",
       role: "student",
       avatar: "🧑‍💻",
@@ -237,8 +231,8 @@ const StorageService = {
         canManageMaterials: false,
         canManageUsers: false
       },
-      totalExp: 190,
-      streakDays: 2,
+      totalExp: 240,
+      streakDays: 3,
       quizzesCompleted: 8,
       status: "active",
       createdAt: "2026-02-01T14:20:00.000Z"
@@ -247,9 +241,10 @@ const StorageService = {
       id: "USR-04",
       fullName: "Lê Văn Nam",
       studentId: "220104089",
+      email: "lvnam.kinhte@dthu.edu.vn",
       department: "Khoa Kinh tế - Quản trị",
       role: "student",
-      avatar: "🦁",
+      avatar: "👨‍🎓",
       pinCode: "123456",
       permissions: {
         canApproveDrafts: false,
@@ -293,11 +288,30 @@ const StorageService = {
     return list.find(u => u.studentId && u.studentId.trim().toLowerCase() === studentId.trim().toLowerCase()) || null;
   },
 
+  getUserByEmail(email) {
+    if (!email) return null;
+    const list = this.getAllUsers();
+    return list.find(u => u.email && u.email.trim().toLowerCase() === email.trim().toLowerCase()) || null;
+  },
+
+  getUserByStudentIdOrEmail(identifier) {
+    if (!identifier) return null;
+    const clean = identifier.trim().toLowerCase();
+    const list = this.getAllUsers();
+    return list.find(u => 
+      (u.studentId && u.studentId.trim().toLowerCase() === clean) ||
+      (u.email && u.email.trim().toLowerCase() === clean)
+    ) || null;
+  },
+
   createUser(userData) {
     const list = this.getAllUsers();
     const existing = this.getUserByStudentId(userData.studentId);
     if (existing) {
       throw new Error(`Mã số sinh viên ${userData.studentId} đã tồn tại trong hệ thống!`);
+    }
+    if (userData.email && this.getUserByEmail(userData.email)) {
+      throw new Error(`Email ${userData.email} đã được đăng ký cho tài khoản khác!`);
     }
 
     const defaultPerms = {
@@ -311,6 +325,7 @@ const StorageService = {
       id: "USR-" + Date.now(),
       fullName: userData.fullName || "Sinh viên DThu",
       studentId: userData.studentId || "",
+      email: userData.email || "",
       department: userData.department || "Đại học Đồng Tháp",
       role: userData.role || "student",
       avatar: userData.avatar || "👨‍🎓",
@@ -326,6 +341,186 @@ const StorageService = {
     list.push(newUser);
     this.saveAllUsers(list);
     return newUser;
+  },
+
+  registerUser(userData) {
+    const list = this.getAllUsers();
+    if (!userData.studentId) throw new Error("Mã số sinh viên không được để trống!");
+    if (!userData.fullName) throw new Error("Họ và tên không được để trống!");
+
+    const existingId = this.getUserByStudentId(userData.studentId);
+    if (existingId) {
+      throw new Error(`Mã số sinh viên ${userData.studentId} đã tồn tại trong hệ thống!`);
+    }
+    if (userData.email) {
+      const existingEmail = this.getUserByEmail(userData.email);
+      if (existingEmail) {
+        throw new Error(`Địa chỉ email ${userData.email} đã được đăng ký!`);
+      }
+    }
+
+    const newUser = {
+      id: "USR-" + Date.now(),
+      fullName: userData.fullName.trim(),
+      studentId: userData.studentId.trim(),
+      email: userData.email ? userData.email.trim().toLowerCase() : `${userData.studentId.trim()}@dthu.edu.vn`,
+      department: userData.department ? userData.department.trim() : "Đại học Đồng Tháp",
+      role: "student",
+      avatar: userData.avatar || "👨‍🎓",
+      pinCode: userData.pinCode || "123456",
+      permissions: {
+        canApproveDrafts: false,
+        canEditSubjects: false,
+        canManageMaterials: false,
+        canManageUsers: false
+      },
+      totalExp: 50, // Thưởng 50 EXP chào mừng tân sinh viên
+      streakDays: 1,
+      quizzesCompleted: 0,
+      status: "pending_approval", // ⏳ Chờ Admin hoặc người quản lý duyệt
+      registeredAt: new Date().toISOString(),
+      createdAt: new Date().toISOString()
+    };
+
+    list.push(newUser);
+    this.saveAllUsers(list);
+    return newUser;
+  },
+
+  getPendingUsers() {
+    const list = this.getAllUsers();
+    return list.filter(u => u.status === "pending_approval");
+  },
+
+  getActiveUsers() {
+    const list = this.getAllUsers();
+    return list.filter(u => u.status !== "pending_approval" && u.status !== "rejected");
+  },
+
+  approveUserRegistration(userId, adminName = "Bùi Văn Khang") {
+    const user = this.getUserById(userId);
+    if (!user) return null;
+    return this.updateUser(userId, {
+      status: "active",
+      approvedAt: new Date().toISOString(),
+      approvedBy: adminName
+    });
+  },
+
+  rejectUserRegistration(userId) {
+    return this.deleteUser(userId);
+  },
+
+  // ── 3.1. Quản lý Yêu Cầu Khôi Phục Mã PIN & CSKH ────────────
+  getResetRequests() {
+    try {
+      const data = localStorage.getItem(this.KEYS.RESET_REQUESTS);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      return [];
+    }
+  },
+
+  saveResetRequests(requests) {
+    localStorage.setItem(this.KEYS.RESET_REQUESTS, JSON.stringify(requests));
+  },
+
+  createResetRequest(data) {
+    const requests = this.getResetRequests();
+    const newReq = {
+      id: "REQ-" + Date.now(),
+      studentId: data.studentId || "",
+      fullName: data.fullName || "Sinh viên",
+      email: data.email || "",
+      phone: data.phone || "",
+      note: data.note || "Quên mã PIN đăng nhập, yêu cầu cấp lại.",
+      status: "pending", // 'pending' | 'resolved'
+      createdAt: new Date().toISOString()
+    };
+    requests.unshift(newReq);
+    this.saveResetRequests(requests);
+    return newReq;
+  },
+
+  resolveResetRequest(requestId, newPin = "123456") {
+    const requests = this.getResetRequests();
+    const req = requests.find(r => r.id === requestId);
+    if (!req) return null;
+
+    req.status = "resolved";
+    req.resolvedAt = new Date().toISOString();
+    req.resolvedPin = newPin;
+    this.saveResetRequests(requests);
+
+    // Cập nhật mã PIN mới cho tài khoản người dùng
+    const user = this.getUserByStudentId(req.studentId);
+    if (user) {
+      this.updateUser(user.id, { pinCode: newPin });
+    }
+    return req;
+  },
+
+  // ── 3.2. Quản lý Mã OTP Xác Thực Qua Email ────────────────────
+  generateEmailOtp(identifier) {
+    const user = this.getUserByStudentIdOrEmail(identifier);
+    if (!user) {
+      throw new Error("Không tìm thấy tài khoản sinh viên với thông tin này!");
+    }
+    if (user.status === "pending_approval") {
+      throw new Error("Tài khoản đang chờ duyệt, chưa thể thực hiện khôi phục mã PIN!");
+    }
+
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiry = Date.now() + 5 * 60 * 1000; // Có hiệu lực trong 5 phút
+
+    const otpData = {
+      userId: user.id,
+      studentId: user.studentId,
+      email: user.email || `${user.studentId}@dthu.edu.vn`,
+      otp: otpCode,
+      expiresAt: expiry
+    };
+
+    localStorage.setItem(this.KEYS.EMAIL_OTPS, JSON.stringify(otpData));
+    return {
+      success: true,
+      user,
+      otp: otpCode,
+      email: user.email || `${user.studentId}@dthu.edu.vn`
+    };
+  },
+
+  verifyEmailOtpAndResetPin(identifier, otp, newPin) {
+    const user = this.getUserByStudentIdOrEmail(identifier);
+    if (!user) {
+      throw new Error("Không tìm thấy tài khoản người dùng!");
+    }
+
+    let storedOtp = null;
+    try {
+      const raw = localStorage.getItem(this.KEYS.EMAIL_OTPS);
+      if (raw) storedOtp = JSON.parse(raw);
+    } catch (e) {}
+
+    if (!storedOtp || storedOtp.userId !== user.id) {
+      throw new Error("Không tìm thấy phiên xác thực OTP. Vui lòng gửi lại mã!");
+    }
+
+    if (Date.now() > storedOtp.expiresAt) {
+      throw new Error("Mã OTP đã hết hạn hiệu lực (quá 5 phút). Vui lòng yêu cầu mã mới!");
+    }
+
+    if (storedOtp.otp !== otp.trim()) {
+      throw new Error("Mã OTP không chính xác! Vui lòng kiểm tra lại.");
+    }
+
+    if (!newPin || newPin.trim().length < 4) {
+      throw new Error("Mã PIN mới phải có ít nhất 4 ký tự!");
+    }
+
+    this.updateUser(user.id, { pinCode: newPin.trim() });
+    localStorage.removeItem(this.KEYS.EMAIL_OTPS);
+    return user;
   },
 
   updateUser(id, updates) {
@@ -369,7 +564,7 @@ const StorageService = {
       const data = localStorage.getItem(this.KEYS.USER_PROFILE);
       if (data) {
         const parsed = JSON.parse(data);
-        return Boolean(parsed && parsed.id && parsed.role !== "guest");
+        return Boolean(parsed && parsed.id && parsed.role !== "guest" && parsed.status !== "pending_approval");
       }
     } catch (e) {}
     return false;
@@ -385,7 +580,7 @@ const StorageService = {
       const data = localStorage.getItem(this.KEYS.USER_PROFILE);
       if (data) {
         const parsed = JSON.parse(data);
-        if (parsed && parsed.role !== "guest") {
+        if (parsed && parsed.role !== "guest" && parsed.status !== "pending_approval") {
           return parsed;
         }
       }
@@ -396,6 +591,7 @@ const StorageService = {
       id: "guest",
       fullName: "Khách (Chưa đăng nhập)",
       studentId: "",
+      email: "",
       department: "Trường Đại học Đồng Tháp",
       role: "guest",
       avatar: "👤",
@@ -429,6 +625,9 @@ const StorageService = {
     const user = this.getUserByStudentId(studentId);
     if (!user) {
       throw new Error("Không tìm thấy tài khoản với Mã số sinh viên này!");
+    }
+    if (user.status === "pending_approval") {
+      throw new Error("⏳ Tài khoản của bạn đang chờ Quản trị viên (Admin) phê duyệt trước khi có thể đăng nhập. Vui lòng quay lại sau hoặc liên hệ CSKH!");
     }
     if (user.status === "suspended") {
       throw new Error("Tài khoản này hiện đang bị tạm khóa. Vui lòng liên hệ Admin!");

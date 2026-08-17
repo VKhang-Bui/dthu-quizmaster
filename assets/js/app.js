@@ -962,6 +962,9 @@ const App = {
       case "users-management":
         this.renderUsersManagementView(mainContainer);
         break;
+      case "register":
+        this.renderRegisterView(mainContainer);
+        break;
       case "quiz":
         this.renderQuizView(mainContainer);
         break;
@@ -3037,10 +3040,16 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       return;
     }
 
+    if (!this.adminUserTab) this.adminUserTab = "active";
+
     const allUsers = StorageService.getAllUsers();
-    const admins = allUsers.filter(u => u.role === "admin");
-    const editors = allUsers.filter(u => u.role === "editor");
-    const students = allUsers.filter(u => u.role === "student");
+    const activeUsers = StorageService.getActiveUsers();
+    const pendingUsers = StorageService.getPendingUsers();
+    const resetRequests = StorageService.getResetRequests();
+
+    const admins = allUsers.filter(u => u.role === "admin" && u.status === "active");
+    const editors = allUsers.filter(u => u.role === "editor" && u.status === "active");
+    const students = allUsers.filter(u => u.role === "student" && u.status === "active");
     const depts = [...new Set(allUsers.map(u => u.department || "Khác"))];
 
     container.innerHTML = `
@@ -3050,7 +3059,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
           <div>
             <h2 style="font-size: 24px; font-weight: 800; color: var(--text-primary);">👥 Quản Trị Người Dùng & Phân Quyền</h2>
             <p style="color: var(--text-secondary); margin-top: 4px;">
-              Quản lý danh sách sinh viên, cấp quyền biên tập viên, kiểm soát trạng thái tài khoản và phân quyền chức năng.
+              Quản lý danh sách sinh viên, phê duyệt hồ sơ đăng ký mới, cấp quyền biên tập viên và xử lý yêu cầu CSKH.
             </p>
           </div>
           <div style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -3064,8 +3073,15 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
           <div class="user-stat-card">
             <div class="user-stat-icon">👥</div>
             <div>
-              <div class="user-stat-num">${allUsers.length}</div>
-              <div class="user-stat-label">Tổng thành viên</div>
+              <div class="user-stat-num">${activeUsers.length}</div>
+              <div class="user-stat-label">Thành viên hoạt động</div>
+            </div>
+          </div>
+          <div class="user-stat-card" style="border-color: ${pendingUsers.length > 0 ? '#fcd34d' : 'var(--border)'}; background: ${pendingUsers.length > 0 ? '#fffbeb' : 'var(--surface)'};">
+            <div class="user-stat-icon">⏳</div>
+            <div>
+              <div class="user-stat-num" style="color: #b45309;">${pendingUsers.length}</div>
+              <div class="user-stat-label">Hồ sơ chờ phê duyệt</div>
             </div>
           </div>
           <div class="user-stat-card">
@@ -3076,60 +3092,228 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
             </div>
           </div>
           <div class="user-stat-card">
-            <div class="user-stat-icon">🛡️</div>
+            <div class="user-stat-icon">🆘</div>
             <div>
-              <div class="user-stat-num" style="color: #1d4ed8;">${editors.length}</div>
-              <div class="user-stat-label">Ban Biên Tập (Editor)</div>
-            </div>
-          </div>
-          <div class="user-stat-card">
-            <div class="user-stat-icon">👨‍🎓</div>
-            <div>
-              <div class="user-stat-num" style="color: #059669;">${students.length}</div>
-              <div class="user-stat-label">Sinh viên tiêu chuẩn</div>
+              <div class="user-stat-num" style="color: #e11d48;">${resetRequests.filter(r => r.status === 'pending').length}</div>
+              <div class="user-stat-label">Yêu cầu CSKH / Quên PIN</div>
             </div>
           </div>
         </div>
 
-        <!-- Thanh Tìm kiếm & Bộ lọc -->
-        <div class="search-filter-bar" style="margin: 0;">
-          <div class="search-input-wrapper">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="userSearchInput" class="form-control" placeholder="Tìm theo tên, mã số sinh viên (MSSV)..." oninput="App.onSearchUsers()">
-          </div>
-          <select id="userRoleFilter" class="form-control" style="width: auto; min-width: 170px;" onchange="App.onSearchUsers()">
-            <option value="all">Tất cả vai trò</option>
-            <option value="admin">👑 Quản trị viên (Admin)</option>
-            <option value="editor">🛡️ Ban Biên Tập (Editor)</option>
-            <option value="student">👨‍🎓 Sinh viên</option>
-          </select>
-          <select id="userDeptFilter" class="form-control" style="width: auto; min-width: 200px;" onchange="App.onSearchUsers()">
-            <option value="all">Tất cả khoa / ngành</option>
-            ${depts.map(d => `<option value="${d}">${d}</option>`).join('')}
-          </select>
+        <!-- Admin Tab Bar -->
+        <div class="admin-tab-bar">
+          <button class="admin-tab-btn ${this.adminUserTab === 'active' ? 'active' : ''}" onclick="App.switchAdminUserTab('active')">
+            👥 Thành Viên Hoạt Động <span class="badge" style="background:#e2e8f0; color:#334155; font-size:11px;">${activeUsers.length}</span>
+          </button>
+          <button class="admin-tab-btn ${this.adminUserTab === 'pending' ? 'active' : ''}" onclick="App.switchAdminUserTab('pending')">
+            ⏳ Chờ Phê Duyệt Đăng Ký ${pendingUsers.length > 0 ? `<span class="badge-pending">${pendingUsers.length} mới</span>` : `<span class="badge" style="background:#e2e8f0; color:#334155; font-size:11px;">0</span>`}
+          </button>
+          <button class="admin-tab-btn ${this.adminUserTab === 'resets' ? 'active' : ''}" onclick="App.switchAdminUserTab('resets')">
+            🆘 Hỗ Trợ Quên PIN / CSKH <span class="badge" style="background:#fee2e2; color:#b91c1c; font-size:11px;">${resetRequests.length}</span>
+          </button>
         </div>
 
-        <!-- Bảng Danh Sách Người Dùng -->
-        <div class="users-table-container">
-          <table class="users-table">
-            <thead>
-              <tr>
-                <th>Thành Viên</th>
-                <th>Khoa / Ngành</th>
-                <th>Vai Trò</th>
-                <th>Quyền Hạn Cấp Phép</th>
-                <th>Điểm EXP</th>
-                <th>Trạng Thái</th>
-                <th style="text-align: right;">Thao Tác</th>
-              </tr>
-            </thead>
-            <tbody id="usersTableBody">
-              ${this.renderUsersTableRows(allUsers)}
-            </tbody>
-          </table>
-        </div>
+        <!-- Nội dung theo Tab được chọn -->
+        ${this.adminUserTab === 'active' ? `
+          <!-- Thanh Tìm kiếm & Bộ lọc cho Active Users -->
+          <div class="search-filter-bar" style="margin: 0;">
+            <div class="search-input-wrapper">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="userSearchInput" class="form-control" placeholder="Tìm theo tên, MSSV, email..." oninput="App.onSearchUsers()">
+            </div>
+            <select id="userRoleFilter" class="form-control" style="width: auto; min-width: 170px;" onchange="App.onSearchUsers()">
+              <option value="all">Tất cả vai trò</option>
+              <option value="admin">👑 Quản trị viên (Admin)</option>
+              <option value="editor">🛡️ Ban Biên Tập (Editor)</option>
+              <option value="student">👨‍🎓 Sinh viên</option>
+            </select>
+            <select id="userDeptFilter" class="form-control" style="width: auto; min-width: 200px;" onchange="App.onSearchUsers()">
+              <option value="all">Tất cả khoa / ngành</option>
+              ${depts.map(d => `<option value="${d}">${d}</option>`).join('')}
+            </select>
+          </div>
+
+          <!-- Bảng Danh Sách Thành Viên Hoạt Động -->
+          <div class="users-table-container">
+            <table class="users-table">
+              <thead>
+                <tr>
+                  <th>Thành Viên</th>
+                  <th>Khoa / Ngành</th>
+                  <th>Vai Trò</th>
+                  <th>Quyền Hạn Cấp Phép</th>
+                  <th>Điểm EXP</th>
+                  <th>Trạng Thái</th>
+                  <th style="text-align: right;">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody">
+                ${this.renderUsersTableRows(activeUsers)}
+              </tbody>
+            </table>
+          </div>
+        ` : this.adminUserTab === 'pending' ? `
+          <!-- Bảng Danh Sách Chờ Phê Duyệt -->
+          <div class="users-table-container">
+            <table class="users-table">
+              <thead>
+                <tr>
+                  <th>Sinh Viên Đăng Ký</th>
+                  <th>Khoa / Chuyên Ngành</th>
+                  <th>Email Nhận Thông Báo</th>
+                  <th>Ngày Đăng Ký</th>
+                  <th>Trạng Thái</th>
+                  <th style="text-align: right;">Phê Duyệt / Quyết Định</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${this.renderPendingUsersTableRows(pendingUsers)}
+              </tbody>
+            </table>
+          </div>
+        ` : `
+          <!-- Bảng Yêu Cầu Khôi Phục Mã PIN / CSKH -->
+          <div class="users-table-container">
+            <table class="users-table">
+              <thead>
+                <tr>
+                  <th>Sinh Viên Gửi Yêu Cầu</th>
+                  <th>Thông Tin Liên Hệ</th>
+                  <th>Nội Dung Ghi Chú</th>
+                  <th>Thời Gian Gửi</th>
+                  <th>Trạng Thái</th>
+                  <th style="text-align: right;">Xử Lý / Cấp PIN</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${this.renderResetRequestsTableRows(resetRequests)}
+              </tbody>
+            </table>
+          </div>
+        `}
       </div>
     `;
+  },
+
+  switchAdminUserTab(tab) {
+    this.adminUserTab = tab;
+    this.renderUsersManagementView(document.getElementById("mainContent"));
+  },
+
+  renderPendingUsersTableRows(pendingUsers) {
+    if (!pendingUsers || pendingUsers.length === 0) {
+      return `
+        <tr>
+          <td colspan="6" style="text-align: center; padding: 56px 20px; color: var(--text-secondary);">
+            <div style="font-size: 40px; margin-bottom: 8px;">🎉</div>
+            <strong style="font-size: 16px; color: var(--text-primary); display: block;">Không có hồ sơ đăng ký nào đang chờ duyệt!</strong>
+            <span style="font-size: 13px;">Mọi sinh viên đăng ký mới đã được xử lý xong.</span>
+          </td>
+        </tr>
+      `;
+    }
+
+    return pendingUsers.map(u => `
+      <tr>
+        <td>
+          <div class="user-info-cell">
+            <div class="user-avatar-badge">${u.avatar || '👨‍🎓'}</div>
+            <div>
+              <div style="font-weight: 700; color: var(--text-primary);">${u.fullName}</div>
+              <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">MSSV: <strong>${u.studentId}</strong></div>
+            </div>
+          </div>
+        </td>
+        <td style="font-size: 13px; color: var(--text-secondary);">${u.department || 'ĐH Đồng Tháp'}</td>
+        <td style="font-size: 13px; color: var(--text-secondary);"><code>${u.email || (u.studentId + '@dthu.edu.vn')}</code></td>
+        <td style="font-size: 12.5px; color: var(--text-tertiary);">${u.registeredAt ? new Date(u.registeredAt).toLocaleString('vi-VN') : 'Gần đây'}</td>
+        <td><span class="status-badge-pending">⏳ Chờ Phê Duyệt</span></td>
+        <td style="text-align: right;">
+          <div style="display: inline-flex; gap: 6px;">
+            <button class="btn btn-sm btn-primary" onclick="App.approveUserRegistrationAction('${u.id}')">
+              ✅ Phê Duyệt
+            </button>
+            <button class="btn btn-sm btn-danger" onclick="App.rejectUserRegistrationAction('${u.id}')">
+              ❌ Từ Chối
+            </button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  },
+
+  renderResetRequestsTableRows(requests) {
+    if (!requests || requests.length === 0) {
+      return `
+        <tr>
+          <td colspan="6" style="text-align: center; padding: 56px 20px; color: var(--text-secondary);">
+            <div style="font-size: 40px; margin-bottom: 8px;">✨</div>
+            <strong style="font-size: 16px; color: var(--text-primary); display: block;">Không có yêu cầu khôi phục mã PIN nào!</strong>
+            <span style="font-size: 13px;">Hàng đợi hỗ trợ CSKH hiện đang trống.</span>
+          </td>
+        </tr>
+      `;
+    }
+
+    return requests.map(r => `
+      <tr>
+        <td>
+          <div style="font-weight: 700; color: var(--text-primary);">${r.fullName}</div>
+          <div style="font-size: 12px; color: var(--text-secondary);">MSSV: <strong>${r.studentId}</strong></div>
+        </td>
+        <td style="font-size: 13px; color: var(--text-secondary);">${r.phone || r.email || 'Chưa cung cấp'}</td>
+        <td style="font-size: 13px; color: var(--text-secondary); max-width: 250px;">${r.note || 'Yêu cầu cấp lại mã PIN'}</td>
+        <td style="font-size: 12px; color: var(--text-tertiary);">${r.createdAt ? new Date(r.createdAt).toLocaleString('vi-VN') : 'Gần đây'}</td>
+        <td>
+          <span class="${r.status === 'resolved' ? 'status-badge-active' : 'status-badge-pending'}">
+            ${r.status === 'resolved' ? '✓ Đã cấp lại PIN' : '⏳ Cần xử lý'}
+          </span>
+        </td>
+        <td style="text-align: right;">
+          ${r.status !== 'resolved' ? `
+            <button class="btn btn-sm btn-primary" onclick="App.resolveResetRequestAction('${r.id}')">
+              🔄 Cấp PIN (123456)
+            </button>
+          ` : `
+            <span style="font-size: 12px; color: var(--text-tertiary);">Đã giải quyết</span>
+          `}
+        </td>
+      </tr>
+    `).join('');
+  },
+
+  approveUserRegistrationAction(userId) {
+    const user = StorageService.getUserById(userId);
+    if (!user) return;
+    const current = StorageService.getUserProfile();
+    StorageService.approveUserRegistration(userId, current.fullName || "Admin");
+    this.showToast(`🎉 Đã phê duyệt kích hoạt tài khoản cho sinh viên "${user.fullName}" (${user.studentId})!`, "success", 4000);
+    this.renderUsersManagementView(document.getElementById("mainContent"));
+  },
+
+  rejectUserRegistrationAction(userId) {
+    const user = StorageService.getUserById(userId);
+    if (!user) return;
+    this.showConfirmDialog({
+      title: "Xác nhận từ chối hồ sơ đăng ký",
+      message: `Bạn có chắc chắn muốn từ chối hồ sơ của <strong>"${user.fullName}" (MSSV: ${user.studentId})</strong> không?`,
+      icon: "⚠️",
+      confirmText: "Từ chối hồ sơ",
+      isDanger: true,
+      onConfirm: () => {
+        StorageService.rejectUserRegistration(userId);
+        this.showToast(`Đã từ chối hồ sơ đăng ký của "${user.fullName}"!`, "info", 3000);
+        this.renderUsersManagementView(document.getElementById("mainContent"));
+      }
+    });
+  },
+
+  resolveResetRequestAction(reqId) {
+    const resolved = StorageService.resolveResetRequest(reqId, "123456");
+    if (resolved) {
+      this.showToast(`✅ Đã cấp lại mã PIN mặc định "123456" cho sinh viên "${resolved.fullName}" (${resolved.studentId})!`, "success", 4500);
+      this.renderUsersManagementView(document.getElementById("mainContent"));
+    }
   },
 
   renderUsersTableRows(users) {
@@ -3221,9 +3405,11 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     const role = document.getElementById("userRoleFilter")?.value || "all";
     const dept = document.getElementById("userDeptFilter")?.value || "all";
 
-    const all = StorageService.getAllUsers();
+    const all = StorageService.getActiveUsers();
     const filtered = all.filter(u => {
-      const matchQuery = (u.fullName && u.fullName.toLowerCase().includes(query)) || (u.studentId && u.studentId.toLowerCase().includes(query));
+      const matchQuery = (u.fullName && u.fullName.toLowerCase().includes(query)) || 
+                         (u.studentId && u.studentId.toLowerCase().includes(query)) ||
+                         (u.email && u.email.toLowerCase().includes(query));
       const matchRole = role === "all" || u.role === role;
       const matchDept = dept === "all" || u.department === dept;
       return matchQuery && matchRole && matchDept;
@@ -3576,7 +3762,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
   // MODAL ĐĂNG NHẬP & CHUYỂN ĐỔI TÀI KHOẢN (ACCOUNT SWITCHER & LOGIN)
   // ═════════════════════════════════════════════════════════════════════════
   openAccountSwitcherModal() {
-    const allUsers = StorageService.getAllUsers();
+    const allUsers = StorageService.getActiveUsers();
     const currentProfile = StorageService.getUserProfile();
 
     const modal = document.getElementById("globalModal");
@@ -3593,7 +3779,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
           <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 8px; display: block;">
             1. Chọn nhanh tài khoản có sẵn trên thiết bị:
           </label>
-          <div style="display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto;">
+          <div style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto;">
             ${allUsers.map(u => {
               const isCurrent = currentProfile && currentProfile.id === u.id;
               let roleStr = "👨‍🎓 Sinh Viên";
@@ -3631,6 +3817,16 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
             🚀 Xác Thực & Đăng Nhập
           </button>
         </div>
+
+        <!-- Phần 3: Điều hướng Đăng ký mới & Quên mã PIN -->
+        <div style="border-top: 1px dashed var(--border); padding-top: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <button class="btn" style="padding: 6px 12px; font-size: 13px; font-weight: 700; color: var(--brand-primary); background: var(--brand-light); border-color: var(--brand-primary);" onclick="App.closeModal(); App.navigateTo('register');">
+            ➕ Đăng ký tài khoản mới ➔
+          </button>
+          <button class="btn" style="padding: 6px 12px; font-size: 12.5px; color: var(--text-secondary);" onclick="App.openForgotPasswordModal()">
+            ❓ Quên mã PIN?
+          </button>
+        </div>
       </div>
     `;
 
@@ -3657,12 +3853,318 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       this.showToast(`🎉 Đăng nhập thành công! Chào mừng ${user.fullName} (${user.role.toUpperCase()})`, "success", 3500);
       this.navigateTo("home");
     } catch (err) {
+      this.showToast("❌ " + err.message, "danger", 4500);
+    }
+  },
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // MODAL KHÔI PHỤC MÃ PIN / QUÊN MẬT KHẨU (FORGOT PASSWORD & CSKH)
+  // ═════════════════════════════════════════════════════════════════════════
+  openForgotPasswordModal() {
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = "❓ Khôi Phục Mã PIN / Quên Mật Khẩu";
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+          Vui lòng chọn một trong hai phương thức sau để cấp lại mã PIN đăng nhập:
+        </p>
+
+        <!-- Phương thức 1: Nhận mã OTP qua Email -->
+        <div style="border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 16px; background: var(--surface);">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <span style="font-size: 20px;">📧</span>
+            <strong style="font-size: 14.5px; color: var(--text-primary);">Cách 1: Nhận mã xác thực OTP qua Email</strong>
+          </div>
+          <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.4; margin: 0 0 10px 0;">
+            Hệ thống sẽ gửi mã xác thực 6 số đến địa chỉ email sinh viên đã đăng ký với tài khoản.
+          </p>
+
+          <div id="otpStep1">
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="forgotIdentifierInput" class="form-control" placeholder="Nhập MSSV hoặc Email..." style="flex: 1;">
+              <button class="btn btn-primary" onclick="App.sendEmailOtpAction()">Gửi OTP ➔</button>
+            </div>
+          </div>
+
+          <div id="otpStep2" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border);">
+            <div style="font-size: 12.5px; color: #166534; background: #f0fdf4; padding: 8px 12px; border-radius: 4px; margin-bottom: 10px;" id="otpNoticeBox">
+              📨 Mã OTP đã được gửi đến email của bạn!
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+              <input type="text" id="otpCodeInput" class="form-control" placeholder="Nhập mã OTP 6 số" maxlength="6">
+              <input type="password" id="newPinInput" class="form-control" placeholder="Tạo mã PIN mới (6 số)" maxlength="6">
+            </div>
+            <button class="btn btn-success" style="width: 100%; font-weight: 700;" onclick="App.verifyOtpAndResetPinAction()">
+              ✓ Xác Nhận & Đặt Mã PIN Mới
+            </button>
+          </div>
+        </div>
+
+        <!-- Phương thức 2: Liên hệ CSKH & Admin Bùi Văn Khang -->
+        <div style="border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 16px; background: var(--surface-subtle);">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <span style="font-size: 20px;">👨‍💼</span>
+            <strong style="font-size: 14.5px; color: var(--text-primary);">Cách 2: Liên hệ Trực Tiếp Ban Quản Trị & CSKH</strong>
+          </div>
+          <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.4; margin: 0 0 12px 0;">
+            Gửi yêu cầu hỗ trợ trực tiếp đến hàng đợi CSKH của Admin (Bùi Văn Khang - CNSH DThu) để được cấp lại mã PIN mặc định <code>123456</code>:
+          </p>
+
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <input type="text" id="cskhNameInput" class="form-control" placeholder="Họ và tên của bạn">
+              <input type="text" id="cskhMssvInput" class="form-control" placeholder="MSSV (*)">
+            </div>
+            <input type="text" id="cskhContactInput" class="form-control" placeholder="Số điện thoại / Zalo / Email liên hệ">
+            <button class="btn" style="width: 100%; border-color: var(--brand-primary); color: var(--brand-primary);" onclick="App.submitCskhResetAction()">
+              📤 Gửi Yêu Cầu Đến Ban Quản Trị ➔
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.openAccountSwitcherModal()">← Quay lại Đăng nhập</button>
+      <button class="btn" onclick="App.closeModal()">Đóng</button>
+    `;
+
+    modal.classList.add("active");
+  },
+
+  sendEmailOtpAction() {
+    const identifier = document.getElementById("forgotIdentifierInput")?.value.trim();
+    if (!identifier) {
+      this.showToast("⚠️ Vui lòng nhập MSSV hoặc Email của bạn!", "warning");
+      return;
+    }
+
+    try {
+      const res = StorageService.generateEmailOtp(identifier);
+      document.getElementById("otpStep1").style.display = "none";
+      const step2 = document.getElementById("otpStep2");
+      step2.style.display = "block";
+
+      const notice = document.getElementById("otpNoticeBox");
+      if (notice) {
+        notice.innerHTML = `📨 Đã gửi mã OTP đến: <strong>${res.email}</strong>. (Mã giả lập thử nghiệm: <strong style="font-size:14px; color:#b45309;">${res.otp}</strong>)`;
+      }
+
+      this.showToast(`📨 [Mô phỏng Email DThu] Mã xác thực OTP đặt lại PIN của bạn là: ${res.otp}`, "info", 7000);
+    } catch (err) {
+      this.showToast("❌ " + err.message, "danger", 4000);
+    }
+  },
+
+  verifyOtpAndResetPinAction() {
+    const identifier = document.getElementById("forgotIdentifierInput")?.value.trim();
+    const otp = document.getElementById("otpCodeInput")?.value.trim();
+    const newPin = document.getElementById("newPinInput")?.value.trim();
+
+    if (!otp || !newPin) {
+      this.showToast("⚠️ Vui lòng nhập đầy đủ mã OTP và mã PIN mới!", "warning");
+      return;
+    }
+
+    try {
+      const user = StorageService.verifyEmailOtpAndResetPin(identifier, otp, newPin);
+      this.showToast(`🎉 Đã đặt lại mã PIN cho tài khoản "${user.fullName}" thành công! Vui lòng đăng nhập.`, "success", 4000);
+      this.openAccountSwitcherModal();
+    } catch (err) {
+      this.showToast("❌ " + err.message, "danger", 4000);
+    }
+  },
+
+  submitCskhResetAction() {
+    const name = document.getElementById("cskhNameInput")?.value.trim();
+    const mssv = document.getElementById("cskhMssvInput")?.value.trim();
+    const contact = document.getElementById("cskhContactInput")?.value.trim();
+
+    if (!mssv) {
+      this.showToast("⚠️ Vui lòng nhập Mã số sinh viên (MSSV) để xác thực!", "warning");
+      return;
+    }
+
+    StorageService.createResetRequest({
+      studentId: mssv,
+      fullName: name || "Sinh viên",
+      email: contact,
+      phone: contact,
+      note: `Yêu cầu cấp lại mã PIN cho MSSV ${mssv}`
+    });
+
+    this.showToast("✅ Đã gửi yêu cầu khôi phục PIN đến Ban Quản Trị / Admin (Bùi Văn Khang)!", "success", 4500);
+    this.closeModal();
+  },
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // 11. REGISTER VIEW (ĐĂNG KÝ TÀI KHOẢN SINH VIÊN MỚI - CHỜ ADMIN DUYỆT)
+  // ═════════════════════════════════════════════════════════════════════════
+  renderRegisterView(container) {
+    container.innerHTML = `
+      <div class="view-register">
+        <div class="auth-card">
+          <div class="auth-card-header">
+            <div style="font-size: 40px; margin-bottom: 6px;">🎓</div>
+            <h2 style="font-size: 22px; font-weight: 800; color: var(--text-primary); margin: 0;">Đăng Ký Tài Khoản Học Tập</h2>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
+              Dành cho sinh viên Trường Đại học Đồng Tháp (DThu)
+            </p>
+          </div>
+
+          <div class="auth-card-body" id="registerFormContainer">
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); padding: 12px 14px; font-size: 12.5px; color: #1e40af; line-height: 1.5;">
+              ℹ️ <strong>Lưu ý:</strong> Sau khi gửi đăng ký, tài khoản sẽ ở trạng thái <strong>Chờ Phê Duyệt</strong> bởi Quản trị viên (Admin) trước khi có thể đăng nhập.
+            </div>
+
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label">Họ và tên sinh viên (*):</label>
+              <input type="text" id="regFullName" class="form-control" placeholder="Ví dụ: Lê Thị Thu Thảo">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label">Mã số sinh viên (MSSV) (*):</label>
+                <input type="text" id="regStudentId" class="form-control" placeholder="Ví dụ: 220105888">
+              </div>
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label">Email sinh viên / Cá nhân (*):</label>
+                <input type="email" id="regEmail" class="form-control" placeholder="Ví dụ: 220105888@dthu.edu.vn">
+              </div>
+            </div>
+
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label">Khoa / Chuyên ngành:</label>
+              <select id="regDept" class="form-control">
+                <option value="Khoa Nông nghiệp - Sinh học">Khoa Nông nghiệp - Sinh học</option>
+                <option value="Khoa Sư phạm Khoa học Xã hội">Khoa Sư phạm Khoa học Xã hội</option>
+                <option value="Khoa Sư phạm Khoa học Tự nhiên">Khoa Sư phạm Khoa học Tự nhiên</option>
+                <option value="Khoa Kỹ thuật - Công nghệ">Khoa Kỹ thuật - Công nghệ</option>
+                <option value="Khoa Kinh tế - Quản trị">Khoa Kinh tế - Quản trị</option>
+                <option value="Khoa Ngoại ngữ">Khoa Ngoại ngữ</option>
+                <option value="Khoa Giáo dục Tiểu học - Mầm non">Khoa Giáo dục Tiểu học - Mầm non</option>
+                <option value="Khác">Khoa / Chuyên ngành khác</option>
+              </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label">Tạo Mã PIN Đăng nhập (6 số) (*):</label>
+                <input type="password" id="regPin" class="form-control" placeholder="Mã PIN 6 số" maxlength="6">
+              </div>
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label">Xác nhận Mã PIN (*):</label>
+                <input type="password" id="regPinConfirm" class="form-control" placeholder="Nhập lại mã PIN" maxlength="6">
+              </div>
+            </div>
+
+            <!-- Avatar Picker -->
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label">Chọn Avatar đại diện:</label>
+              <div class="avatar-picker-grid" id="regAvatarPicker">
+                ${['👨‍🎓', '👩‍🎓', '🧑‍💻', '👩‍💻', '🧪', '🧬', '🌟', '📚', '🎯', '🦁', '🦉', '🚀'].map((av, idx) => `
+                  <button type="button" class="avatar-choice-btn ${idx === 0 ? 'active' : ''}" onclick="App.selectRegAvatar('${av}', this)">
+                    ${av}
+                  </button>
+                `).join('')}
+              </div>
+              <input type="hidden" id="selectedRegAvatar" value="👨‍🎓">
+            </div>
+
+            <button class="btn btn-primary" style="padding: 12px; font-size: 14px; font-weight: 700; width: 100%;" onclick="App.submitRegistration()">
+              🚀 Gửi Yêu Cầu Đăng Ký Tài Khoản ➔
+            </button>
+
+            <div class="auth-footer-links">
+              <span>Đã có tài khoản? <a href="javascript:void(0)" onclick="App.openAccountSwitcherModal()" style="color: var(--brand-primary); font-weight: 700;">Đăng nhập ngay</a></span>
+              <a href="javascript:void(0)" onclick="App.openForgotPasswordModal()" style="color: var(--text-secondary);">Quên mã PIN?</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  selectRegAvatar(avatar, btn) {
+    document.querySelectorAll("#regAvatarPicker .avatar-choice-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    const hidden = document.getElementById("selectedRegAvatar");
+    if (hidden) hidden.value = avatar;
+  },
+
+  submitRegistration() {
+    const fullName = document.getElementById("regFullName")?.value.trim();
+    const studentId = document.getElementById("regStudentId")?.value.trim();
+    const email = document.getElementById("regEmail")?.value.trim();
+    const dept = document.getElementById("regDept")?.value;
+    const pin = document.getElementById("regPin")?.value.trim();
+    const pinConfirm = document.getElementById("regPinConfirm")?.value.trim();
+    const avatar = document.getElementById("selectedRegAvatar")?.value || "👨‍🎓";
+
+    if (!fullName || !studentId || !pin) {
+      this.showToast("⚠️ Vui lòng điền đầy đủ Họ tên, MSSV và Mã PIN!", "warning");
+      return;
+    }
+
+    if (pin.length < 4) {
+      this.showToast("⚠️ Mã PIN phải có ít nhất 4 đến 6 số!", "warning");
+      return;
+    }
+
+    if (pin !== pinConfirm) {
+      this.showToast("⚠️ Xác nhận mã PIN không khớp! Vui lòng nhập lại.", "warning");
+      return;
+    }
+
+    try {
+      const newUser = StorageService.registerUser({
+        fullName,
+        studentId,
+        email,
+        department: dept,
+        pinCode: pin,
+        avatar
+      });
+
+      const formContainer = document.getElementById("registerFormContainer");
+      if (formContainer) {
+        formContainer.innerHTML = `
+          <div style="text-align: center; padding: 24px 10px;">
+            <div style="font-size: 54px; margin-bottom: 12px; line-height: 1;">⏳</div>
+            <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin: 0 0 8px 0;">Đăng Ký Thành Công!</h3>
+            <div style="background: #fefce8; border: 1px solid #fef08a; border-radius: var(--radius-sm); padding: 14px; margin: 16px 0; text-align: left; font-size: 13px; line-height: 1.6; color: #854d0e;">
+              <div>👤 <strong>Họ tên:</strong> ${newUser.fullName}</div>
+              <div>🆔 <strong>MSSV:</strong> ${newUser.studentId}</div>
+              <div>🏛️ <strong>Khoa:</strong> ${newUser.department}</div>
+              <div>📧 <strong>Email:</strong> ${newUser.email}</div>
+              <div style="margin-top: 6px; font-weight: 700; color: #b45309;">
+                Trạng thái: ⏳ Đang chờ Quản trị viên (Admin) xét duyệt.
+              </div>
+            </div>
+            <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px;">
+              Sau khi được Admin phê duyệt, bạn sẽ có thể đăng nhập bằng MSSV và mã PIN vừa tạo để bắt đầu ôn thi và tích lũy EXP.
+            </p>
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+              <button class="btn btn-primary" onclick="App.navigateTo('home')">🏠 Về Trang Chủ</button>
+              <button class="btn" onclick="App.openAccountSwitcherModal()">🔑 Đăng Nhập Tài Khoản Khác</button>
+            </div>
+          </div>
+        `;
+      }
+
+      this.showToast(`🎉 Gửi yêu cầu đăng ký cho "${fullName}" thành công!`, "success", 4000);
+    } catch (err) {
       this.showToast("❌ " + err.message, "danger", 4000);
     }
   },
 
   // ═════════════════════════════════════════════════════════════════════════
-  // 11. MANAGE VIEW (QUẢN LÝ MÔN HỌC & ĐỀ THI)
+  // 12. MANAGE VIEW (QUẢN LÝ MÔN HỌC & ĐỀ THI)
   // ═════════════════════════════════════════════════════════════════════════
   renderManageView(container) {
     const subjects = StorageService.getSubjects();
