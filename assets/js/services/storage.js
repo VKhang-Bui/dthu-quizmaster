@@ -453,7 +453,7 @@ const StorageService = {
       const data = localStorage.getItem(this.KEYS.USERS_LIST);
       if (data) {
         let list = JSON.parse(data);
-        if (Array.isArray(list) && list.length > 0) {
+        if (Array.isArray(list)) {
           // Lọc bỏ triệt để các tài khoản đã bị xóa (status === 'rejected')
           let validList = list.filter(u => u && u.status !== "rejected");
 
@@ -467,21 +467,19 @@ const StorageService = {
           const adminIdx = validList.findIndex(u => u.id === "USR-01" || u.role === "admin");
           if (adminIdx !== -1 && validList[adminIdx].studentId !== "0024418475") {
             validList[adminIdx] = Object.assign({}, validList[adminIdx], this.DEFAULT_USERS[0]);
+            this.saveAllUsers(validList);
+          } else if (adminIdx === -1 && this.DEFAULT_USERS.length > 0) {
+            // Đảm bảo luôn có ít nhất 1 tài khoản Admin chính nếu danh sách chưa có Admin
+            validList.unshift(this.DEFAULT_USERS[0]);
+            this.saveAllUsers(validList);
           }
 
-          // Bổ sung các user mặc định nếu chưa có
-          this.DEFAULT_USERS.forEach(defU => {
-            if (!validList.some(u => u.id === defU.id || u.studentId === defU.studentId)) {
-              validList.push(defU);
-            }
-          });
-
-          this.saveAllUsers(validList);
           return validList;
         }
       }
     } catch (e) {}
 
+    // Lần đầu tiên khởi tạo khi chưa có USERS_LIST trong localStorage
     this.saveAllUsers(this.DEFAULT_USERS);
     return this.DEFAULT_USERS;
   },
@@ -942,6 +940,33 @@ const StorageService = {
         await SupabaseClient.deleteUser(id);
       } catch (e) {
         console.warn("Supabase deleteUser error:", e);
+      }
+    }
+
+    return true;
+  },
+
+  async deleteUsers(ids) {
+    if (!Array.isArray(ids) || ids.length === 0) return true;
+    const active = this.getUserProfile();
+    const safeIds = ids.filter(id => !active || id !== active.id);
+    if (safeIds.length === 0) return false;
+
+    let list = this.getAllUsers();
+    list = list.filter(u => !safeIds.includes(u.id));
+    this.saveAllUsers(list);
+
+    // Đồng bộ xóa triệt để trên Supabase Cloud
+    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+      for (const id of safeIds) {
+        try {
+          await SupabaseClient.updateUser(id, { status: "rejected" });
+        } catch (e) {}
+        try {
+          await SupabaseClient.deleteUser(id);
+        } catch (e) {
+          console.warn("Supabase deleteUser error:", e);
+        }
       }
     }
 

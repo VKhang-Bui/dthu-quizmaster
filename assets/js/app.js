@@ -7398,11 +7398,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       isDanger: true,
       onConfirm: async () => {
         const adminName = currentProfile.fullName || "Quản trị viên";
-        for (const id of ids) {
-          try {
-            await StorageService.deleteUser(id);
-          } catch (e) {}
-        }
+        await StorageService.deleteUsers(ids);
         StorageService.addAuditLog("BULK_DELETE_USERS", `${ids.length} tài khoản`, `Xóa vĩnh viễn hàng loạt ${ids.length} tài khoản khỏi hệ thống`, adminName);
         this.selectedUserIds.clear();
         this.showToast(`🗑️ Đã xóa ${ids.length} tài khoản thành công!`, "info", 3500);
