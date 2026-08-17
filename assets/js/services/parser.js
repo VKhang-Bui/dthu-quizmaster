@@ -371,6 +371,8 @@ const SmartParserService = {
     let text = rawText.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
     const globalAnswers = this.extractGlobalAnswerKey(text);
+    const hasGlobalKey = Object.keys(globalAnswers).length > 0;
+
     const questionSplits = text.split(/(?=(?:(?:\n|\A)\s*(?:\*{0,2}(?:Câu|Bài|Question)\s*\d+[\s\.:\*\-\]]+|\b\d+\s*[\.)]\s+|\[(?:Câu\s*)?\d+\])))/i);
     const optAPattern = /(?:(?:\n|\A)\s*|[\t\s]{2,}|(?<=[\?\:\.\"\'])\s*)\[?A\]?[\.\)\:\*\_]\s+/i;
     const formattedBlocks = [];
@@ -386,7 +388,7 @@ const SmartParserService = {
 
       const qNumMatch = trimmedBlock.match(/(?:Câu|Bài|Question)?\s*\[?(\d+)\]?/i);
       const qNum = qNumMatch ? parseInt(qNumMatch[1], 10) : (blockIdx + 1);
-      const expectedAnsLetter = globalAnswers[qNum];
+      const expectedAnsLetter = hasGlobalKey ? globalAnswers[qNum] : null;
       const expectedAnsIdx = expectedAnsLetter ? this.letterToIndex(expectedAnsLetter) : -1;
 
       const optAMatch = optAPattern.exec(trimmedBlock);
@@ -406,13 +408,35 @@ const SmartParserService = {
         for (let optIdx = 0; optIdx < optionLines.length; optIdx++) {
           const line = optionLines[optIdx];
           const hasAsterisk = /^\s*\*+\s*\[?([A-Ea-eĐđ])\]?[\.\)\:\*\_]/.test(line);
+          const hasInlineDung = />\s*(đúng|true|chính xác)\b/i.test(line);
           const isKeyMatch = (expectedAnsIdx !== -1 && optIdx === expectedAnsIdx);
 
           let cleanLine = line.replace(/^\s*\*+\s*/, "");
-          if ((hasAsterisk || isKeyMatch) && !cleanLine.includes(">")) {
+          if ((hasAsterisk || isKeyMatch) && !hasInlineDung && !cleanLine.includes(">")) {
             cleanLine = `${cleanLine} > Đúng`;
           }
           cleanedOptionLines.push(cleanLine);
+        }
+
+        // KHỬ TRÙNG LẶP ĐÁP ÁN TRONG CÙNG 1 CÂU HỎI:
+        // Đảm bảo mỗi câu trắc nghiệm chỉ có DUY NHẤT 1 đáp án đúng
+        const dungIndices = [];
+        cleanedOptionLines.forEach((l, lIdx) => {
+          if (/>\s*(?:đúng|true|chính xác)\b/i.test(l)) {
+            dungIndices.push(lIdx);
+          }
+        });
+
+        if (dungIndices.length > 1) {
+          // Ưu tiên giữ lại phương án có đánh dấu đáp án đích thực (ở cuối chuỗi quét hoặc phương án thứ 4)
+          const keepIdx = dungIndices[dungIndices.length - 1];
+          dungIndices.forEach((dIdx) => {
+            if (dIdx !== keepIdx) {
+              cleanedOptionLines[dIdx] = cleanedOptionLines[dIdx]
+                .replace(/\s*>\s*(?:đúng|true|chính xác)\b.*$/i, "")
+                .trim();
+            }
+          });
         }
 
         formattedBlocks.push(`${promptPart}\n${cleanedOptionLines.join("\n")}`);
@@ -557,8 +581,9 @@ const SmartParserService = {
       for (let i = 0; i < paragraphs.length; i++) {
         const p = paragraphs[i];
         const runs = p.getElementsByTagName("w:r");
-        let lineText = "";
-        let isOptionMarkedCorrect = false;
+
+        let currentLine = "";
+        let currentMarked = false;
 
         for (let j = 0; j < runs.length; j++) {
           const r = runs[j];
@@ -602,33 +627,62 @@ const SmartParserService = {
             runText += textNodes[k].textContent;
           }
 
-          // Chỉ đánh dấu đúng nếu run có chứa ký tự hoặc chữ cái phương án VÀ có gạch chân, chữ màu đỏ hoặc highlight
-          if (runText && (isUnderlined || isRed || isHighlighted)) {
-            // Nếu đánh dấu ở chữ cái đầu dòng A., B., C., Đ. hoặc chữ cái phương án
-            if (j === 0 || /^\s*[A-Ea-eĐđ][\.\)\:\*]/.test(runText) || isUnderlined || isRed || isHighlighted) {
-              isOptionMarkedCorrect = true;
+          // Chỉ xem xét định dạng nếu đoạn text có ký tự thực sự (loại bỏ hoàn toàn khoảng trắng, tab, xuống dòng rác)
+          const hasChars = runText.trim().length > 0;
+          const isRunCorrect = hasChars && (isUnderlined || isRed || isHighlighted);
+
+          // Kiểm tra nếu run bắt đầu bằng 1 phương án B, C, D, Đ mới
+          if (/^\s*\[?([B-EĐđ])\]?[\.\)\:]\s+/.test(runText)) {
+            if (currentLine.trim()) {
+              const trimmed = currentLine.trim();
+              const isOpt = /^\s*\[?([A-Ea-eĐđ])\]?[\.\)\:\*\_]/.test(trimmed);
+              if (isOpt && currentMarked) {
+                lines.push(`${trimmed} > Đúng`);
+              } else {
+                lines.push(trimmed);
+              }
+            }
+            currentLine = runText;
+            currentMarked = isRunCorrect;
+          } else {
+            // Kiểm tra ranh giới phương án bên trong runText
+            const parts = runText.split(/((?:[\t\s]{2,}|\s+)(?=[B-EĐđ][\.\)\:]\s+))/);
+            for (let pIdx = 0; pIdx < parts.length; pIdx++) {
+              const part = parts[pIdx];
+              if (!part) continue;
+              if (/^(?:[\t\s]{2,}|\s+)(?=[B-EĐđ][\.\)\:]\s+)/.test(part)) {
+                if (currentLine.trim()) {
+                  const trimmed = currentLine.trim();
+                  const isOpt = /^\s*\[?([A-Ea-eĐđ])\]?[\.\)\:\*\_]/.test(trimmed);
+                  if (isOpt && currentMarked) {
+                    lines.push(`${trimmed} > Đúng`);
+                  } else {
+                    lines.push(trimmed);
+                  }
+                }
+                currentLine = part.replace(/^[\t\s]+/, "");
+                currentMarked = isRunCorrect;
+              } else {
+                currentLine += part;
+                if (isRunCorrect) {
+                  currentMarked = true;
+                }
+              }
             }
           }
-
-          lineText += runText;
         }
 
-        const trimmed = lineText.trim();
-        if (trimmed) {
-          // Nếu dòng là phương án A, B, C, D, Đ
-          const isOptionLine = /^\s*\[?([A-Ea-eĐđ])\]?[\.\)\:\*]/.test(trimmed);
-          if (isOptionLine && isOptionMarkedCorrect) {
-            // Chỉ thêm ' > Đúng' nếu thực sự được gạch chân hoặc tô đỏ trong Word
-            if (!trimmed.includes(">") && !trimmed.endsWith("*")) {
-              lines.push(`${trimmed} > Đúng`);
-            } else {
-              lines.push(trimmed);
-            }
+        if (currentLine.trim()) {
+          const trimmed = currentLine.trim();
+          const isOpt = /^\s*\[?([A-Ea-eĐđ])\]?[\.\)\:\*\_]/.test(trimmed);
+          if (isOpt && currentMarked) {
+            lines.push(`${trimmed} > Đúng`);
           } else {
             lines.push(trimmed);
           }
         }
       }
+
       return lines.join("\n");
     } catch (e) {
       return xmlStr
