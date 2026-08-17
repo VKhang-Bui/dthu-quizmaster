@@ -1287,12 +1287,23 @@ body.is-resizing-quiz {
 /* ── 13. HEADER USER WIDGET & ROLE SWITCHER ───────────────────────── */
 .header-user-widget {
   display: flex;
+.header-user-widget {
+  display: flex;
   align-items: center;
-  gap: 12px;
-  background: #f1f5f9;
-  padding: 4px 12px 4px 6px;
+  gap: 10px;
+  background: var(--surface);
+  padding: 6px 14px 6px 8px;
   border-radius: 30px;
   border: 1px solid var(--border);
+  cursor: pointer;
+  transition: var(--transition);
+  user-select: none;
+}
+
+.header-user-widget:hover {
+  border-color: var(--primary);
+  background: #f8fafc;
+  box-shadow: var(--shadow-sm);
 }
 
 .user-role-badge {
@@ -1322,22 +1333,76 @@ body.is-resizing-quiz {
   gap: 4px;
 }
 
-.role-toggle-btn {
-  background: #ffffff;
+/* ── 14. USER HUB MODAL (MENU CÁ NHÂN & TIỆN ÍCH) ─────────────────── */
+.user-hub-profile-card {
+  background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 2px 8px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-hub-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.user-hub-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   cursor: pointer;
   transition: var(--transition);
 }
 
-.role-toggle-btn:hover {
-  background: var(--surface-subtle);
+.user-hub-item:hover {
+  border-color: var(--primary);
+  background: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.user-hub-icon {
+  font-size: 24px;
+  line-height: 1;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  border-radius: 8px;
+}
+
+.user-hub-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-hub-text strong {
+  font-size: 14px;
   color: var(--text-primary);
 }
+
+.user-hub-text span {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+@media (max-width: 600px) {
+  .user-hub-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 
 /* Responsive */
 @media (max-width: 900px) {

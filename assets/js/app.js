@@ -28,7 +28,7 @@ const App = {
     this.bindGlobalEvents();
   },
 
-  // Global Header (Thanh menu trên kèm User Profile & Role Switcher)
+  // Global Header (Tinh gọn tối đa, tập trung vào Trang chủ & Khối Người Dùng)
   renderHeader() {
     const headerEl = document.getElementById("appHeader");
     if (!headerEl) return;
@@ -45,31 +45,129 @@ const App = {
       </div>
 
       <nav class="app-nav">
-        <button class="nav-link" id="navHome" onclick="App.navigateTo('home')">🏠 Trang chủ</button>
-        <button class="nav-link" id="navLeaderboard" onclick="App.navigateTo('leaderboard')">🏆 BXH</button>
-        <button class="nav-link" id="navMaterials" onclick="App.navigateTo('materials')">📚 Tài liệu (.txt)</button>
-        <button class="nav-link" id="navParser" onclick="App.navigateTo('parser')">📝 Nhập đề</button>
-        <button class="nav-link" id="navMistakes" onclick="App.navigateTo('mistakes')">🎯 Câu sai</button>
-        <button class="nav-link" id="navManage" onclick="App.navigateTo('manage')">⚙️ Quản lý</button>
-        ${profile.role === 'admin' ? `
-          <button class="nav-link" id="navModeration" onclick="App.navigateTo('moderation')" style="color: #b45309; font-weight: 700;">
-            🛡️ Duyệt đề ${pendingDrafts.length > 0 ? `<span class="badge-tab-count" style="background:#fef3c7; color:#92400e;">${pendingDrafts.length}</span>` : ''}
-          </button>
-        ` : ''}
+        <button class="nav-link ${this.currentView === 'home' ? 'active' : ''}" id="navHome" onclick="App.navigateTo('home')">🏠 Trang chủ</button>
+        <button class="nav-link ${this.currentView === 'guide' ? 'active' : ''}" id="navGuide" onclick="App.navigateTo('guide')">💡 Hướng dẫn</button>
       </nav>
 
-      <div class="header-user-widget">
-        <div style="font-size: 18px;">${profile.avatar || '👨‍🎓'}</div>
-        <div style="display: flex; flex-direction: column;">
-          <span style="font-size: 12px; font-weight: 700; color: var(--text-primary); line-height: 1.2;">${profile.fullName}</span>
-          <span class="user-exp-chip">⚡ ${profile.totalExp} EXP</span>
+      <!-- Khối Người Dùng (Bấm vào để mở Trung tâm Cá nhân & Tiện ích) -->
+      <div class="header-user-widget" onclick="App.openUserHubModal()" title="Nhấp để mở Menu Cá nhân & Tiện ích">
+        <div style="font-size: 20px;">${profile.avatar || '👨‍🎓'}</div>
+        <div style="display: flex; flex-direction: column; text-align: left;">
+          <span style="font-size: 13px; font-weight: 700; color: var(--text-primary); line-height: 1.2;">${profile.fullName}</span>
+          <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+            <span class="user-exp-chip" style="font-size: 11.5px;">⚡ ${profile.totalExp} EXP</span>
+            <span class="user-role-badge ${profile.role}" style="font-size: 10px; padding: 1px 6px;">${profile.role === 'admin' ? '🛡️ Admin' : '👨‍🎓 SV'}</span>
+          </div>
         </div>
-        <span class="user-role-badge ${profile.role}">${profile.role === 'admin' ? '🛡️ Admin' : '👨‍🎓 SV'}</span>
-        <button class="role-toggle-btn" onclick="App.toggleUserRole()" title="Chuyển đổi nhanh vai trò Sinh viên <-> Admin">
-          ${profile.role === 'admin' ? 'Đổi sang SV' : 'Đổi sang Admin'}
-        </button>
+        <div style="font-size: 12px; color: var(--text-tertiary); margin-left: 2px;">▾</div>
       </div>
     `;
+  },
+
+  openUserHubModal() {
+    const profile = StorageService.getUserProfile();
+    const mistakes = StorageService.getMistakes();
+    const drafts = StorageService.getDraftSubjects();
+    const history = StorageService.getHistory();
+
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = "👤 Trung Tâm Cá Nhân & Tiện Ích Học Tập";
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 20px;">
+        <!-- Profile Banner -->
+        <div class="user-hub-profile-card">
+          <div style="font-size: 44px; line-height: 1;">${profile.avatar || '👨‍🎓'}</div>
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+              <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0;">${profile.fullName}</h3>
+              <span class="user-role-badge ${profile.role}">${profile.role === 'admin' ? '🛡️ Ban Biên Tập (Admin)' : '👨‍🎓 Sinh Viên DThu'}</span>
+            </div>
+            <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
+              MSSV: <strong>${profile.studentId || 'Chưa cập nhật'}</strong> · ${profile.department}
+            </div>
+            <div style="display: flex; gap: 16px; margin-top: 10px; font-size: 13px; flex-wrap: wrap;">
+              <span style="color: #b45309; font-weight: 800;">⚡ ${profile.totalExp} Điểm EXP</span>
+              <span style="color: #0369a1; font-weight: 700;">📝 ${history.length} bài thi đã làm</span>
+              <span style="color: #dc2626; font-weight: 700;">🎯 ${mistakes.length} câu làm sai</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Utilities Grid -->
+        <div>
+          <h4 style="font-size: 13px; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.04em; margin-bottom: 10px;">
+            Tiện ích học tập & Quản lý
+          </h4>
+          <div class="user-hub-grid">
+            <div class="user-hub-item" onclick="App.closeModal(); App.navigateTo('leaderboard');">
+              <div class="user-hub-icon">🏆</div>
+              <div class="user-hub-text">
+                <strong>Bảng Xếp Hạng</strong>
+                <span>Xem thứ hạng & Top thủ khoa</span>
+              </div>
+            </div>
+
+            <div class="user-hub-item" onclick="App.closeModal(); App.navigateTo('materials');">
+              <div class="user-hub-icon">📚</div>
+              <div class="user-hub-text">
+                <strong>Kho Tài Liệu (.txt)</strong>
+                <span>Tóm tắt lý thuyết & giáo trình</span>
+              </div>
+            </div>
+
+            <div class="user-hub-item" onclick="App.closeModal(); App.navigateTo('parser');">
+              <div class="user-hub-icon">📝</div>
+              <div class="user-hub-text">
+                <strong>Nhập & Đóng Góp Đề</strong>
+                <span>Bóc tách đề từ Word, PDF, ChatGPT</span>
+              </div>
+            </div>
+
+            <div class="user-hub-item" onclick="App.closeModal(); App.navigateTo('mistakes');">
+              <div class="user-hub-icon">🎯</div>
+              <div class="user-hub-text">
+                <strong>Ngân Hàng Câu Sai</strong>
+                <span>${mistakes.length > 0 ? `<span style="color:#dc2626; font-weight:700;">${mistakes.length} câu cần ôn lại</span>` : 'Chưa có câu sai nào'}</span>
+              </div>
+            </div>
+
+            <div class="user-hub-item" onclick="App.closeModal(); App.navigateTo('manage');">
+              <div class="user-hub-icon">⚙️</div>
+              <div class="user-hub-text">
+                <strong>Quản Lý Bộ Đề</strong>
+                <span>Chỉnh sửa & Sao lưu dữ liệu</span>
+              </div>
+            </div>
+
+            ${profile.role === 'admin' ? `
+              <div class="user-hub-item" style="border-color: #fcd34d; background: #fffbeb;" onclick="App.closeModal(); App.navigateTo('moderation');">
+                <div class="user-hub-icon">🛡️</div>
+                <div class="user-hub-text">
+                  <strong style="color: #92400e;">Duyệt Đề Đóng Góp</strong>
+                  <span style="color: #b45309;">${drafts.length} bộ đề đang chờ phê duyệt</span>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <button class="btn btn-sm" onclick="App.toggleUserRole(); App.openUserHubModal();">
+          🔄 Đổi vai trò: ${profile.role === 'admin' ? 'Chuyển sang Sinh viên' : 'Chuyển sang Admin'}
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="App.closeModal()">Đóng</button>
+      </div>
+    `;
+
+    modal.classList.add("active");
   },
 
   toggleUserRole() {
@@ -87,12 +185,7 @@ const App = {
   updateActiveNav(view) {
     document.querySelectorAll(".nav-link").forEach(btn => btn.classList.remove("active"));
     if (view === "home") document.getElementById("navHome")?.classList.add("active");
-    if (view === "leaderboard") document.getElementById("navLeaderboard")?.classList.add("active");
-    if (view === "materials") document.getElementById("navMaterials")?.classList.add("active");
-    if (view === "parser") document.getElementById("navParser")?.classList.add("active");
-    if (view === "mistakes") document.getElementById("navMistakes")?.classList.add("active");
-    if (view === "manage" || view === "subject-detail") document.getElementById("navManage")?.classList.add("active");
-    if (view === "moderation") document.getElementById("navModeration")?.classList.add("active");
+    if (view === "guide") document.getElementById("navGuide")?.classList.add("active");
   },
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -1621,6 +1714,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     }
 
     const { result, details } = this.latestResultDetails;
+    const wrongDetails = details.filter(d => !d.isCorrect && d.userAnswer !== undefined);
 
     container.innerHTML = `
       <div class="view-result">
@@ -1649,9 +1743,21 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
             </div>
           </div>
 
-          <div style="margin-top: 28px; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+          ${wrongDetails.length > 0 ? `
+            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-sm); padding: 14px 18px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+              <div style="text-align: left;">
+                <strong style="color: #991b1b; font-size: 14px;">🎯 Bạn có ${wrongDetails.length} câu làm sai cần củng cố kiến thức:</strong>
+                <div style="font-size: 12.5px; color: #b91c1c; margin-top: 2px;">Các câu hỏi này đã được tự động lưu vào Ngân hàng câu sai.</div>
+              </div>
+              <button class="btn btn-danger btn-sm" onclick="App.practiceCurrentMistakes()">
+                🎯 Luyện lại ${wrongDetails.length} câu sai ngay ➔
+              </button>
+            </div>
+          ` : ''}
+
+          <div style="margin-top: 24px; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
             <button class="btn btn-primary" onclick="App.openQuizConfigModal('${result.subjectId}')">🔄 Thi lại môn này</button>
-            <button class="btn" onclick="App.navigateTo('mistakes')">🎯 Xem danh sách câu sai</button>
+            <button class="btn" onclick="App.openUserHubModal()">👤 Menu Cá nhân & BXH</button>
             <button class="btn" onclick="App.navigateTo('home')">🏠 Về trang chủ</button>
           </div>
         </div>
@@ -1662,6 +1768,41 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
         </div>
       </div>
     `;
+  },
+
+  practiceCurrentMistakes() {
+    if (!this.latestResultDetails || !this.latestResultDetails.details) return;
+    const wrongQuestions = this.latestResultDetails.details
+      .filter(d => !d.isCorrect && d.userAnswer !== undefined)
+      .map(d => d.question);
+
+    if (wrongQuestions.length === 0) {
+      alert("Không có câu làm sai nào trong bài thi này!");
+      return;
+    }
+
+    const sub = this.latestResultDetails.subject || {
+      id: this.latestResultDetails.result.subjectId,
+      name: this.latestResultDetails.result.subjectName
+    };
+
+    this.activeSubject = sub;
+    this.activeSession = {
+      subjectId: sub.id,
+      subjectName: sub.name,
+      mode: "practice",
+      chapterId: "mistakes",
+      timeLimitMinutes: 0,
+      timeRemainingSeconds: 0,
+      totalQuestions: wrongQuestions.length,
+      questions: wrongQuestions,
+      answers: {},
+      startedAt: new Date().toISOString(),
+      isSubmitted: false
+    };
+
+    this.currentPage = 0;
+    this.navigateTo("quiz");
   },
 
   renderReviewItem(d) {
