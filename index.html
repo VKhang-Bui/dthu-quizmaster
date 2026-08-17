@@ -30,6 +30,17 @@
     💡 Hướng dẫn
   </button>
 
+  <!-- User Side Drawer (Thanh Trượt Bên Phải) -->
+  <div class="drawer-overlay" id="userDrawerOverlay" onclick="App.closeUserDrawer()"></div>
+  <aside class="user-drawer" id="userDrawer">
+    <div class="drawer-header">
+      <h3>👤 Trung Tâm Cá Nhân</h3>
+      <button class="drawer-close" onclick="App.closeUserDrawer()">&times;</button>
+    </div>
+    <div class="drawer-body" id="userDrawerBody"></div>
+    <div class="drawer-footer" id="userDrawerFooter"></div>
+  </aside>
+
   <!-- Global Modal Popup -->
   <div class="modal-overlay" id="globalModal">
     <div class="modal-card">

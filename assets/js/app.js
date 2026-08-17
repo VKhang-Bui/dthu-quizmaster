@@ -49,8 +49,8 @@ const App = {
         <button class="nav-link ${this.currentView === 'guide' ? 'active' : ''}" id="navGuide" onclick="App.navigateTo('guide')">💡 Hướng dẫn</button>
       </nav>
 
-      <!-- Khối Người Dùng (Bấm vào để mở Trung tâm Cá nhân & Tiện ích) -->
-      <div class="header-user-widget" onclick="App.openUserHubModal()" title="Nhấp để mở Menu Cá nhân & Tiện ích">
+      <!-- Khối Người Dùng (Bấm vào để mở Thanh trượt bên phải) -->
+      <div class="header-user-widget" onclick="App.openUserDrawer()" title="Nhấp để mở Menu Cá nhân & Tiện ích">
         <div style="font-size: 20px;">${profile.avatar || '👨‍🎓'}</div>
         <div style="display: flex; flex-direction: column; text-align: left;">
           <span style="font-size: 13px; font-weight: 700; color: var(--text-primary); line-height: 1.2;">${profile.fullName}</span>
@@ -59,115 +59,107 @@ const App = {
             <span class="user-role-badge ${profile.role}" style="font-size: 10px; padding: 1px 6px;">${profile.role === 'admin' ? '🛡️ Admin' : '👨‍🎓 SV'}</span>
           </div>
         </div>
-        <div style="font-size: 12px; color: var(--text-tertiary); margin-left: 2px;">▾</div>
+        <div style="font-size: 12px; color: var(--text-tertiary); margin-left: 2px;">▸</div>
       </div>
     `;
   },
 
-  openUserHubModal() {
+  openUserDrawer() {
     const profile = StorageService.getUserProfile();
     const mistakes = StorageService.getMistakes();
     const drafts = StorageService.getDraftSubjects();
     const history = StorageService.getHistory();
 
-    const modal = document.getElementById("globalModal");
-    const title = document.getElementById("modalTitle");
-    const body = document.getElementById("modalBody");
-    const footer = document.getElementById("modalFooter");
+    const drawer = document.getElementById("userDrawer");
+    const overlay = document.getElementById("userDrawerOverlay");
+    const body = document.getElementById("userDrawerBody");
+    const footer = document.getElementById("userDrawerFooter");
 
-    title.textContent = "👤 Trung Tâm Cá Nhân & Tiện Ích Học Tập";
+    if (!drawer || !overlay || !body) return;
 
     body.innerHTML = `
-      <div style="display: flex; flex-direction: column; gap: 20px;">
-        <!-- Profile Banner -->
-        <div class="user-hub-profile-card">
-          <div style="font-size: 44px; line-height: 1;">${profile.avatar || '👨‍🎓'}</div>
-          <div style="flex: 1;">
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
-              <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0;">${profile.fullName}</h3>
-              <span class="user-role-badge ${profile.role}">${profile.role === 'admin' ? '🛡️ Ban Biên Tập (Admin)' : '👨‍🎓 Sinh Viên DThu'}</span>
-            </div>
-            <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
-              MSSV: <strong>${profile.studentId || 'Chưa cập nhật'}</strong> · ${profile.department}
-            </div>
-            <div style="display: flex; gap: 16px; margin-top: 10px; font-size: 13px; flex-wrap: wrap;">
-              <span style="color: #b45309; font-weight: 800;">⚡ ${profile.totalExp} Điểm EXP</span>
-              <span style="color: #0369a1; font-weight: 700;">📝 ${history.length} bài thi đã làm</span>
-              <span style="color: #dc2626; font-weight: 700;">🎯 ${mistakes.length} câu làm sai</span>
-            </div>
+      <!-- Thẻ Hồ Sơ Sinh Viên -->
+      <div class="user-hub-profile-card">
+        <div style="font-size: 38px; line-height: 1;">${profile.avatar || '👨‍🎓'}</div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+            <h3 style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${profile.fullName}</h3>
+            <span class="user-role-badge ${profile.role}">${profile.role === 'admin' ? '🛡️ Admin' : '👨‍🎓 SV'}</span>
+          </div>
+          <div style="font-size: 12px; color: var(--text-secondary); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            MSSV: <strong>${profile.studentId || 'Chưa cập nhật'}</strong>
+          </div>
+          <div style="display: flex; gap: 10px; margin-top: 8px; font-size: 12px;">
+            <span style="color: #b45309; font-weight: 800;">⚡ ${profile.totalExp} EXP</span>
+            <span style="color: #0369a1; font-weight: 700;">📝 ${history.length} bài</span>
           </div>
         </div>
+      </div>
 
-        <!-- Quick Utilities Grid -->
-        <div>
-          <h4 style="font-size: 13px; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.04em; margin-bottom: 10px;">
-            Tiện ích học tập & Quản lý
-          </h4>
-          <div class="user-hub-grid">
-            <div class="user-hub-item" onclick="App.closeModal(); App.navigateTo('leaderboard');">
-              <div class="user-hub-icon">🏆</div>
-              <div class="user-hub-text">
-                <strong>Bảng Xếp Hạng</strong>
-                <span>Xem thứ hạng & Top thủ khoa</span>
-              </div>
-            </div>
+      <!-- Danh Sách Các Khối Tính Năng (1 Dòng - Gọn Gàng) -->
+      <div>
+        <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.04em; margin-bottom: 8px;">
+          Tiện ích & Quản lý
+        </div>
+        <div class="drawer-nav-list">
+          <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('leaderboard');">
+            <span class="drawer-icon">🏆</span>
+            <span class="drawer-label">Bảng Xếp Hạng</span>
+            <span class="drawer-arrow">➔</span>
+          </button>
 
-            <div class="user-hub-item" onclick="App.closeModal(); App.navigateTo('materials');">
-              <div class="user-hub-icon">📚</div>
-              <div class="user-hub-text">
-                <strong>Kho Tài Liệu (.txt)</strong>
-                <span>Tóm tắt lý thuyết & giáo trình</span>
-              </div>
-            </div>
+          <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('materials');">
+            <span class="drawer-icon">📚</span>
+            <span class="drawer-label">Kho Tài Liệu (.txt)</span>
+            <span class="drawer-arrow">➔</span>
+          </button>
 
-            <div class="user-hub-item" onclick="App.closeModal(); App.navigateTo('parser');">
-              <div class="user-hub-icon">📝</div>
-              <div class="user-hub-text">
-                <strong>Nhập & Đóng Góp Đề</strong>
-                <span>Bóc tách đề từ Word, PDF, ChatGPT</span>
-              </div>
-            </div>
+          <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('parser');">
+            <span class="drawer-icon">📝</span>
+            <span class="drawer-label">Nhập & Đóng Góp Đề</span>
+            <span class="drawer-arrow">➔</span>
+          </button>
 
-            <div class="user-hub-item" onclick="App.closeModal(); App.navigateTo('mistakes');">
-              <div class="user-hub-icon">🎯</div>
-              <div class="user-hub-text">
-                <strong>Ngân Hàng Câu Sai</strong>
-                <span>${mistakes.length > 0 ? `<span style="color:#dc2626; font-weight:700;">${mistakes.length} câu cần ôn lại</span>` : 'Chưa có câu sai nào'}</span>
-              </div>
-            </div>
+          <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('mistakes');">
+            <span class="drawer-icon">🎯</span>
+            <span class="drawer-label">Ngân Hàng Câu Sai</span>
+            ${mistakes.length > 0 ? `<span class="badge" style="background:#fee2e2; color:#b91c1c; font-weight:700;">${mistakes.length}</span>` : `<span class="drawer-arrow">➔</span>`}
+          </button>
 
-            <div class="user-hub-item" onclick="App.closeModal(); App.navigateTo('manage');">
-              <div class="user-hub-icon">⚙️</div>
-              <div class="user-hub-text">
-                <strong>Quản Lý Bộ Đề</strong>
-                <span>Chỉnh sửa & Sao lưu dữ liệu</span>
-              </div>
-            </div>
+          <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('manage');">
+            <span class="drawer-icon">⚙️</span>
+            <span class="drawer-label">Quản Lý Bộ Đề</span>
+            <span class="drawer-arrow">➔</span>
+          </button>
 
-            ${profile.role === 'admin' ? `
-              <div class="user-hub-item" style="border-color: #fcd34d; background: #fffbeb;" onclick="App.closeModal(); App.navigateTo('moderation');">
-                <div class="user-hub-icon">🛡️</div>
-                <div class="user-hub-text">
-                  <strong style="color: #92400e;">Duyệt Đề Đóng Góp</strong>
-                  <span style="color: #b45309;">${drafts.length} bộ đề đang chờ phê duyệt</span>
-                </div>
-              </div>
-            ` : ''}
-          </div>
+          ${profile.role === 'admin' ? `
+            <button class="drawer-nav-btn drawer-nav-btn-admin" onclick="App.closeUserDrawer(); App.navigateTo('moderation');">
+              <span class="drawer-icon">🛡️</span>
+              <span class="drawer-label">Duyệt Đề Đóng Góp</span>
+              ${drafts.length > 0 ? `<span class="badge" style="background:#fef3c7; color:#92400e; font-weight:700;">${drafts.length}</span>` : `<span class="drawer-arrow">➔</span>`}
+            </button>
+          ` : ''}
         </div>
       </div>
     `;
 
-    footer.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-        <button class="btn btn-sm" onclick="App.toggleUserRole(); App.openUserHubModal();">
-          🔄 Đổi vai trò: ${profile.role === 'admin' ? 'Chuyển sang Sinh viên' : 'Chuyển sang Admin'}
-        </button>
-        <button class="btn btn-primary btn-sm" onclick="App.closeModal()">Đóng</button>
-      </div>
-    `;
+    if (footer) {
+      footer.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <button class="btn btn-sm" style="width: 100%; font-size: 12.5px;" onclick="App.toggleUserRole(); App.openUserDrawer();">
+            🔄 Vai trò: <strong>${profile.role === 'admin' ? 'Chuyển sang Sinh viên' : 'Chuyển sang Admin'}</strong>
+          </button>
+        </div>
+      `;
+    }
 
-    modal.classList.add("active");
+    drawer.classList.add("active");
+    overlay.classList.add("active");
+  },
+
+  closeUserDrawer() {
+    document.getElementById("userDrawer")?.classList.remove("active");
+    document.getElementById("userDrawerOverlay")?.classList.remove("active");
   },
 
   toggleUserRole() {
@@ -1757,7 +1749,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
 
           <div style="margin-top: 24px; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
             <button class="btn btn-primary" onclick="App.openQuizConfigModal('${result.subjectId}')">🔄 Thi lại môn này</button>
-            <button class="btn" onclick="App.openUserHubModal()">👤 Menu Cá nhân & BXH</button>
+            <button class="btn" onclick="App.openUserDrawer()">👤 Menu Cá nhân & BXH</button>
             <button class="btn" onclick="App.navigateTo('home')">🏠 Về trang chủ</button>
           </div>
         </div>
@@ -2790,6 +2782,19 @@ Câu 2: Nội dung câu hỏi số 2 ở đây?
     // Đóng modal khi bấm vào nền xám
     document.getElementById("globalModal")?.addEventListener("click", (e) => {
       if (e.target.id === "globalModal") this.closeModal();
+    });
+
+    // Đóng User Drawer khi bấm vào overlay
+    document.getElementById("userDrawerOverlay")?.addEventListener("click", () => {
+      this.closeUserDrawer();
+    });
+
+    // Đóng modal và drawer khi bấm phím ESC
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        this.closeModal();
+        this.closeUserDrawer();
+      }
     });
   }
 };
