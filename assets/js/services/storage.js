@@ -914,7 +914,7 @@ const StorageService = {
     return list.find(m => m.id === id) || null;
   },
 
-  // ── 5. Quản lý Lịch sử Thi & Leaderboard ─────────────────────
+  // ── 5. Quản lý Lịch sử Thi & Leaderboard (Chỉ lưu 3 lần thi thử gần nhất) ──
   getHistory() {
     try {
       const data = localStorage.getItem(this.KEYS.HISTORY);
@@ -924,13 +924,46 @@ const StorageService = {
     }
   },
 
+  getUserExamHistory() {
+    const profile = this.getUserProfile();
+    const currentUserId = profile ? (profile.id || profile.mssv || 'guest') : 'guest';
+    const allHistory = this.getHistory();
+    // Lọc lịch sử của user này và chỉ lấy chế độ thi thử (exam), tối đa 3 lần
+    return allHistory
+      .filter(h => (h.userId === currentUserId || (!h.userId && currentUserId === 'guest')) && h.mode === 'exam')
+      .slice(0, 3);
+  },
+
+  getAttemptById(attemptId) {
+    const allHistory = this.getHistory();
+    return allHistory.find(h => h.id === attemptId) || null;
+  },
+
   saveAttempt(attempt) {
-    const history = this.getHistory();
-    history.unshift(attempt);
-    if (history.length > 50) history.pop();
-    localStorage.setItem(this.KEYS.HISTORY, JSON.stringify(history));
+    if (!attempt || attempt.mode !== "exam") {
+      // TUYỆT ĐỐI KHÔNG LƯU LỊCH SỬ KHI ÔN TẬP (chỉ lưu khi thi thử)
+      return;
+    }
 
     const profile = this.getUserProfile();
+    const currentUserId = profile ? (profile.id || profile.mssv || 'guest') : 'guest';
+    attempt.userId = currentUserId;
+
+    let allHistory = this.getHistory();
+    // Tách lịch sử của user hiện tại và các user khác
+    let userAttempts = allHistory.filter(h => (h.userId === currentUserId || (!h.userId && currentUserId === 'guest')) && h.mode === 'exam');
+    let otherAttempts = allHistory.filter(h => h.userId && h.userId !== currentUserId);
+
+    // Đưa lần thi mới nhất lên đầu và chỉ giữ đúng 3 lần gần nhất
+    userAttempts.unshift(attempt);
+    if (userAttempts.length > 3) {
+      userAttempts = userAttempts.slice(0, 3);
+    }
+
+    allHistory = [...userAttempts, ...otherAttempts];
+    localStorage.setItem(this.KEYS.HISTORY, JSON.stringify(allHistory));
+
+    // Cập nhật số bài thi hoàn thành của tài khoản
     if (profile && profile.role !== "guest") {
       profile.quizzesCompleted = (profile.quizzesCompleted || 0) + 1;
       this.saveUserProfile(profile);
@@ -939,13 +972,13 @@ const StorageService = {
       }
     }
 
-    // Thưởng EXP cho bài thi
+    // Thưởng EXP cho bài thi thử
     if (attempt.score10 >= 8.0) {
-      this.addExp(20, "Hoàn thành xuất sắc bài thi (+20 EXP)");
+      this.addExp(20, "Hoàn thành xuất sắc bài thi thử (+20 EXP)");
     } else if (attempt.score10 >= 5.0) {
-      this.addExp(10, "Hoàn thành bài thi đạt yêu cầu (+10 EXP)");
+      this.addExp(10, "Hoàn thành bài thi thử đạt yêu cầu (+10 EXP)");
     } else {
-      this.addExp(5, "Chăm chỉ làm bài ôn tập (+5 EXP)");
+      this.addExp(5, "Chăm chỉ rèn luyện thi thử (+5 EXP)");
     }
 
     // Đồng bộ lên Supabase Cloud
@@ -954,8 +987,22 @@ const StorageService = {
     }
   },
 
+  deleteExamAttempt(attemptId) {
+    let allHistory = this.getHistory();
+    allHistory = allHistory.filter(h => h.id !== attemptId);
+    localStorage.setItem(this.KEYS.HISTORY, JSON.stringify(allHistory));
+  },
+
+  clearUserExamHistory() {
+    const profile = this.getUserProfile();
+    const currentUserId = profile ? (profile.id || profile.mssv || 'guest') : 'guest';
+    let allHistory = this.getHistory();
+    allHistory = allHistory.filter(h => h.userId && h.userId !== currentUserId);
+    localStorage.setItem(this.KEYS.HISTORY, JSON.stringify(allHistory));
+  },
+
   getLatestScoreForSubject(subjectId) {
-    const history = this.getHistory();
+    const history = this.getUserExamHistory();
     const match = history.find(h => h.subjectId === subjectId);
     return match ? match : null;
   },

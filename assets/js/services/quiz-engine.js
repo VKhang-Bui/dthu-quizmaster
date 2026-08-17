@@ -80,8 +80,6 @@ const QuizEngine = {
         correctCount++;
       } else {
         wrongCount++;
-        // Ghi nhận câu sai vào Storage
-        StorageService.recordMistake(session.subjectId, q, userAns);
       }
 
       details.push({
@@ -95,12 +93,14 @@ const QuizEngine = {
     const total = session.questions.length;
     const score10 = total > 0 ? Number(((correctCount / total) * 10).toFixed(2)) : 0;
     const percentage = total > 0 ? Math.round((correctCount / total) * 100) : 0;
+    const startTime = session.startedAt ? new Date(session.startedAt).getTime() : Date.now();
+    const timeTakenSeconds = Math.max(1, Math.round((Date.now() - startTime) / 1000));
 
     let gradeTitle = "Cần cố gắng thêm";
     if (score10 >= 9.0) gradeTitle = "Xuất sắc 🎉";
     else if (score10 >= 8.0) gradeTitle = "Giỏi ⭐";
     else if (score10 >= 6.5) gradeTitle = "Khá 👍";
-    else if (score10 >= 5.0) gradeTitle = "Trung bình / Đạt";
+    else if (score10 >= 5.0) gradeTitle = "Đạt Yêu Cầu ✓";
 
     const result = {
       id: "ATTEMPT-" + Date.now(),
@@ -113,11 +113,14 @@ const QuizEngine = {
       wrongCount,
       unattemptedCount,
       totalQuestions: total,
+      timeTakenSeconds,
       gradeTitle,
-      completedAt: new Date().toISOString()
+      isPassed: (score10 >= 5.0),
+      completedAt: new Date().toISOString(),
+      details: details
     };
 
-    // Lưu vào lịch sử
+    // Lưu vào lịch sử (Chỉ lưu khi thi thử)
     StorageService.saveAttempt(result);
 
     return { result, details };
