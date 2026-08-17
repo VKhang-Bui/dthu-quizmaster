@@ -1694,11 +1694,53 @@ const StorageService = {
       createdBy: adminName
     };
 
+    let freezeLog = "";
+    let resetLog = "";
+
     if (newSeason.status === "active") {
-      seasons.forEach(s => {
-        if (s.status === "active") s.status = "completed";
-      });
-      if (data.resetPoints) {
+      // 1. Tự động đóng băng kết quả mùa cũ vào Bảng Vàng Archives nếu được chọn (hoặc đóng băng chuẩn)
+      if (data.freezeOld !== false) {
+        const currentExpBoard = this.getLeaderboardData("exp", { scope: "season", includeHidden: true, statusFilter: "all" });
+        const currentCpBoard = this.getLeaderboardData("cp", { scope: "season", includeHidden: true, statusFilter: "all" });
+        const archives = this.getLeaderboardArchives();
+
+        seasons.forEach(s => {
+          if (s.status === "active") {
+            s.status = "completed";
+            s.closedAt = new Date().toISOString();
+            s.closedBy = adminName;
+            s.frozenStandings = {
+              topExp: currentExpBoard.slice(0, 50),
+              topCp: currentCpBoard.slice(0, 50)
+            };
+
+            const archiveItem = {
+              id: s.id,
+              seasonName: s.name,
+              closedAt: s.closedAt,
+              closedBy: adminName,
+              wasSeasonReset: !!data.resetPoints,
+              topExp: currentExpBoard.slice(0, 20),
+              topCp: currentCpBoard.slice(0, 20)
+            };
+            const existingIdx = archives.findIndex(a => a.id === s.id);
+            if (existingIdx !== -1) {
+              archives[existingIdx] = archiveItem;
+            } else {
+              archives.unshift(archiveItem);
+            }
+            freezeLog = ` (Đã chốt Bảng Vàng mùa cũ "${s.name}")`;
+          }
+        });
+        localStorage.setItem(this.KEYS.LEADERBOARD_ARCHIVES, JSON.stringify(archives));
+      } else {
+        seasons.forEach(s => {
+          if (s.status === "active") s.status = "completed";
+        });
+      }
+
+      // 2. Đặt lại điểm Mùa Này (seasonExp & seasonCp) về 0 nếu được chọn
+      if (data.resetPoints !== false) {
         const allUsers = this.getAllUsers();
         allUsers.forEach(u => {
           u.seasonExp = 0;
@@ -1711,7 +1753,9 @@ const StorageService = {
           active.seasonCp = 0;
           this.saveUserProfile(active);
         }
+        resetLog = ` (Đã reset điểm Mùa Này về 0 cho ${allUsers.length} thành viên)`;
       }
+
       const settings = this.getLeaderboardSettings();
       settings.seasonName = newSeason.name;
       settings.seasonStartDate = newSeason.startDate;
@@ -1724,7 +1768,7 @@ const StorageService = {
     seasons.unshift(newSeason);
     this.saveSeasons(seasons);
 
-    this.addAuditLog("CREATE_SEASON", newSeason.name, `Tạo mùa giải mới [${newSeason.code}] với trạng thái: ${newSeason.status}`, adminName);
+    this.addAuditLog("CREATE_SEASON", newSeason.name, `Tạo mùa giải mới [${newSeason.code}] với trạng thái: ${newSeason.status}${freezeLog}${resetLog}`, adminName);
 
     if (newSeason.status === "active") {
       const allUsers = this.getAllUsers();
@@ -1849,18 +1893,57 @@ const StorageService = {
     return season;
   },
 
-  activateSeason(seasonId, adminName = "Quản trị viên", resetPoints = false) {
+  activateSeason(seasonId, adminName = "Quản trị viên", resetPoints = false, freezeOld = true) {
     const seasons = this.getSeasons();
     const target = seasons.find(s => s.id === seasonId);
     if (!target) throw new Error("Không tìm thấy mùa giải!");
 
-    seasons.forEach(s => {
-      if (s.id === seasonId) {
-        s.status = "active";
-      } else if (s.status === "active") {
-        s.status = "completed";
-      }
-    });
+    let freezeLog = "";
+    let resetLog = "";
+
+    if (freezeOld) {
+      const currentExpBoard = this.getLeaderboardData("exp", { scope: "season", includeHidden: true, statusFilter: "all" });
+      const currentCpBoard = this.getLeaderboardData("cp", { scope: "season", includeHidden: true, statusFilter: "all" });
+      const archives = this.getLeaderboardArchives();
+
+      seasons.forEach(s => {
+        if (s.id !== seasonId && s.status === "active") {
+          s.status = "completed";
+          s.closedAt = new Date().toISOString();
+          s.closedBy = adminName;
+          s.frozenStandings = {
+            topExp: currentExpBoard.slice(0, 50),
+            topCp: currentCpBoard.slice(0, 50)
+          };
+
+          const archiveItem = {
+            id: s.id,
+            seasonName: s.name,
+            closedAt: s.closedAt,
+            closedBy: adminName,
+            wasSeasonReset: resetPoints,
+            topExp: currentExpBoard.slice(0, 20),
+            topCp: currentCpBoard.slice(0, 20)
+          };
+          const existingIdx = archives.findIndex(a => a.id === s.id);
+          if (existingIdx !== -1) {
+            archives[existingIdx] = archiveItem;
+          } else {
+            archives.unshift(archiveItem);
+          }
+          freezeLog = ` (Đã chốt Bảng Vàng mùa cũ "${s.name}")`;
+        }
+      });
+      localStorage.setItem(this.KEYS.LEADERBOARD_ARCHIVES, JSON.stringify(archives));
+    } else {
+      seasons.forEach(s => {
+        if (s.id !== seasonId && s.status === "active") {
+          s.status = "completed";
+        }
+      });
+    }
+
+    target.status = "active";
 
     if (resetPoints) {
       const allUsers = this.getAllUsers();
@@ -1875,6 +1958,7 @@ const StorageService = {
         active.seasonCp = 0;
         this.saveUserProfile(active);
       }
+      resetLog = ` (Đã reset điểm Mùa Này về 0)`;
     }
 
     this.saveSeasons(seasons);
@@ -1887,7 +1971,7 @@ const StorageService = {
     settings.top3Title = target.top3Title || settings.top3Title;
     this.saveLeaderboardSettings(settings);
 
-    this.addAuditLog("ACTIVATE_SEASON", target.name, `Kích hoạt mùa giải "${target.name}" làm mùa hiện tại ${resetPoints ? '(Có reset điểm mùa)' : ''}`, adminName);
+    this.addAuditLog("ACTIVATE_SEASON", target.name, `Kích hoạt mùa giải "${target.name}" làm mùa hiện tại${freezeLog}${resetLog}`, adminName);
 
     const allUsers = this.getAllUsers();
     allUsers.forEach(u => {

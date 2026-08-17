@@ -4683,7 +4683,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                               🔒 Đóng Băng & Kết Thúc
                             </button>
                           ` : isUpcoming ? `
-                            <button class="btn btn-sm btn-primary" onclick="App.confirmActivateSeasonAction('${s.id}')" title="Kích hoạt mùa giải này làm mùa thi đấu chính thức">
+                            <button class="btn btn-sm btn-primary" onclick="App.openActivateSeasonModal('${s.id}')" title="Kích hoạt mùa giải này làm mùa thi đấu chính thức">
                               ▶️ Kích Hoạt Ngay
                             </button>
                           ` : `
@@ -5040,7 +5040,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
             <div class="form-group" style="margin: 0;">
               <label class="form-label" style="font-weight: 700;">Trạng Thái Khởi Tạo (*):</label>
-              <select id="newSeasonStatus" class="form-control" style="font-weight: 600;">
+              <select id="newSeasonStatus" class="form-control" style="font-weight: 600;" onchange="App.onSeasonStatusChange(this.value)">
                 <option value="active" selected>🟢 Kích hoạt ngay làm mùa hiện tại (Active)</option>
                 <option value="upcoming">🟡 Lên lịch sắp diễn ra (Upcoming)</option>
               </select>
@@ -5086,18 +5086,31 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
         </div>
 
         <!-- Phân khu 5: Tùy Chọn Chiến Lược Điểm & Đóng Băng -->
-        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 12px 16px; font-size: 13px; color: #166534;">
-          <div style="font-weight: 800; margin-bottom: 8px;">⚙️ Chiến Lược Chuyển Giao Mùa Giải:</div>
-          <div style="display: flex; flex-direction: column; gap: 6px;">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="newSeasonResetPoints" checked style="width: 16px; height: 16px;">
-              <span>Đặt lại Điểm Mùa Này (seasonExp, seasonCp) về 0 để mở chặng đua mới (Bảo lưu 100% Điểm Tổng All-Time).</span>
+        <div id="seasonStrategyBox" style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: var(--radius-sm); padding: 14px 16px; font-size: 13px; color: #166534;">
+          <div style="font-weight: 800; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+            <span>⚙️</span> <span>Chiến Lược Chuyển Giao Mùa Giải (Khi kích hoạt):</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+              <input type="checkbox" id="newSeasonResetPoints" checked style="width: 17px; height: 17px; margin-top: 2px;">
+              <div>
+                <strong>Đặt lại Điểm Mùa Này (seasonExp, seasonCp) về 0</strong>
+                <div style="font-size: 12px; color: #15803d; margin-top: 2px;">Mở chặng đua mới công bằng cho mọi sinh viên. Bảo lưu 100% Điểm Tổng All-Time.</div>
+              </div>
             </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="newSeasonFreezeOld" checked style="width: 16px; height: 16px;">
-              <span>Tự động đóng băng kết quả mùa cũ hiện tại và lưu vào Bảng Vàng Archives.</span>
+            <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; border-top: 1px dashed #bbf7d0; padding-top: 8px;">
+              <input type="checkbox" id="newSeasonFreezeOld" checked style="width: 17px; height: 17px; margin-top: 2px;">
+              <div>
+                <strong>Tự động đóng băng kết quả mùa cũ vào Bảng Vàng Archives</strong>
+                <div style="font-size: 12px; color: #15803d; margin-top: 2px;">Lưu giữ chính xác bảng xếp hạng Top 50 EXP & CP của mùa trước để vinh danh.</div>
+              </div>
             </label>
           </div>
+        </div>
+
+        <div id="seasonUpcomingNote" style="display: none; background: #fefce8; border: 1px solid #fde047; border-radius: var(--radius-sm); padding: 12px 16px; font-size: 13px; color: #854d0e;">
+          <strong>💡 Mùa giải Sắp Diễn Ra (Upcoming):</strong>
+          <div style="font-size: 12.5px; margin-top: 4px; line-height: 1.5;">Mùa giải này sẽ được lưu ở trạng thái chờ. Khi đến thời điểm diễn ra, Quản trị viên chỉ cần bấm <strong>"▶️ Kích Hoạt Ngay"</strong> và hệ thống sẽ cung cấp tùy chọn đóng băng & reset điểm lúc đó.</div>
         </div>
 
         <!-- Phân khu 6: Soạn Thông Báo Phát Động -->
@@ -5115,6 +5128,20 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     `;
 
     this.openModal();
+  },
+
+  onSeasonStatusChange(val) {
+    const strategyBox = document.getElementById("seasonStrategyBox");
+    const upcomingNote = document.getElementById("seasonUpcomingNote");
+    if (strategyBox && upcomingNote) {
+      if (val === "active") {
+        strategyBox.style.display = "block";
+        upcomingNote.style.display = "none";
+      } else {
+        strategyBox.style.display = "none";
+        upcomingNote.style.display = "block";
+      }
+    }
   },
 
   selectSeasonIcon(btn, icon) {
@@ -5139,8 +5166,8 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     const t2 = document.getElementById("newSeasonTop2")?.value.trim();
     const t3 = document.getElementById("newSeasonTop3")?.value.trim();
     const desc = document.getElementById("newSeasonDesc")?.value.trim();
-    const resetPoints = document.getElementById("newSeasonResetPoints")?.checked ?? true;
-    const freezeOld = document.getElementById("newSeasonFreezeOld")?.checked ?? true;
+    const resetPoints = document.getElementById("newSeasonResetPoints") ? document.getElementById("newSeasonResetPoints").checked : false;
+    const freezeOld = document.getElementById("newSeasonFreezeOld") ? document.getElementById("newSeasonFreezeOld").checked : false;
     const broadcastMsg = document.getElementById("newSeasonBroadcastMsg")?.value.trim();
 
     if (!name) {
@@ -5155,16 +5182,6 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     const adminProfile = StorageService.getUserProfile();
     const adminName = adminProfile.fullName || "Quản trị viên";
 
-    // Nếu chọn đóng băng mùa cũ trước khi mở mùa mới
-    if (status === "active" && freezeOld) {
-      const activeOld = StorageService.getActiveSeason();
-      if (activeOld) {
-        try {
-          StorageService.freezeAndEndSeason(activeOld.id, adminName);
-        } catch (e) {}
-      }
-    }
-
     try {
       const newSeason = StorageService.createSeason({
         name,
@@ -5177,7 +5194,8 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
         top2Title: t2 || "🥈 Hạng 2 (Top 2)",
         top3Title: t3 || "🥉 Hạng 3 (Top 3)",
         description: desc,
-        resetPoints
+        resetPoints: status === "active" ? resetPoints : false,
+        freezeOld: status === "active" ? freezeOld : false
       }, adminName);
 
       // Nếu có lời nhắn broadcast tùy biến
@@ -5195,7 +5213,14 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       }
 
       this.closeModal();
-      this.showToast(`🎉 Đã khởi tạo thành công mùa giải "${name}"!`, "success", 4500);
+
+      let extraInfo = "";
+      if (status === "active") {
+        if (freezeOld) extraInfo += " (Đã chốt bảng vàng mùa cũ)";
+        if (resetPoints) extraInfo += " (Đã làm mới điểm mùa này)";
+      }
+
+      this.showToast(`🎉 Đã khởi tạo thành công mùa giải "${name}"!${extraInfo}`, "success", 4500);
       this.renderLeaderboardAdminView(document.getElementById("mainContent"));
     } catch (e) {
       this.showToast("❌ " + e.message, "danger", 3500);
@@ -5423,22 +5448,72 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     }
   },
 
+  openActivateSeasonModal(seasonId) {
+    const seasons = StorageService.getSeasons();
+    const season = seasons.find(s => s.id === seasonId);
+    if (!season) return;
+
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = `▶️ Kích Hoạt Mùa Giải: ${season.name}`;
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 16px; font-size: 13.5px;">
+          Bạn đang chuẩn bị kích hoạt <strong>"${season.name}"</strong> làm mùa giải thi đấu chính thức hiện tại của toàn trường.
+        </div>
+
+        <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: var(--radius-sm); padding: 14px 16px; font-size: 13px; color: #166534;">
+          <div style="font-weight: 800; margin-bottom: 8px;">⚙️ Tùy Chọn Chuyển Giao Mùa Giải:</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+              <input type="checkbox" id="activateResetPoints" checked style="width: 17px; height: 17px; margin-top: 2px;">
+              <div>
+                <strong>Đặt lại Điểm Mùa Này (seasonExp, seasonCp) về 0</strong>
+                <div style="font-size: 12px; color: #15803d;">Làm mới điểm để mở chặng đua mới (Điểm Tổng All-Time được bảo lưu 100%).</div>
+              </div>
+            </label>
+            <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; border-top: 1px dashed #bbf7d0; padding-top: 8px;">
+              <input type="checkbox" id="activateFreezeOld" checked style="width: 17px; height: 17px; margin-top: 2px;">
+              <div>
+                <strong>Tự động đóng băng kết quả mùa cũ vào Bảng Vàng</strong>
+                <div style="font-size: 12px; color: #15803d;">Chốt dữ liệu Top 50 EXP & CP của mùa trước vào Kho Lưu Trữ.</div>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Hủy</button>
+      <button class="btn btn-primary" onclick="App.confirmActivateSeasonAction('${season.id}')">▶️ Xác Nhận Kích Hoạt Ngay</button>
+    `;
+
+    this.openModal();
+  },
+
   confirmActivateSeasonAction(seasonId) {
     const seasons = StorageService.getSeasons();
     const season = seasons.find(s => s.id === seasonId);
     if (!season) return;
 
+    const resetPoints = document.getElementById("activateResetPoints") ? document.getElementById("activateResetPoints").checked : true;
+    const freezeOld = document.getElementById("activateFreezeOld") ? document.getElementById("activateFreezeOld").checked : true;
+
     const adminProfile = StorageService.getUserProfile();
     const adminName = adminProfile.fullName || "Quản trị viên";
 
-    if (confirm(`Bạn có chắc chắn muốn KÍCH HOẠT mùa giải "${season.name}" làm mùa thi đấu chính thức hiện tại của toàn trường không?`)) {
-      try {
-        StorageService.activateSeason(seasonId, adminName, false);
-        this.showToast(`🎉 Đã kích hoạt mùa giải "${season.name}" làm mùa hiện tại thành công!`, "success", 3500);
-        this.renderLeaderboardAdminView(document.getElementById("mainContent"));
-      } catch (e) {
-        this.showToast("❌ " + e.message, "danger", 3500);
-      }
+    try {
+      StorageService.activateSeason(seasonId, adminName, resetPoints, freezeOld);
+      this.closeModal();
+      this.showToast(`🎉 Đã kích hoạt mùa giải "${season.name}" làm mùa thi đấu chính thức!`, "success", 4000);
+      this.renderLeaderboardAdminView(document.getElementById("mainContent"));
+    } catch (e) {
+      this.showToast("❌ " + e.message, "danger", 3500);
     }
   },
 
