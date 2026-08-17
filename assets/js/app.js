@@ -6467,6 +6467,7 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
   },
 
   // ═════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
   // 13. DRAFT REVIEW & INLINE EDIT VIEW (XEM LẠI & CHỈNH SỬA ĐỀ CHỜ DUYỆT)
   // ═════════════════════════════════════════════════════════════════════════
   renderDraftReviewView(container, draftId) {
@@ -6482,16 +6483,37 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
     const questions = draft.questions || [];
     const editIdx = this.draftEditingQuestionIndex;
     const allOfficialSubjects = StorageService.getSubjects();
-    const targetSubId = draft.targetSubjectId || "";
+
+    // 1. Tự động nhận diện môn học đích (Target Subject Auto-Detection)
+    let targetSubObj = null;
+    if (draft.targetSubjectId && draft.targetSubjectId !== "NEW") {
+      targetSubObj = allOfficialSubjects.find(s => s.id === draft.targetSubjectId);
+    }
+    if (!targetSubObj && draft.subjectId && draft.subjectId !== "NEW") {
+      targetSubObj = allOfficialSubjects.find(s => s.id === draft.subjectId);
+    }
+    if (!targetSubObj && draft.code) {
+      targetSubObj = allOfficialSubjects.find(s => s.code && s.code.toLowerCase() === draft.code.toLowerCase());
+    }
+    if (!targetSubObj && draft.name) {
+      targetSubObj = allOfficialSubjects.find(s => s.name && s.name.toLowerCase() === draft.name.toLowerCase());
+    }
+
+    // Xác định ID môn học đích đã giải quyết (resolvedTargetSubId)
+    const resolvedTargetSubId = targetSubObj ? targetSubObj.id : (draft.targetSubjectId === "NEW" ? "NEW" : (allOfficialSubjects.length > 0 ? allOfficialSubjects[0].id : "NEW"));
     const targetChapterId = draft.targetChapterId || "c1";
 
-    let targetSubObj = null;
-    if (targetSubId && targetSubId !== "NEW") {
-      targetSubObj = allOfficialSubjects.find(s => s.id === targetSubId);
-    }
+    // Danh sách chương của môn học đích
     const targetChapters = (targetSubObj && targetSubObj.chapters && targetSubObj.chapters.length > 0)
       ? targetSubObj.chapters
-      : [{ id: "c1", name: "Chương 1: Mở đầu & Tổng hợp" }];
+      : (draft.chapters && draft.chapters.length > 0 ? draft.chapters : [{ id: "c1", name: "Chương 1: Mở đầu & Tổng hợp" }]);
+
+    // Điền sẵn thông tin chuẩn xác từ Môn học đích hoặc Draft
+    const displaySubjectName = draft.name || (targetSubObj ? targetSubObj.name : "");
+    const displaySubjectCode = draft.code || (targetSubObj ? targetSubObj.code : "POL101");
+    const displayDepartment = draft.department || (targetSubObj ? targetSubObj.department : "Khoa Kỹ thuật - Công nghệ");
+    const displayAuthor = draft.author || "Sinh viên DThu";
+    const displayDesc = draft.description || (targetSubObj ? targetSubObj.description : "");
 
     container.innerHTML = `
       <div style="padding: 28px 24px; max-width: 1050px; margin: 0 auto; width: 100%;">
@@ -6507,7 +6529,7 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
                 <span class="badge badge-gray">${questions.length} câu hỏi</span>
               </div>
               <h2 style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin-top: 4px;">
-                👁️ Xem Lại & Chỉnh Sửa: ${draft.name}
+                👁️ Xem Lại & Chỉnh Sửa: ${draft.name || displaySubjectName}
               </h2>
             </div>
           </div>
@@ -6535,21 +6557,38 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
           </div>
 
           <!-- Môn học đích khi duyệt -->
-          <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 16px;">
-            <div style="font-weight: 700; font-size: 13.5px; color: #166534; margin-bottom: 8px;">
-              🎯 Đích Đến Khi Phê Duyệt (Gộp vào Môn học chính thức)
+          <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: var(--radius-sm); padding: 16px 18px; margin-bottom: 18px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+              <div style="font-weight: 800; font-size: 14px; color: #166534; display: flex; align-items: center; gap: 6px;">
+                <span>🎯</span>
+                <span>Đích Đến Khi Phê Duyệt (Gộp vào Môn học chính thức):</span>
+              </div>
+              ${targetSubObj ? `
+                <span class="badge" style="background:#dcfce7; color:#15803d; font-weight:700; font-size:12px;">
+                  🔗 Đang liên kết: ${targetSubObj.name} (${targetSubObj.code || targetSubObj.id}) · ${targetSubObj.questions ? targetSubObj.questions.length : 0} câu hiện có
+                </span>
+              ` : `
+                <span class="badge" style="background:#fef3c7; color:#b45309; font-weight:700; font-size:12px;">
+                  ➕ Sẽ tạo thành một Môn học Mới
+                </span>
+              `}
             </div>
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
               <div class="form-group" style="margin: 0;">
-                <label class="form-label" style="font-size: 12.5px; color: #166534; font-weight: 600;">Gán vào môn học (*):</label>
-                <select id="reviewDraftTargetSubject" class="form-control" onchange="App.onReviewTargetSubjectChange('${draft.id}')">
-                  <option value="NEW" ${(!targetSubId || targetSubId === 'NEW') ? 'selected' : ''}>➕ Tạo thành môn học mới</option>
-                  ${allOfficialSubjects.map(s => `<option value="${s.id}" ${(targetSubId === s.id || draft.code === s.code) ? 'selected' : ''}>📚 ${s.name} (${s.code || s.id})</option>`).join('')}
+                <label class="form-label" style="font-size: 12.5px; color: #166534; font-weight: 700;">Gán vào môn học (*):</label>
+                <select id="reviewDraftTargetSubject" class="form-control" style="font-weight: 600;" onchange="App.onReviewTargetSubjectChange('${draft.id}')">
+                  ${allOfficialSubjects.map(s => {
+                    const isSelected = (resolvedTargetSubId === s.id);
+                    return `<option value="${s.id}" ${isSelected ? 'selected' : ''}>📚 ${s.name} (Mã: ${s.code || s.id})</option>`;
+                  }).join('')}
+                  <option value="NEW" ${resolvedTargetSubId === 'NEW' ? 'selected' : ''}>➕ Tạo thành môn học mới hoàn toàn</option>
                 </select>
               </div>
+
               <div class="form-group" style="margin: 0;">
-                <label class="form-label" style="font-size: 12.5px; color: #166534; font-weight: 600;">Gán vào chương:</label>
-                <select id="reviewDraftTargetChapter" class="form-control">
+                <label class="form-label" style="font-size: 12.5px; color: #166534; font-weight: 700;">Gán câu hỏi vào chương (*):</label>
+                <select id="reviewDraftTargetChapter" class="form-control" style="font-weight: 600;">
                   ${targetChapters.map(c => `<option value="${c.id}" ${targetChapterId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
                 </select>
               </div>
@@ -6558,29 +6597,29 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
 
           <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 12px;">
             <div class="form-group" style="margin: 0;">
-              <label class="form-label" style="font-size: 13px;">Tên Môn Học / Bộ Đề (*):</label>
-              <input type="text" id="reviewDraftName" class="form-control" value="${draft.name || ''}" placeholder="Nhập tên môn học...">
+              <label class="form-label" style="font-size: 13px; font-weight: 700;">Tên Môn Học / Bộ Đề (*):</label>
+              <input type="text" id="reviewDraftName" class="form-control" value="${displaySubjectName}" placeholder="Nhập tên môn học...">
             </div>
             <div class="form-group" style="margin: 0;">
-              <label class="form-label" style="font-size: 13px;">Mã Học Phần:</label>
-              <input type="text" id="reviewDraftCode" class="form-control" value="${draft.code || ''}" placeholder="VD: POL102...">
+              <label class="form-label" style="font-size: 13px; font-weight: 700;">Mã Học Phần (*):</label>
+              <input type="text" id="reviewDraftCode" class="form-control" value="${displaySubjectCode}" placeholder="VD: POL102, BIO201...">
             </div>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px;">
             <div class="form-group" style="margin: 0;">
-              <label class="form-label" style="font-size: 13px;">Khoa / Bộ Môn:</label>
-              <input type="text" id="reviewDraftDept" class="form-control" value="${draft.department || 'Khoa Kỹ thuật - Công nghệ'}" placeholder="Tên khoa...">
+              <label class="form-label" style="font-size: 13px; font-weight: 700;">Khoa / Bộ Môn:</label>
+              <input type="text" id="reviewDraftDept" class="form-control" value="${displayDepartment}" placeholder="Tên khoa...">
             </div>
             <div class="form-group" style="margin: 0;">
-              <label class="form-label" style="font-size: 13px;">Người Đóng Góp / Tác Giả:</label>
-              <input type="text" id="reviewDraftAuthor" class="form-control" value="${draft.author || 'Sinh viên DThu'}" placeholder="Tên người gửi...">
+              <label class="form-label" style="font-size: 13px; font-weight: 700;">Người Đóng Góp / Tác Giả:</label>
+              <input type="text" id="reviewDraftAuthor" class="form-control" value="${displayAuthor}" placeholder="Tên người gửi...">
             </div>
           </div>
 
           <div class="form-group" style="margin: 0;">
-            <label class="form-label" style="font-size: 13px;">Mô Tả Bộ Đề:</label>
-            <input type="text" id="reviewDraftDesc" class="form-control" value="${draft.description || ''}" placeholder="Nhập mô tả tóm tắt...">
+            <label class="form-label" style="font-size: 13px; font-weight: 700;">Mô Tả Bộ Đề:</label>
+            <input type="text" id="reviewDraftDesc" class="form-control" value="${displayDesc}" placeholder="Nhập mô tả tóm tắt...">
           </div>
         </div>
 
@@ -6742,17 +6781,32 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
   onReviewTargetSubjectChange(draftId) {
     const subSelect = document.getElementById("reviewDraftTargetSubject");
     const chapSelect = document.getElementById("reviewDraftTargetChapter");
+    const nameInput = document.getElementById("reviewDraftName");
+    const codeInput = document.getElementById("reviewDraftCode");
+    const deptInput = document.getElementById("reviewDraftDept");
+    const descInput = document.getElementById("reviewDraftDesc");
     if (!subSelect || !chapSelect) return;
 
     const subId = subSelect.value;
     if (subId === "NEW") {
       chapSelect.innerHTML = '<option value="c1">Chương 1: Mở đầu & Tổng hợp</option>';
+      if (codeInput && !codeInput.value) codeInput.value = "GEN101";
+      if (deptInput && !deptInput.value) deptInput.value = "Khoa Kỹ thuật - Công nghệ";
     } else {
       const sub = StorageService.getSubjectById(subId);
-      if (sub && sub.chapters && sub.chapters.length > 0) {
-        chapSelect.innerHTML = sub.chapters.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-      } else {
-        chapSelect.innerHTML = '<option value="c1">Chương 1: Mở đầu</option>';
+      if (sub) {
+        // Tự động điền đầy đủ thông tin Môn học đích có sẵn
+        if (nameInput) nameInput.value = sub.name;
+        if (codeInput) codeInput.value = sub.code || sub.id;
+        if (deptInput) deptInput.value = sub.department || "Khoa Kỹ thuật - Công nghệ";
+        if (descInput && !descInput.value) descInput.value = sub.description || "";
+
+        // Nạp đầy đủ các chương thực tế của môn học đích
+        if (sub.chapters && sub.chapters.length > 0) {
+          chapSelect.innerHTML = sub.chapters.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        } else {
+          chapSelect.innerHTML = '<option value="c1">Chương 1: Mở đầu</option>';
+        }
       }
     }
   },
@@ -6882,6 +6936,16 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
       }
     }
 
+    // Nếu liên kết với môn học có sẵn, bảo đảm mã và tên khớp hoàn toàn
+    if (targetSubVal && targetSubVal !== "NEW") {
+      const targetSub = StorageService.getSubjectById(targetSubVal);
+      if (targetSub) {
+        if (!codeVal) draft.code = targetSub.code || targetSub.id;
+        if (!nameVal) draft.name = targetSub.name;
+        if (!deptVal) draft.department = targetSub.department;
+      }
+    }
+
     StorageService.saveDraftSubject(draft);
     this.showToast("💾 Đã lưu toàn bộ thông tin bộ đề vào Cloud & Local thành công!", "success", 3000);
     this.renderHeader();
@@ -6918,11 +6982,21 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
       }
     }
 
+    // Nếu liên kết với môn học có sẵn, bảo đảm mã và tên khớp hoàn toàn
+    if (targetSubVal && targetSubVal !== "NEW") {
+      const targetSub = StorageService.getSubjectById(targetSubVal);
+      if (targetSub) {
+        if (!codeVal) draft.code = targetSub.code || targetSub.id;
+        if (!nameVal) draft.name = targetSub.name;
+        if (!deptVal) draft.department = targetSub.department;
+      }
+    }
+
     StorageService.saveDraftSubject(draft);
 
     const res = StorageService.approveDraft(draftId);
     if (res) {
-      this.showToast(`🎉 Đã duyệt bộ đề và gộp vào môn "${res.name}" thành công! (+50 EXP)`, "success", 4500);
+      this.showToast(`🎉 Đã duyệt bộ đề và gộp vào môn "${res.name}" (${res.code || res.id}) thành công! (+50 EXP)`, "success", 4500);
       this.renderHeader();
       this.adminSubjectTab = "official";
       this.navigateTo("manage");

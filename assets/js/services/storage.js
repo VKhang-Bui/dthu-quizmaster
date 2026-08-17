@@ -186,7 +186,10 @@ const StorageService = {
       targetSub = existingSubjects.find(s => s.id === targetSubId);
     }
     if (!targetSub && draft.code) {
-      targetSub = existingSubjects.find(s => s.code === draft.code);
+      targetSub = existingSubjects.find(s => s.code && s.code.toLowerCase() === draft.code.toLowerCase());
+    }
+    if (!targetSub && draft.name) {
+      targetSub = existingSubjects.find(s => s.name && s.name.toLowerCase() === draft.name.toLowerCase());
     }
 
     let finalSubject = null;
