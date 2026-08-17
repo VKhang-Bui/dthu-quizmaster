@@ -1515,20 +1515,20 @@ const App = {
                       ${SmartParserService.formatRichText(q.question)}
                     </div>
 
-                    <!-- Các Phương Án Lựa Chọn (Khối Xanh Rõ Ràng Cho Đáp Án Đúng) -->
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 8px; margin-bottom: 8px;">
+                    <!-- Các Phương Án Lựa Chọn (Mỗi Hàng 1 Lựa Chọn Dọc Xuống Dòng Rõ Ràng) -->
+                    <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; width: 100%;">
                       ${(q.options || []).map((opt, optIdx) => {
                         const isAns = (optIdx === q.answerIndex);
                         return `
-                          <div style="display: flex; align-items: center; font-size: 13.5px; padding: 9px 12px; border-radius: 6px; border: ${isAns ? '1.5px solid #16a34a' : '1px solid #cbd5e1'}; background: ${isAns ? '#dcfce7' : '#ffffff'}; box-shadow: ${isAns ? '0 1px 3px rgba(22, 163, 74, 0.15)' : 'none'};">
-                            <span style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; background: ${isAns ? '#16a34a' : '#f1f5f9'}; color: ${isAns ? '#ffffff' : '#475569'}; border: ${isAns ? 'none' : '1px solid #cbd5e1'}; border-radius: 4px; font-weight: 800; font-size: 12px; margin-right: 8px; flex-shrink: 0;">
+                          <div style="display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px; padding: 10px 14px; border-radius: 6px; border: ${isAns ? '1.5px solid #16a34a' : '1px solid #cbd5e1'}; background: ${isAns ? '#dcfce7' : '#ffffff'}; box-shadow: ${isAns ? '0 1px 3px rgba(22, 163, 74, 0.15)' : 'none'}; width: 100%; box-sizing: border-box;">
+                            <span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; min-width: 24px; background: ${isAns ? '#16a34a' : '#f1f5f9'}; color: ${isAns ? '#ffffff' : '#475569'}; border: ${isAns ? 'none' : '1px solid #cbd5e1'}; border-radius: 4px; font-weight: 800; font-size: 12.5px; flex-shrink: 0; margin-top: 1px;">
                               ${App.letters[optIdx]}
                             </span>
-                            <span style="font-weight: ${isAns ? '700' : '400'}; color: ${isAns ? '#14532d' : '#334155'}; flex: 1;">
+                            <div style="font-weight: ${isAns ? '700' : '400'}; color: ${isAns ? '#14532d' : '#334155'}; flex: 1; min-width: 0; word-break: break-word; overflow-wrap: break-word; line-height: 1.5;">
                               ${SmartParserService.formatRichText(opt.text || '')}
-                            </span>
+                            </div>
                             ${isAns ? `
-                              <span style="margin-left: 8px; background: #16a34a; color: #ffffff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0;">
+                              <span style="margin-left: 8px; background: #16a34a; color: #ffffff; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 10px; display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0;">
                                 ✓ Đúng
                               </span>
                             ` : ''}
@@ -5904,19 +5904,19 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
                       ${SmartParserService.formatRichText(q.question)}
                     </div>
 
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 8px; margin-bottom: 8px;">
+                    <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; width: 100%;">
                       ${(q.options || []).map((opt, optIdx) => {
                         const isAns = (optIdx === q.answerIndex);
                         return `
-                          <div style="display: flex; align-items: center; font-size: 13.5px; padding: 9px 12px; border-radius: 6px; border: ${isAns ? '1.5px solid #16a34a' : '1px solid #cbd5e1'}; background: ${isAns ? '#dcfce7' : '#ffffff'}; box-shadow: ${isAns ? '0 1px 3px rgba(22, 163, 74, 0.15)' : 'none'};">
-                            <span style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; background: ${isAns ? '#16a34a' : '#f1f5f9'}; color: ${isAns ? '#ffffff' : '#475569'}; border: ${isAns ? 'none' : '1px solid #cbd5e1'}; border-radius: 4px; font-weight: 800; font-size: 12px; margin-right: 8px; flex-shrink: 0;">
+                          <div style="display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px; padding: 10px 14px; border-radius: 6px; border: ${isAns ? '1.5px solid #16a34a' : '1px solid #cbd5e1'}; background: ${isAns ? '#dcfce7' : '#ffffff'}; box-shadow: ${isAns ? '0 1px 3px rgba(22, 163, 74, 0.15)' : 'none'}; width: 100%; box-sizing: border-box;">
+                            <span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; min-width: 24px; background: ${isAns ? '#16a34a' : '#f1f5f9'}; color: ${isAns ? '#ffffff' : '#475569'}; border: ${isAns ? 'none' : '1px solid #cbd5e1'}; border-radius: 4px; font-weight: 800; font-size: 12.5px; flex-shrink: 0; margin-top: 1px;">
                               ${App.letters[optIdx]}
                             </span>
-                            <span style="font-weight: ${isAns ? '700' : '400'}; color: ${isAns ? '#14532d' : '#334155'}; flex: 1;">
+                            <div style="font-weight: ${isAns ? '700' : '400'}; color: ${isAns ? '#14532d' : '#334155'}; flex: 1; min-width: 0; word-break: break-word; overflow-wrap: break-word; line-height: 1.5;">
                               ${SmartParserService.formatRichText(opt.text || '')}
-                            </span>
+                            </div>
                             ${isAns ? `
-                              <span style="margin-left: 8px; background: #16a34a; color: #ffffff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0;">
+                              <span style="margin-left: 8px; background: #16a34a; color: #ffffff; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 10px; display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0;">
                                 ✓ Đúng
                               </span>
                             ` : ''}
