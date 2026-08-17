@@ -1,0 +1,45 @@
+{
+  "id": "VI_SINH",
+  "code": "BIO201",
+  "name": "Vi sinh vật học đại cương",
+  "department": "Khoa Sư phạm Khoa học Tự nhiên",
+  "author": "Bùi Văn Khang (CNSH DThu)",
+  "description": "Bộ câu hỏi ôn thi môn Vi sinh vật học đại cương dành cho sinh viên ngành Công nghệ Sinh học.",
+  "icon": "🔬",
+  "status": "official",
+  "chapters": [
+    { "id": "c1", "name": "Chương 1: Hình thái và cấu tạo tế bào vi sinh vật" },
+    { "id": "c2", "name": "Chương 2: Dinh dưỡng và trao đổi chất" },
+    { "id": "c3", "name": "Chương 3: Sinh trưởng và phát triển của vi sinh vật" }
+  ],
+  "questions": [
+    {
+      "id": "VSV-001",
+      "chapterId": "c1",
+      "question": "Thành phần cấu tạo đặc trưng của thành tế bào vi khuẩn là gì?",
+      "options": [
+        {
+          "text": "Peptidoglycan (Murein)",
+          "isCorrect": true,
+          "note": "Peptidoglycan là thành phần chính cấu tạo nên thành tế bào của hầu hết các vi khuẩn."
+        },
+        {
+          "text": "Cellulose",
+          "isCorrect": false,
+          "note": "Cellulose là thành phần cấu tạo thành tế bào thực vật."
+        },
+        {
+          "text": "Chitin",
+          "isCorrect": false,
+          "note": "Chitin là thành phần cấu tạo thành tế bào nấm."
+        },
+        {
+          "text": "Glycogen",
+          "isCorrect": false,
+          "note": "Glycogen là chất dự trữ ở động vật và nấm men."
+        }
+      ],
+      "answerIndex": 0
+    }
+  ]
+}

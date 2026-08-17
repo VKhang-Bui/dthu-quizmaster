@@ -1,0 +1,23 @@
+================================================================================
+BẢNG TRA CỨU THUẬT NGỮ & KHÁI NIỆM TRỌNG TÂM: VI SINH VẬT HỌC (BIO201)
+Biên soạn: Bùi Văn Khang (Sinh viên CNSH - Trường Đại học Đồng Tháp)
+================================================================================
+
+1. Peptidoglycan (Murein):
+   - Bản chất: Đại phân tử dạng lưới gồm các chuỗi glycan (NAG - NAM) liên kết bởi cầu nối tetrapeptide.
+   - Vai trò: Tạo khung cơ học vững chắc, quy định hình dạng và bảo vệ tế bào vi khuẩn khỏi áp suất thẩm thấu.
+
+2. Nhuộm Gram (Gram Staining):
+   - Vi khuẩn Gram dương (Gram+): Thành peptidoglycan dày (20-80 nm), giữ lại phức hệ tím kết tinh - iod, bắt màu TÍM.
+   - Vi khuẩn Gram âm (Gram-): Thành peptidoglycan mỏng (1-3 nm) có lớp màng ngoài (outer membrane chứa LPS), bị cồn tẩy màu tím và bắt màu thuốc nhuộm bổ sung Fuchsin/Safranin (HỒNG/ĐỎ).
+
+3. Nội bào tử (Endospore):
+   - Bản chất: Thể nghỉ đặc biệt hình thành khi điều kiện môi trường bất lợi (thiếu dinh dưỡng, nhiệt độ cao, hóa chất).
+   - Đại diện điển hình: Chi Bacillus (vi khuẩn hiếu khí) và chi Clostridium (vi khuẩn kỵ khí).
+   - Tính kháng nhiệt: Nhờ hàm lượng nước thấp và sự hiện diện của phức hệ Canxi Dipicolinate (Ca-DPA).
+
+4. Bốn pha sinh trưởng của quần thể vi sinh vật trong nuôi cấy tĩnh:
+   - Pha tiềm phát (Lag phase): VSV thích ứng với môi trường, tổng hợp enzyme mới, chưa tăng số lượng tế bào.
+   - Pha lũy thừa (Log/Exponential phase): Tế bào phân chia với tốc độ cực đại không đổi, kích thước đồng đều.
+   - Pha cân bằng (Stationary phase): Tốc độ sinh ra bằng tốc độ chết đi, số lượng tế bào sống đạt cực đại.
+   - Pha suy vong (Death phase): Số lượng tế bào chết vượt số lượng tế bào sinh ra do cạn kiệt dinh dưỡng và tích lũy chất độc.

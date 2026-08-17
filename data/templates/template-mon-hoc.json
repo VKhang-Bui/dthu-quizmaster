@@ -1,10 +1,12 @@
 {
-  "subjectId": "MA_MON_HOC_VIET_LIEN",
-  "subjectCode": "BIO101",
-  "subjectName": "Tên môn học (Ví dụ: Vi sinh vật đại cương)",
-  "department": "Khoa Nông nghiệp - Sinh học",
+  "id": "MA_MON_HOC_VIET_HOA",
+  "code": "BIO101",
+  "name": "Tên môn học (Ví dụ: Sinh học tế bào)",
+  "department": "Khoa Sư phạm Khoa học Tự nhiên",
   "author": "Họ và Tên sinh viên đóng góp",
-  "version": "1.0",
+  "description": "Mô tả ngắn gọn về phạm vi đề thi và đối tượng ôn tập.",
+  "icon": "📖",
+  "status": "draft",
   "chapters": [
     { "id": "c1", "name": "Chương 1: Mở đầu" },
     { "id": "c2", "name": "Chương 2: Cấu tạo tế bào" }

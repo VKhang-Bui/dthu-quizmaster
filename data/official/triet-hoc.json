@@ -1,0 +1,73 @@
+{
+  "id": "TRIET_HOC",
+  "code": "POL101",
+  "name": "Triết học Mác - Lênin",
+  "department": "Khoa Lý luận Chính trị",
+  "author": "Ban Học tập & NCKH DThu",
+  "description": "Ngân hàng trắc nghiệm Triết học Mác - Lênin (Chủ nghĩa duy vật biện chứng và duy vật lịch sử).",
+  "icon": "🏛️",
+  "status": "official",
+  "chapters": [
+    { "id": "c1", "name": "Chương 1: Triết học và vai trò trong đời sống" },
+    { "id": "c2", "name": "Chương 2: Chủ nghĩa duy vật biện chứng" },
+    { "id": "c3", "name": "Chương 3: Chủ nghĩa duy vật lịch sử" }
+  ],
+  "questions": [
+    {
+      "id": "THML-001",
+      "chapterId": "c1",
+      "question": "Vấn đề cơ bản của triết học là vấn đề gì?",
+      "options": [
+        {
+          "text": "Mối quan hệ giữa tư duy và tồn tại (giữa ý thức và vật chất)",
+          "isCorrect": true,
+          "note": "Ph. Ăng-ghen khẳng định: 'Vấn đề cơ bản lớn của mọi triết học, đặc biệt là triết học hiện đại, là vấn đề quan hệ giữa tư duy và tồn tại'."
+        },
+        {
+          "text": "Mối quan hệ giữa con người và tự nhiên",
+          "isCorrect": false,
+          "note": "Đây là mối quan hệ cụ thể, không phải vấn đề nền tảng phân định các trường phái triết học."
+        },
+        {
+          "text": "Nguồn gốc của vũ trụ và sự sống",
+          "isCorrect": false,
+          "note": "Đây là đối tượng nghiên cứu của khoa học tự nhiên."
+        },
+        {
+          "text": "Quy luật vận động của nền kinh tế thị trường",
+          "isCorrect": false,
+          "note": "Đây là đối tượng của Kinh tế chính trị học."
+        }
+      ],
+      "answerIndex": 0
+    },
+    {
+      "id": "THML-002",
+      "chapterId": "c2",
+      "question": "Theo định nghĩa của V.I. Lênin, thuộc tính phổ biến nhất của mọi dạng vật chất là gì?",
+      "options": [
+        {
+          "text": "Tính thực tại khách quan (tồn tại độc lập với ý thức con người)",
+          "isCorrect": true,
+          "note": "Vật chất là một phạm trù triết học dùng để chỉ thực tại khách quan được đem lại cho con người trong cảm giác."
+        },
+        {
+          "text": "Có khối lượng và kích thước xác định",
+          "isCorrect": false,
+          "note": "Đây là thuộc tính vật lý cụ thể, không phải thuộc tính triết học khái quát nhất."
+        },
+        {
+          "text": "Luôn luôn đứng im tuyệt đối",
+          "isCorrect": false,
+          "note": "Vật chất luôn luôn vận động; đứng im chỉ là tương đối, tạm thời."
+        },
+        {
+          "text": "Được sinh ra từ ý niệm tuyệt đối",
+          "isCorrect": false,
+          "note": "Đây là quan điểm duy tâm khách quan của Hêghen."
+        }
+      ],
+      "answerIndex": 0
+    }
+  ]
+}

@@ -5,7 +5,9 @@
 
 const App = {
   // Application State
-  currentView: "home", // 'home', 'quiz', 'result', 'mistakes', 'manage', 'parser', 'subject-detail', 'guide'
+  currentView: "home", // 'home', 'quiz', 'result', 'mistakes', 'manage', 'parser', 'subject-detail', 'guide', 'leaderboard', 'materials', 'moderation'
+  currentHubTab: "official", // 'official' hoặc 'drafts'
+  activeMaterialId: "mat-cnxhkh",
   activeSubject: null,
   activeSession: null,
   latestResultDetails: null,
@@ -17,16 +19,21 @@ const App = {
   currentPage: 0,
 
   // Khởi động ứng dụng
-  init() {
+  async init() {
+    if (typeof DataLoader !== "undefined") {
+      await DataLoader.init();
+    }
     this.renderHeader();
     this.navigateTo("home");
     this.bindGlobalEvents();
   },
 
-  // Global Header (Tinh gọn thanh menu trên)
+  // Global Header (Thanh menu trên kèm User Profile & Role Switcher)
   renderHeader() {
     const headerEl = document.getElementById("appHeader");
     if (!headerEl) return;
+    const profile = StorageService.getUserProfile();
+    const pendingDrafts = StorageService.getDraftSubjects();
 
     headerEl.innerHTML = `
       <div class="header-brand" onclick="App.navigateTo('home')">
@@ -39,19 +46,53 @@ const App = {
 
       <nav class="app-nav">
         <button class="nav-link" id="navHome" onclick="App.navigateTo('home')">🏠 Trang chủ</button>
-        <button class="nav-link" id="navParser" onclick="App.navigateTo('parser')">📝 Nhập đề (Parser)</button>
-        <button class="nav-link" id="navMistakes" onclick="App.navigateTo('mistakes')">🎯 Câu làm sai</button>
-        <button class="nav-link" id="navManage" onclick="App.navigateTo('manage')">⚙️ Quản lý đề</button>
+        <button class="nav-link" id="navLeaderboard" onclick="App.navigateTo('leaderboard')">🏆 BXH</button>
+        <button class="nav-link" id="navMaterials" onclick="App.navigateTo('materials')">📚 Tài liệu (.txt)</button>
+        <button class="nav-link" id="navParser" onclick="App.navigateTo('parser')">📝 Nhập đề</button>
+        <button class="nav-link" id="navMistakes" onclick="App.navigateTo('mistakes')">🎯 Câu sai</button>
+        <button class="nav-link" id="navManage" onclick="App.navigateTo('manage')">⚙️ Quản lý</button>
+        ${profile.role === 'admin' ? `
+          <button class="nav-link" id="navModeration" onclick="App.navigateTo('moderation')" style="color: #b45309; font-weight: 700;">
+            🛡️ Duyệt đề ${pendingDrafts.length > 0 ? `<span class="badge-tab-count" style="background:#fef3c7; color:#92400e;">${pendingDrafts.length}</span>` : ''}
+          </button>
+        ` : ''}
       </nav>
+
+      <div class="header-user-widget">
+        <div style="font-size: 18px;">${profile.avatar || '👨‍🎓'}</div>
+        <div style="display: flex; flex-direction: column;">
+          <span style="font-size: 12px; font-weight: 700; color: var(--text-primary); line-height: 1.2;">${profile.fullName}</span>
+          <span class="user-exp-chip">⚡ ${profile.totalExp} EXP</span>
+        </div>
+        <span class="user-role-badge ${profile.role}">${profile.role === 'admin' ? '🛡️ Admin' : '👨‍🎓 SV'}</span>
+        <button class="role-toggle-btn" onclick="App.toggleUserRole()" title="Chuyển đổi nhanh vai trò Sinh viên <-> Admin">
+          ${profile.role === 'admin' ? 'Đổi sang SV' : 'Đổi sang Admin'}
+        </button>
+      </div>
     `;
+  },
+
+  toggleUserRole() {
+    const profile = StorageService.getUserProfile();
+    const newRole = profile.role === "admin" ? "student" : "admin";
+    StorageService.switchUserRole(newRole);
+    this.renderHeader();
+    if (this.currentView === "moderation" && newRole === "student") {
+      this.navigateTo("home");
+    } else {
+      this.navigateTo(this.currentView);
+    }
   },
 
   updateActiveNav(view) {
     document.querySelectorAll(".nav-link").forEach(btn => btn.classList.remove("active"));
     if (view === "home") document.getElementById("navHome")?.classList.add("active");
+    if (view === "leaderboard") document.getElementById("navLeaderboard")?.classList.add("active");
+    if (view === "materials") document.getElementById("navMaterials")?.classList.add("active");
     if (view === "parser") document.getElementById("navParser")?.classList.add("active");
     if (view === "mistakes") document.getElementById("navMistakes")?.classList.add("active");
     if (view === "manage" || view === "subject-detail") document.getElementById("navManage")?.classList.add("active");
+    if (view === "moderation") document.getElementById("navModeration")?.classList.add("active");
   },
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -143,6 +184,15 @@ const App = {
       case "home":
         this.renderHomeView(mainContainer);
         break;
+      case "leaderboard":
+        this.renderLeaderboardView(mainContainer);
+        break;
+      case "materials":
+        this.renderMaterialsView(mainContainer, data.materialId || this.activeMaterialId);
+        break;
+      case "moderation":
+        this.renderModerationView(mainContainer);
+        break;
       case "quiz":
         this.renderQuizView(mainContainer);
         break;
@@ -173,10 +223,18 @@ const App = {
   },
 
   // ═════════════════════════════════════════════════════════════════════════
-  // 1. HOME VIEW (TRANG CHỦ MÔN HỌC - TINH GỌN)
+  // 1. HOME VIEW (TRANG CHỦ MÔN HỌC - TÍCH HỢP HUB TABS CHÍNH THỨC & DRAFTS)
   // ═════════════════════════════════════════════════════════════════════════
+  switchHubTab(tab) {
+    this.currentHubTab = tab;
+    const mainContainer = document.getElementById("mainContent");
+    this.renderHomeView(mainContainer);
+  },
+
   renderHomeView(container) {
-    const subjects = StorageService.getSubjects();
+    const officialSubjects = StorageService.getSubjects();
+    const draftSubjects = StorageService.getDraftSubjects();
+    const activeList = this.currentHubTab === "official" ? officialSubjects : draftSubjects;
 
     container.innerHTML = `
       <div class="view-home">
@@ -187,30 +245,40 @@ const App = {
             <p>Hệ thống tự học, ngân hàng đề cương, thi thử tính giờ và lưu trữ tiến độ học tập cho sinh viên Trường Đại học Đồng Tháp.</p>
           </div>
           <div class="home-hero-actions">
-            <button class="btn btn-primary" onclick="App.openCreateSubjectModal()">
-              ➕ Thêm môn mới
+            <button class="btn btn-primary" onclick="App.navigateTo('parser')">
+              📝 Đóng góp đề mới
             </button>
-            <button class="btn" onclick="App.triggerImportFile()">
-              📥 Nhập file JSON
+            <button class="btn" onclick="App.navigateTo('materials')">
+              📚 Đọc tài liệu (.txt)
             </button>
           </div>
+        </div>
+
+        <!-- Hub Tabs: Chính thức vs Đề Cộng đồng (Drafts) -->
+        <div class="hub-tabs">
+          <button class="hub-tab-btn ${this.currentHubTab === 'official' ? 'active' : ''}" onclick="App.switchHubTab('official')">
+            🟢 Ngân hàng Chính thức <span class="badge-tab-count">${officialSubjects.length}</span>
+          </button>
+          <button class="hub-tab-btn ${this.currentHubTab === 'drafts' ? 'active' : ''}" onclick="App.switchHubTab('drafts')">
+            🟡 Đề Cộng đồng (Thử nghiệm) <span class="badge-tab-count">${draftSubjects.length}</span>
+          </button>
         </div>
 
         <!-- Search & Filter Bar -->
         <div class="search-filter-bar">
           <div class="search-input-wrapper">
             <span class="search-icon">🔍</span>
-            <input type="text" id="searchInput" class="form-control" placeholder="Tìm kiếm môn học theo tên, mã môn (vd: POL102, BIO201...)" oninput="App.onSearchSubjects()">
+            <input type="text" id="searchInput" class="form-control" placeholder="Tìm kiếm theo tên môn, mã môn..." oninput="App.onSearchSubjects()">
           </div>
           <select id="deptFilter" class="form-control" style="width: auto; min-width: 200px;" onchange="App.onSearchSubjects()">
             <option value="all">Tất cả khoa / ngành</option>
-            ${this.getUniqueDepts(subjects).map(d => `<option value="${d}">${d}</option>`).join('')}
+            ${this.getUniqueDepts(activeList).map(d => `<option value="${d}">${d}</option>`).join('')}
           </select>
         </div>
 
         <!-- Subjects Grid -->
         <div class="subjects-grid" id="subjectsGrid">
-          ${this.renderSubjectCards(subjects)}
+          ${this.renderSubjectCards(activeList, this.currentHubTab === 'drafts')}
         </div>
       </div>
     `;
@@ -220,9 +288,13 @@ const App = {
     return [...new Set(subjects.map(s => s.department || "Khác"))];
   },
 
-  renderSubjectCards(subjects) {
+  renderSubjectCards(subjects, isDraft = false) {
     if (subjects.length === 0) {
-      return `<div style="grid-column: 1/-1; text-align: center; padding: 48px; color: var(--text-tertiary);">Không tìm thấy môn học nào phù hợp.</div>`;
+      return `
+        <div style="grid-column: 1/-1; text-align: center; padding: 48px; color: var(--text-tertiary);">
+          ${isDraft ? 'Chưa có bộ đề đóng góp nào đang chờ duyệt. Hãy là người đầu tiên đóng góp!' : 'Không tìm thấy môn học nào phù hợp.'}
+        </div>
+      `;
     }
 
     return subjects.map(sub => {
@@ -231,10 +303,10 @@ const App = {
       const latest = StorageService.getLatestScoreForSubject(sub.id);
 
       return `
-        <div class="subject-card">
+        <div class="subject-card" style="${isDraft ? 'border-top: 3px solid #f59e0b;' : ''}">
           <div class="subject-card-top">
             <span class="subject-code-badge">${sub.code || sub.id}</span>
-            <span class="badge badge-gray">${cCount} chương</span>
+            ${isDraft ? '<span class="badge" style="background:#fef3c7; color:#b45309; font-weight:700;">🧪 Thử nghiệm</span>' : `<span class="badge badge-gray">${cCount} chương</span>`}
           </div>
           <h3>${sub.name}</h3>
           <div class="subject-card-dept">🏛️ ${sub.department || 'Đại học Đồng Tháp'}</div>
@@ -261,7 +333,7 @@ const App = {
     const query = document.getElementById("searchInput")?.value.toLowerCase().trim() || "";
     const dept = document.getElementById("deptFilter")?.value || "all";
 
-    const all = StorageService.getSubjects();
+    const all = this.currentHubTab === "official" ? StorageService.getSubjects() : StorageService.getDraftSubjects();
     const filtered = all.filter(s => {
       const matchQuery = s.name.toLowerCase().includes(query) || (s.code && s.code.toLowerCase().includes(query));
       const matchDept = dept === "all" || s.department === dept;
@@ -269,7 +341,7 @@ const App = {
     });
 
     const grid = document.getElementById("subjectsGrid");
-    if (grid) grid.innerHTML = this.renderSubjectCards(filtered);
+    if (grid) grid.innerHTML = this.renderSubjectCards(filtered, this.currentHubTab === "drafts");
   },
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -633,42 +705,44 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
     const body = document.getElementById("modalBody");
     const footer = document.getElementById("modalFooter");
 
-    title.textContent = "📤 Hướng Dẫn Đóng Góp Bộ Đề Thi";
+    title.textContent = "📤 Đóng Góp Bộ Đề Cho Cộng Đồng Sinh Viên DThu";
 
     body.innerHTML = `
       <div style="font-size: 13.5px; line-height: 1.6; color: var(--text-primary);">
-        <p style="margin-bottom: 14px;">
-          Cảm ơn bạn đã đóng góp ngân hàng câu hỏi để cùng xây dựng thư viện đề thi mở cho sinh viên <strong>Trường Đại học Đồng Tháp</strong>!
-        </p>
+        <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: var(--radius-sm); padding: 14px; margin-bottom: 16px; color: #166534;">
+          <strong>🎉 Đang chuẩn bị gửi:</strong> ${this.currentParsedQuestions.length} câu hỏi môn <strong>${subName}</strong>.
+          Đóng góp sẽ được cộng <strong>+30 EXP</strong> vào hồ sơ cá nhân của bạn!
+        </div>
 
-        <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 16px;">
-          <h4 style="font-size: 14px; margin-bottom: 8px; color: var(--brand-text);">🚀 2 Bước gửi đề cực kỳ đơn giản:</h4>
-          
-          <div style="display: flex; gap: 10px; margin-bottom: 12px;">
-            <div style="width: 24px; height: 24px; min-width: 24px; border-radius: 50%; background: var(--brand-primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;">1</div>
-            <div>
-              <strong>Tải file JSON đề thi về máy:</strong><br>
-              <button class="btn btn-sm" style="margin-top: 6px;" onclick="App.downloadParsedAsJson()">📥 Tải file JSON (.json) về máy</button>
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <!-- Option 1: Gửi trực tiếp lên web (Draft) -->
+          <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; background: var(--surface);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <h4 style="font-size: 14.5px; font-weight: 700; color: var(--text-primary);">⚡ Cách 1: Gửi duyệt trực tiếp (1-Click)</h4>
+              <span class="badge" style="background:#dbeafe; color:#1e40af;">Khuyên dùng</span>
             </div>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 10px;">
+              Bộ đề sẽ được chuyển ngay vào mục <strong>"🟡 Đề Cộng đồng (Drafts)"</strong> để bạn bè vào làm thử nghiệm và chờ Ban biên tập phê duyệt.
+            </p>
+            <button class="btn btn-primary" onclick="App.submitToCommunityDrafts('${subId}')">
+              🚀 Gửi duyệt ngay (+30 EXP)
+            </button>
           </div>
 
-          <div style="display: flex; gap: 10px;">
-            <div style="width: 24px; height: 24px; min-width: 24px; border-radius: 50%; background: var(--brand-primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;">2</div>
-            <div>
-              <strong>Gửi duyệt đề thi:</strong><br>
-              <p style="font-size: 13px; margin-top: 4px; color: var(--text-secondary);">
-                Tạo một phiếu đóng góp trên GitHub để Admin (<strong>Bùi Văn Khang</strong>) kiểm tra và tích hợp đề của bạn vào hệ thống:
-              </p>
-              <a href="https://github.com/VKhang-Bui/dthu-quizmaster/issues/new/choose" target="_blank" class="btn btn-sm btn-primary" style="margin-top: 6px; display: inline-flex; align-items: center; gap: 6px;">
-                🔗 Mở trang Đóng góp trên GitHub ➔
+          <!-- Option 2: Tải JSON & Gửi GitHub -->
+          <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; background: var(--surface);">
+            <h4 style="font-size: 14.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">📥 Cách 2: Tải file JSON & Đóng góp qua GitHub</h4>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 10px;">
+              Tải file đề chuẩn <code>.json</code> về máy để lưu trữ hoặc tạo Issue đóng góp trên GitHub chính thức của dự án.
+            </p>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button class="btn btn-sm" onclick="App.downloadParsedAsJson()">📥 Tải file JSON</button>
+              <a href="https://github.com/VKhang-Bui/dthu-quizmaster/issues/new/choose" target="_blank" class="btn btn-sm" style="display: inline-flex; align-items: center; gap: 4px;">
+                🔗 GitHub Issue ➔
               </a>
             </div>
           </div>
         </div>
-
-        <p style="font-size: 12.5px; color: var(--text-secondary);">
-          💡 Hoặc bạn cũng có thể gửi trực tiếp file JSON qua Email: <code>vkhang.bui.dthu@gmail.com</code> kèm thông tin môn học.
-        </p>
       </div>
     `;
 
@@ -677,6 +751,38 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
     `;
 
     modal.classList.add("active");
+  },
+
+  submitToCommunityDrafts(subjectId) {
+    if (!this.currentParsedQuestions || this.currentParsedQuestions.length === 0) {
+      alert("Chưa có câu hỏi nào để đóng góp!");
+      return;
+    }
+
+    const sub = StorageService.getSubjectById(subjectId);
+    const profile = StorageService.getUserProfile();
+
+    const submission = {
+      id: "DRAFT_" + Date.now(),
+      code: sub ? sub.code : "GEN101",
+      name: (sub ? sub.name : "Bộ đề đóng góp mới") + " (Bản Thử Nghiệm)",
+      department: sub ? sub.department : profile.department,
+      author: profile.fullName + ` (MSSV: ${profile.studentId || 'DThu'})`,
+      description: `Bộ đề đóng góp gồm ${this.currentParsedQuestions.length} câu hỏi, do sinh viên đóng góp trực tuyến.`,
+      icon: "🧪",
+      status: "draft",
+      chapters: sub && sub.chapters ? sub.chapters : [{ id: "c1", name: "Chương 1: Tổng hợp" }],
+      questions: this.currentParsedQuestions
+    };
+
+    StorageService.addDraftSubmission(submission);
+    StorageService.addExp(30, "Đóng góp bộ đề thi mới (+30 EXP)");
+
+    this.closeModal();
+    alert(`🎉 Cảm ơn bạn! Bộ đề "${submission.name}" đã được gửi lên Cộng đồng (Drafts) thành công! Bạn đã nhận được +30 EXP.`);
+    this.renderHeader();
+    this.currentHubTab = "drafts";
+    this.navigateTo("home");
   },
 
   onParserSubjectChange() {
@@ -1658,7 +1764,372 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
   },
 
   // ═════════════════════════════════════════════════════════════════════════
-  // 8. MANAGE VIEW (QUẢN LÝ MÔN HỌC & ĐỀ THI)
+  // 7. LEADERBOARD VIEW (BẢNG XẾP HẠNG)
+  // ═════════════════════════════════════════════════════════════════════════
+  renderLeaderboardView(container) {
+    const leaderboard = StorageService.getLeaderboardData();
+    const top1 = leaderboard[0];
+    const top2 = leaderboard[1];
+    const top3 = leaderboard[2];
+
+    container.innerHTML = `
+      <div class="view-leaderboard">
+        <div style="margin-bottom: 28px; text-align: center;">
+          <h2 style="font-size: 24px; font-weight: 800; color: var(--text-primary);">🏆 Bảng Xếp Hạng Sinh Viên DThu</h2>
+          <p style="color: var(--text-secondary); margin-top: 4px;">Tuyên dương những sinh viên có thành tích học tập và điểm tích lũy (EXP) cao nhất toàn trường.</p>
+        </div>
+
+        <!-- Podium Top 3 -->
+        <div class="podium-container">
+          <!-- Rank 2 -->
+          <div class="podium-card podium-rank-2">
+            <div style="font-size: 13px; font-weight: 800; color: #64748b; margin-bottom: 6px;">🥈 HẠNG 2</div>
+            <div class="podium-avatar">${top2 ? '👨‍🎓' : '👤'}</div>
+            <div class="podium-name">${top2 ? top2.name : 'Đang cập nhật'}</div>
+            <div style="font-size: 12px; color: var(--text-secondary);">${top2 ? top2.department : ''}</div>
+            <div class="podium-exp">⚡ ${top2 ? top2.exp : 0} EXP</div>
+          </div>
+
+          <!-- Rank 1 (Thủ khoa) -->
+          <div class="podium-card podium-rank-1">
+            <div style="font-size: 13px; font-weight: 800; color: #d97706; margin-bottom: 6px;">👑 THỦ KHOA (HẠNG 1)</div>
+            <div class="podium-avatar">${top1 ? '🥇' : '👤'}</div>
+            <div class="podium-name" style="font-size: 18px;">${top1 ? top1.name : 'Đang cập nhật'}</div>
+            <div style="font-size: 12.5px; color: var(--text-secondary);">${top1 ? top1.department : ''}</div>
+            <div class="podium-exp" style="font-size: 16px;">⚡ ${top1 ? top1.exp : 0} EXP</div>
+          </div>
+
+          <!-- Rank 3 -->
+          <div class="podium-card podium-rank-3">
+            <div style="font-size: 13px; font-weight: 800; color: #c2410c; margin-bottom: 6px;">🥉 HẠNG 3</div>
+            <div class="podium-avatar">${top3 ? '👨‍🎓' : '👤'}</div>
+            <div class="podium-name">${top3 ? top3.name : 'Đang cập nhật'}</div>
+            <div style="font-size: 12px; color: var(--text-secondary);">${top3 ? top3.department : ''}</div>
+            <div class="podium-exp">⚡ ${top3 ? top3.exp : 0} EXP</div>
+          </div>
+        </div>
+
+        <!-- Leaderboard Table -->
+        <div class="leaderboard-table-card">
+          <table class="leaderboard-table">
+            <thead>
+              <tr>
+                <th style="width: 70px; text-align: center;">Hạng</th>
+                <th>Sinh viên</th>
+                <th>Khoa / Ngành</th>
+                <th style="text-align: center;">Số bài thi</th>
+                <th style="text-align: right;">Điểm EXP</th>
+                <th style="width: 140px; text-align: center;">Huy hiệu</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${leaderboard.map(item => `
+                <tr class="${item.isCurrentUser ? 'current-user-row' : ''}">
+                  <td style="text-align: center; font-weight: 800;">
+                    ${item.rank === 1 ? '🥇 1' : item.rank === 2 ? '🥈 2' : item.rank === 3 ? '🥉 3' : item.rank}
+                  </td>
+                  <td>
+                    <strong>${item.name}</strong>
+                  </td>
+                  <td style="color: var(--text-secondary); font-size: 13px;">${item.department}</td>
+                  <td style="text-align: center;">${item.quizzes}</td>
+                  <td style="text-align: right; font-weight: 800; color: #b45309;">⚡ ${item.exp}</td>
+                  <td style="text-align: center;">
+                    <span class="badge badge-blue">${item.badge}</span>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  },
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // 8. STUDY MATERIALS VIEW (KHO TÀI LIỆU .TXT)
+  // ═════════════════════════════════════════════════════════════════════════
+  renderMaterialsView(container, activeId) {
+    const materials = StorageService.getMaterials();
+    const active = materials.find(m => m.id === activeId) || materials[0];
+    this.activeMaterialId = active ? active.id : null;
+
+    container.innerHTML = `
+      <div class="view-materials">
+        <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h2 style="font-size: 22px; font-weight: 800; color: var(--text-primary);">📚 Kho Tài Liệu Học Tập (.txt)</h2>
+            <p style="color: var(--text-secondary);">Tóm tắt lý thuyết, đề cương ôn thi và thuật ngữ chuyên ngành Đại học Đồng Tháp.</p>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="App.openUploadMaterialModal()">
+            ➕ Tải lên tài liệu (.txt)
+          </button>
+        </div>
+
+        <div class="materials-layout">
+          <!-- Left: List -->
+          <div class="materials-list-panel">
+            ${materials.map(m => `
+              <div class="material-item-card ${m.id === this.activeMaterialId ? 'active' : ''}" onclick="App.renderMaterialsView(document.getElementById('mainContent'), '${m.id}')">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <span class="badge badge-gray">${m.fileType ? m.fileType.toUpperCase() : 'TXT'}</span>
+                  <span style="font-size: 11px; color: var(--text-tertiary);">${m.subjectId || 'DThu'}</span>
+                </div>
+                <h4 style="font-size: 14.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">${m.title}</h4>
+                <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">${m.description || ''}</div>
+                <div style="font-size: 11.5px; color: var(--text-tertiary); margin-top: 8px;">Tác giả: ${m.author || 'DThu'}</div>
+              </div>
+            `).join('')}
+          </div>
+
+          <!-- Right: Reader -->
+          <div class="material-reader-panel">
+            ${active ? `
+              <div class="material-reader-toolbar">
+                <div>
+                  <h3 style="font-size: 18px; font-weight: 700; color: var(--text-primary);">${active.title}</h3>
+                  <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 2px;">Tác giả: <strong>${active.author || 'DThu'}</strong> · Định dạng: <strong>.txt</strong></div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button class="btn btn-sm" onclick="App.copyMaterialText()">📋 Sao chép</button>
+                  <button class="btn btn-sm btn-primary" onclick="App.downloadMaterialTxt('${active.id}')">📥 Tải file .txt</button>
+                </div>
+              </div>
+
+              <div class="material-content-box" id="materialContentBox">${SmartParserService.formatRichText(active.content || '')}</div>
+            ` : `
+              <div style="text-align: center; padding: 60px 20px; color: var(--text-tertiary);">
+                Chưa có tài liệu nào được chọn.
+              </div>
+            `}
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  copyMaterialText() {
+    const materials = StorageService.getMaterials();
+    const active = materials.find(m => m.id === this.activeMaterialId);
+    if (active && active.content) {
+      navigator.clipboard.writeText(active.content).then(() => {
+        alert("Đã sao chép nội dung tài liệu vào bộ nhớ tạm!");
+      });
+    }
+  },
+
+  downloadMaterialTxt(id) {
+    const materials = StorageService.getMaterials();
+    const active = materials.find(m => m.id === id);
+    if (active) {
+      const blob = new Blob([active.content || ""], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = (active.title.toLowerCase().replace(/[^a-z0-9]/gi, '_')) + ".txt";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  },
+
+  openUploadMaterialModal() {
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = "➕ Tải lên tài liệu học tập (.txt)";
+    body.innerHTML = `
+      <div class="form-group">
+        <label class="form-label">Tiêu đề tài liệu (*):</label>
+        <input type="text" id="matTitleInput" class="form-control" placeholder="Ví dụ: Tóm tắt 7 chương Kinh tế Chính trị">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mã môn học liên quan:</label>
+        <input type="text" id="matSubjectInput" class="form-control" placeholder="Ví dụ: POL103, BIO202...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tác giả / Người biên soạn:</label>
+        <input type="text" id="matAuthorInput" class="form-control" value="${StorageService.getUserProfile().fullName}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mô tả ngắn gọn:</label>
+        <input type="text" id="matDescInput" class="form-control" placeholder="Mô tả nội dung trọng tâm tài liệu...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nội dung văn bản (*):</label>
+        <textarea id="matContentInput" class="form-control" rows="8" placeholder="Dán nội dung tài liệu dạng text vào đây..."></textarea>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Hủy</button>
+      <button class="btn btn-primary" onclick="App.saveUploadedMaterial()">Lưu tài liệu (+20 EXP)</button>
+    `;
+
+    modal.classList.add("active");
+  },
+
+  saveUploadedMaterial() {
+    const title = document.getElementById("matTitleInput")?.value.trim();
+    const subId = document.getElementById("matSubjectInput")?.value.trim() || "DThu";
+    const author = document.getElementById("matAuthorInput")?.value.trim() || "Sinh viên DThu";
+    const desc = document.getElementById("matDescInput")?.value.trim() || "";
+    const content = document.getElementById("matContentInput")?.value.trim();
+
+    if (!title || !content) {
+      alert("Vui lòng nhập đầy đủ Tiêu đề và Nội dung tài liệu!");
+      return;
+    }
+
+    const newMat = {
+      id: "mat-" + Date.now(),
+      subjectId: subId,
+      title,
+      fileType: "txt",
+      author,
+      description: desc,
+      content
+    };
+
+    const materials = StorageService.getMaterials();
+    materials.unshift(newMat);
+    StorageService.saveMaterials(materials);
+
+    StorageService.addExp(20, "Đóng góp tài liệu học tập mới (+20 EXP)");
+    this.closeModal();
+    this.renderMaterialsView(document.getElementById("mainContent"), newMat.id);
+  },
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // 9. MODERATION DASHBOARD (TRANG DUYỆT ĐỀ THI DÀNH CHO ADMIN)
+  // ═════════════════════════════════════════════════════════════════════════
+  renderModerationView(container) {
+    const profile = StorageService.getUserProfile();
+    if (profile.role !== "admin") {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 60px 20px;">
+          <div style="font-size: 48px; margin-bottom: 12px;">🛡️</div>
+          <h3>Khu vực dành riêng cho Ban Biên Tập / Admin</h3>
+          <p style="color: var(--text-secondary); margin-top: 6px;">Vui lòng chuyển vai trò sang Admin ở góc trên bên phải để vào trang duyệt đề.</p>
+          <button class="btn btn-primary" style="margin-top: 16px;" onclick="App.toggleUserRole()">Chuyển sang quyền Admin</button>
+        </div>
+      `;
+      return;
+    }
+
+    const drafts = StorageService.getDraftSubjects();
+
+    container.innerHTML = `
+      <div class="view-moderation">
+        <div class="moderation-header">
+          <div>
+            <h2 style="font-size: 24px; font-weight: 800; color: var(--text-primary);">🛡️ Ban Biên Tập: Duyệt Đề Thi Đóng Góp</h2>
+            <p style="color: var(--text-secondary); margin-top: 4px;">
+              Xem xét các bộ đề do sinh viên toàn trường đóng góp, chỉnh sửa câu hỏi và phê duyệt để phát hành chính thức.
+            </p>
+          </div>
+          <span class="badge" style="background:#fef3c7; color:#92400e; font-size: 13px; padding: 6px 14px; font-weight: 700;">
+            Đang chờ duyệt: ${drafts.length} bộ đề
+          </span>
+        </div>
+
+        ${drafts.length === 0 ? `
+          <div style="text-align: center; padding: 64px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);">
+            <div style="font-size: 48px; margin-bottom: 12px;">🎉</div>
+            <h3 style="font-size: 18px; color: var(--text-primary);">Hiện không có đề thi nào đang chờ duyệt!</h3>
+            <p style="color: var(--text-secondary); margin-top: 4px;">Mọi đóng góp từ cộng đồng đã được xử lý xong.</p>
+          </div>
+        ` : `
+          <div class="moderation-list">
+            ${drafts.map(d => `
+              <div class="moderation-card">
+                <div class="moderation-card-header">
+                  <div class="moderation-title-group">
+                    <h3>${d.icon || '🧪'} ${d.name} <span class="badge" style="background:#fef3c7; color:#b45309;">${d.code || d.id}</span></h3>
+                    <div class="moderation-meta">
+                      <span>🏛️ ${d.department || 'ĐH Đồng Tháp'}</span>
+                      <span>👤 Người gửi: <strong>${d.author || 'Ẩn danh'}</strong></span>
+                      <span>📅 Ngày gửi: <strong>${d.submissionDate || 'Gần đây'}</strong></span>
+                      <span>❓ Số câu hỏi: <strong>${d.questions ? d.questions.length : 0} câu</strong></span>
+                    </div>
+                  </div>
+
+                  <div class="moderation-actions">
+                    <button class="btn btn-primary" onclick="App.approveDraft('${d.id}')">
+                      ✅ Duyệt Chính Thức
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="App.rejectDraftConfirm('${d.id}')">
+                      ❌ Từ chối
+                    </button>
+                  </div>
+                </div>
+
+                <div style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px;">
+                  ${d.description || 'Không có mô tả chi tiết.'}
+                </div>
+
+                <!-- Expandable Questions Preview -->
+                <details class="moderation-preview-accordion">
+                  <summary style="cursor: pointer; font-size: 13px; font-weight: 700; color: var(--brand-primary); user-select: none;">
+                    👁️ Bấm để xem chi tiết ${d.questions ? d.questions.length : 0} câu hỏi trong đề ➔
+                  </summary>
+                  <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 14px;">
+                    ${(d.questions || []).map((q, qIdx) => `
+                      <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px;">
+                        <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px;">
+                          Câu ${qIdx + 1}: ${SmartParserService.formatRichText(q.question)}
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                          ${(q.options || []).map((opt, optIdx) => `
+                            <div style="font-size: 13px; padding: 6px 10px; border-radius: 4px; border: 1px solid ${opt.isCorrect ? 'var(--correct-border)' : 'var(--border)'}; background: ${opt.isCorrect ? 'var(--correct-bg)' : '#ffffff'}; color: ${opt.isCorrect ? 'var(--correct-text)' : 'inherit'};">
+                              <strong>${this.letters[optIdx]}.</strong> ${SmartParserService.formatRichText(opt.text)} ${opt.isCorrect ? '✓ (Đúng)' : ''}
+                            </div>
+                          `).join('')}
+                        </div>
+                        ${q.options && q.options[q.answerIndex] && q.options[q.answerIndex].note ? `
+                          <div style="font-size: 12px; color: var(--correct-text); background: var(--correct-bg); padding: 6px 10px; border-radius: 4px;">
+                            💡 Giải thích: ${SmartParserService.formatRichText(q.options[q.answerIndex].note)}
+                          </div>
+                        ` : ''}
+                      </div>
+                    `).join('')}
+                  </div>
+                </details>
+              </div>
+            `).join('')}
+          </div>
+        `}
+      </div>
+    `;
+  },
+
+  approveDraft(draftId) {
+    const res = StorageService.approveDraft(draftId);
+    if (res) {
+      alert(`🎉 Đã duyệt bộ đề "${res.name}" thành công! Bộ đề đã được chuyển sang Ngân hàng Chính thức.`);
+      this.renderHeader();
+      this.renderModerationView(document.getElementById("mainContent"));
+    }
+  },
+
+  rejectDraftConfirm(draftId) {
+    this.showConfirmDialog({
+      title: "Xác nhận từ chối đề thi",
+      message: "Bạn có chắc chắn muốn từ chối bộ đề này không? Bộ đề sẽ bị xóa khỏi hàng đợi duyệt.",
+      icon: "⚠️",
+      confirmText: "Từ chối đề",
+      isDanger: true,
+      onConfirm: () => {
+        StorageService.rejectDraft(draftId);
+        this.renderHeader();
+        this.renderModerationView(document.getElementById("mainContent"));
+      }
+    });
+  },
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // 10. MANAGE VIEW (QUẢN LÝ MÔN HỌC & ĐỀ THI)
   // ═════════════════════════════════════════════════════════════════════════
   renderManageView(container) {
     const subjects = StorageService.getSubjects();

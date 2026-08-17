@@ -31,38 +31,51 @@
 
 ---
 
-## 📁 Cấu Trúc Dự Án (Clean Modular Architecture)
+## 📁 Cấu Trúc Dự Án (Clean Open Data Architecture)
 
 ```text
 ├── index.html                   # Điểm vào chính của ứng dụng SPA
-├── README.md                    # Tài liệu hướng dẫn sử dụng và triển khai
-├── CONTRIBUTING.md              # Hướng dẫn đóng góp ngân hàng đề thi
+├── README.md                    # Tài liệu giới thiệu và triển khai
+├── CONTRIBUTING.md              # Cẩm nang đóng góp ngân hàng đề thi
 │
 ├── docs/                        # Tài liệu Kiến trúc & Thiết kế Database v2.0
 │   ├── ARCHITECTURE_ROADMAP.md  # Kế hoạch chi tiết kiến trúc Cloud-Native & Lộ trình
 │   └── DATABASE_SCHEMA.sql      # Script khởi tạo Database PostgreSQL/Supabase & RLS Policies
 │
-├── assets/
-│   ├── css/
-│   │   ├── variables.css        # Hệ thống Design Tokens (Màu sắc, Typography, Shadows)
-│   │   ├── base.css             # Reset CSS, Layout khung, Header & Navigation
-│   │   ├── components.css       # Các Component: Nút bấm, Thẻ, Modal Popup, Form, Badges
-│   │   └── views.css            # Giao diện các màn hình: Home, Quiz, Result, Mistakes
-│   │
-│   └── js/
-│       ├── data/
-│       │   └── default-banks.js # Ngân hàng đề thi mặc định (CNXHKH, Triết học, Vi sinh...)
-│       ├── services/
-│       │   ├── api-config.js    # Cấu hình kết nối Cloud (Supabase / Storage)
-│       │   ├── storage.js       # Quản lý lưu trữ LocalStorage (Môn học, Điểm, Câu sai)
-│       │   ├── quiz-engine.js   # Thuật toán trộn đề, chấm thi và đồng hồ bấm giờ
-│       │   ├── parser.js        # Trình phân tích văn bản thô Word/PDF/ChatGPT thông minh
-│       │   └── import-export.js # Xử lý xuất và nhập file đề JSON
-│       └── app.js               # Controller & Router điều hướng Single Page App (SPA)
+├── data/                        # 📂 TRUNG TÂM DỮ LIỆU MỞ (Mọi người đều xem & đóng góp được)
+│   ├── official/                # 🟢 Ngân hàng đề thi chính thức đã thẩm định
+│   │   ├── subjects-index.json  # Danh mục tất cả các môn học chính thức
+│   │   ├── cnxhkh.json          # Đề chuẩn Chủ nghĩa Xã hội Khoa học
+│   │   ├── triet-hoc.json       # Đề chuẩn Triết học Mác - Lênin
+│   │   └── vi-sinh-vat.json     # Đề chuẩn Vi sinh vật học
+│   ├── drafts/                  # 🟡 Đề thi cộng đồng đóng góp / chờ duyệt (Bản thử nghiệm)
+│   │   ├── submissions/         # Các bộ đề Draft sinh viên đóng góp
+│   │   └── raw-texts/           # Đề thô (.txt) copy từ Word/PDF chờ parse
+│   ├── materials/               # 📚 Kho tài liệu lý thuyết tóm tắt (.txt)
+│   │   ├── cnxhkh-tom-tat.txt   # Tóm tắt 7 chương CNXHKH
+│   │   └── vi-sinh-thuat-ngu.txt# Bảng tra cứu thuật ngữ Vi sinh vật học
+│   └── templates/               # 📋 File mẫu chuẩn để sinh viên tải về soạn đề
+│       ├── template-mon-hoc.json# Mẫu JSON môn học đầy đủ
+│       └── template-de-thi.txt  # Mẫu soạn đề dạng text cho Smart Parser
 │
-└── data/                        # Thư mục chứa các file đề JSON mẫu
-    ├── cnxhkh-full.json         # Đề chuẩn Chủ nghĩa Xã hội Khoa học
-    └── template-de-thi.json     # File mẫu JSON để sinh viên tự tạo đề mới
+└── assets/                      # 💻 Mã nguồn & Giao diện ứng dụng
+    ├── css/
+    │   ├── variables.css        # Hệ thống Design Tokens (Màu sắc, Typography, Shadows)
+    │   ├── base.css             # Reset CSS, Layout khung, Header & Navigation
+    │   ├── components.css       # Các Component: Nút bấm, Thẻ, Modal Popup, Form, Badges
+    │   └── views.css            # Giao diện: Home, Leaderboard, Materials, Moderation, Quiz, Result
+    │
+    └── js/
+        ├── data/
+        │   └── default-banks.js # Dữ liệu dự phòng offline (Fallback)
+        ├── services/
+        │   ├── api-config.js    # Cấu hình kết nối Cloud (Supabase / Storage)
+        │   ├── data-loader.js   # Module nạp dữ liệu động từ thư mục data/ (HTTP & Fallback)
+        │   ├── storage.js       # Quản lý lưu trữ LocalStorage (Môn học, Điểm, User Profile, EXP)
+        │   ├── quiz-engine.js   # Thuật toán trộn đề, chấm thi và đồng hồ bấm giờ
+        │   ├── parser.js        # Trình phân tích văn bản thô Word/PDF/ChatGPT thông minh
+        │   └── import-export.js # Xử lý xuất và nhập file đề JSON
+        └── app.js               # Controller & Router điều hướng Single Page App (SPA)
 ```
 
 ---

@@ -1,0 +1,29 @@
+{
+  "id": "DRAFT_TOAN_CC",
+  "code": "MAT101",
+  "name": "Toán Cao Cấp A1 (Bản Thử Nghiệm)",
+  "department": "Khoa Sư phạm Toán - Tin",
+  "author": "Lê Hoàng Phúc (K47 Sư phạm Toán)",
+  "description": "Đề ôn tập Ma trận và Định thức do sinh viên đóng góp, đang chờ Ban biên tập duyệt.",
+  "icon": "📐",
+  "status": "draft",
+  "submissionDate": "2026-08-16",
+  "chapters": [
+    { "id": "c1", "name": "Chương 1: Ma trận và Định thức" },
+    { "id": "c2", "name": "Chương 2: Hệ phương trình tuyến tính" }
+  ],
+  "questions": [
+    {
+      "id": "TCC-001",
+      "chapterId": "c1",
+      "question": "Điều kiện để ma trận vuông A khả nghịch (tồn tại ma trận nghịch đảo A⁻¹) là gì?",
+      "options": [
+        { "text": "Định thức det(A) ≠ 0", "isCorrect": true, "note": "Ma trận vuông khả nghịch khi và chỉ khi det(A) khác 0 (ma trận không suy biến)." },
+        { "text": "Định thức det(A) = 0", "isCorrect": false, "note": "Nếu det(A) = 0 thì ma trận suy biến và không khả nghịch." },
+        { "text": "Tất cả các phần tử trên đường chéo chính phải bằng 1", "isCorrect": false, "note": "Đây là đặc điểm của ma trận đơn vị, không phải điều kiện chung." },
+        { "text": "Vết của ma trận tr(A) > 0", "isCorrect": false, "note": "Vết ma trận không quyết định tính khả nghịch." }
+      ],
+      "answerIndex": 0
+    }
+  ]
+}

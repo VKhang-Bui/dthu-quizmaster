@@ -1,0 +1,20 @@
+MẪU SOẠN ĐỀ DẠNG TEXT (DÙNG ĐỂ DÁN VÀO TRANG "NHẬP ĐỀ (PARSER)" TRÊN WEB)
+--------------------------------------------------------------------------------
+
+Chương 1: Tên chương số 1
+
+Câu 1: Nội dung câu hỏi số 1?
+A. Lựa chọn A (Ví dụ: Đáp án đúng)
+B. Lựa chọn B
+C. Lựa chọn C
+D. Lựa chọn D
+*Đáp án: A
+*Giải thích: Điền lý do giải thích tại sao chọn A tại đây.
+
+Câu 2: Nội dung câu hỏi số 2?
+A. Lựa chọn A
+B. Lựa chọn B
+C. Lựa chọn C (Đáp án đúng)
+D. Lựa chọn D
+*Đáp án: C
+*Giải thích: Giải thích chi tiết cho câu 2.

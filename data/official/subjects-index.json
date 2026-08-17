@@ -1,0 +1,44 @@
+[
+  {
+    "id": "CNXHKH",
+    "code": "POL102",
+    "name": "Chủ nghĩa Xã hội Khoa học",
+    "department": "Khoa Lý luận Chính trị",
+    "author": "Bùi Văn Khang (CNSH DThu)",
+    "description": "Bộ câu hỏi ôn tập và thi thử chuẩn môn Chủ nghĩa Xã hội Khoa học gồm đầy đủ 7 chương.",
+    "icon": "📕",
+    "totalChapters": 7,
+    "totalQuestions": 7,
+    "file": "cnxhkh.json",
+    "status": "official",
+    "updatedAt": "2026-08-17"
+  },
+  {
+    "id": "TRIET_HOC",
+    "code": "POL101",
+    "name": "Triết học Mác - Lênin",
+    "department": "Khoa Lý luận Chính trị",
+    "author": "Ban Học tập & NCKH DThu",
+    "description": "Ngân hàng trắc nghiệm Triết học Mác - Lênin (Chủ nghĩa duy vật biện chứng và duy vật lịch sử).",
+    "icon": "🏛️",
+    "totalChapters": 3,
+    "totalQuestions": 2,
+    "file": "triet-hoc.json",
+    "status": "official",
+    "updatedAt": "2026-08-17"
+  },
+  {
+    "id": "VI_SINH",
+    "code": "BIO201",
+    "name": "Vi sinh vật học đại cương",
+    "department": "Khoa Sư phạm Khoa học Tự nhiên",
+    "author": "Bùi Văn Khang (CNSH DThu)",
+    "description": "Bộ câu hỏi ôn thi môn Vi sinh vật học đại cương dành cho sinh viên ngành Công nghệ Sinh học.",
+    "icon": "🔬",
+    "totalChapters": 3,
+    "totalQuestions": 1,
+    "file": "vi-sinh-vat.json",
+    "status": "official",
+    "updatedAt": "2026-08-17"
+  }
+]

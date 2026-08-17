@@ -984,12 +984,370 @@ body.is-resizing-quiz {
   letter-spacing: 0.04em;
 }
 
+/* ── 9. HUB TABS & COMMUNITY DRAFTS ──────────────────────────────── */
+.hub-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 24px;
+  padding-bottom: 2px;
+}
+
+.hub-tab-btn {
+  background: none;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 10px 18px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: var(--transition);
+  position: relative;
+}
+
+.hub-tab-btn:hover {
+  color: var(--text-primary);
+  background: rgba(0,0,0,0.03);
+}
+
+.hub-tab-btn.active {
+  color: var(--primary);
+  border-bottom: 3px solid var(--primary);
+  margin-bottom: -4px;
+  background: var(--surface);
+}
+
+.badge-tab-count {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 12px;
+  background: #e2e8f0;
+  color: #475569;
+  font-weight: 700;
+}
+
+.hub-tab-btn.active .badge-tab-count {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+/* ── 10. MODERATION DASHBOARD (TRANG DUYỆT ĐỀ) ─────────────────────── */
+.view-moderation {
+  padding: 32px 28px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.moderation-header {
+  margin-bottom: 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.moderation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.moderation-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+
+.moderation-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow);
+}
+
+.moderation-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.moderation-title-group h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.moderation-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.moderation-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.moderation-preview-accordion {
+  margin-top: 16px;
+  border-top: 1px dashed var(--border);
+  padding-top: 16px;
+}
+
+/* ── 11. LEADERBOARD VIEW (BẢNG XẾP HẠNG) ─────────────────────────── */
+.view-leaderboard {
+  padding: 32px 28px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.podium-container {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr 1fr;
+  gap: 20px;
+  align-items: flex-end;
+  margin-bottom: 36px;
+}
+
+.podium-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.podium-rank-1 {
+  border-color: #fcd34d;
+  background: linear-gradient(180deg, #fffbeb 0%, #ffffff 100%);
+  transform: translateY(-12px);
+  box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.15);
+}
+
+.podium-rank-2 {
+  border-color: #cbd5e1;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+}
+
+.podium-rank-3 {
+  border-color: #fed7aa;
+  background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);
+}
+
+.podium-avatar {
+  font-size: 40px;
+  margin-bottom: 8px;
+}
+
+.podium-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.podium-exp {
+  font-size: 14px;
+  font-weight: 800;
+  color: #d97706;
+  margin-top: 4px;
+}
+
+.leaderboard-table-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.leaderboard-table th {
+  background: #f8fafc;
+  padding: 14px 18px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.leaderboard-table td {
+  padding: 14px 18px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.leaderboard-table tr.current-user-row {
+  background: #eff6ff !important;
+  font-weight: 600;
+}
+
+/* ── 12. STUDY MATERIALS VIEW (KHO TÀI LIỆU .TXT) ─────────────────── */
+.view-materials {
+  padding: 32px 28px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.materials-layout {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 24px;
+}
+
+.materials-list-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.material-item-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.material-item-card:hover {
+  border-color: var(--primary);
+  background: #f8fafc;
+}
+
+.material-item-card.active {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+.material-reader-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+}
+
+.material-reader-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.material-content-box {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: #1e293b;
+  background: #f8fafc;
+  padding: 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+/* ── 13. HEADER USER WIDGET & ROLE SWITCHER ───────────────────────── */
+.header-user-widget {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f1f5f9;
+  padding: 4px 12px 4px 6px;
+  border-radius: 30px;
+  border: 1px solid var(--border);
+}
+
+.user-role-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+
+.user-role-badge.admin {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.user-role-badge.student {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.user-exp-chip {
+  font-size: 12px;
+  font-weight: 800;
+  color: #b45309;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.role-toggle-btn {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.role-toggle-btn:hover {
+  background: var(--surface-subtle);
+  color: var(--text-primary);
+}
+
 /* Responsive */
 @media (max-width: 900px) {
   .view-quiz { flex-direction: column; }
   .quiz-resizer { display: none !important; }
   .view-parser { grid-template-columns: 1fr; }
   .detail-sections-grid { grid-template-columns: 1fr; }
+  .materials-layout { grid-template-columns: 1fr; }
+  .podium-container { grid-template-columns: 1fr; gap: 12px; }
+  .podium-rank-1 { transform: none; }
   .quiz-sidebar {
     width: 100% !important;
     min-width: unset !important;

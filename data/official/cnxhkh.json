@@ -1,10 +1,12 @@
 {
-  "subjectId": "CNXHKH",
-  "subjectCode": "POL102",
-  "subjectName": "Chủ nghĩa Xã hội Khoa học",
-  "department": "Khoa Lý Luận Chính Trị",
-  "author": "Bùi Văn Khang - CNSH DThu",
-  "version": "1.0",
+  "id": "CNXHKH",
+  "code": "POL102",
+  "name": "Chủ nghĩa Xã hội Khoa học",
+  "department": "Khoa Lý luận Chính trị",
+  "author": "Bùi Văn Khang (CNSH DThu)",
+  "description": "Bộ câu hỏi ôn tập và thi thử chuẩn môn Chủ nghĩa Xã hội Khoa học gồm đầy đủ 7 chương.",
+  "icon": "📕",
+  "status": "official",
   "chapters": [
     { "id": "c1", "name": "Chương 1: Nhập môn Chủ nghĩa Xã hội Khoa học" },
     { "id": "c2", "name": "Chương 2: Sứ mệnh lịch sử của giai cấp công nhân" },

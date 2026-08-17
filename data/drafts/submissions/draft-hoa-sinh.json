@@ -1,0 +1,41 @@
+{
+  "id": "DRAFT_HOA_SINH",
+  "code": "BIO205",
+  "name": "Hóa sinh học đại cương (Bản Thử Nghiệm)",
+  "department": "Khoa Sư phạm Khoa học Tự nhiên",
+  "author": "Nguyễn Văn An (K48 CNSH)",
+  "description": "Đề ôn tập chuyển hóa Glucid và Lipid do sinh viên K48 đóng góp, đang chờ thẩm định bổ sung.",
+  "icon": "🧪",
+  "status": "draft",
+  "submissionDate": "2026-08-15",
+  "chapters": [
+    { "id": "c1", "name": "Chương 1: Cấu tạo và chuyển hóa Glucid" },
+    { "id": "c2", "name": "Chương 2: Cấu tạo và chuyển hóa Lipid" }
+  ],
+  "questions": [
+    {
+      "id": "HS-001",
+      "chapterId": "c1",
+      "question": "Quá trình đường phân (Glycolysis) xảy ra ở vị trí nào trong tế bào?",
+      "options": [
+        { "text": "Bào tương (Cytosol)", "isCorrect": true, "note": "Quá trình đường phân diễn ra hoàn toàn trong tế bào chất (bào tương)." },
+        { "text": "Chất nền ty thể", "isCorrect": false, "note": "Chất nền ty thể là nơi diễn ra chu trình Krebs." },
+        { "text": "Màng trong ty thể", "isCorrect": false, "note": "Màng trong ty thể là nơi diễn ra chuỗi truyền điện tử hô hấp." },
+        { "text": "Nhân tế bào", "isCorrect": false, "note": "Nhân tế bào không phải nơi diễn ra đường phân." }
+      ],
+      "answerIndex": 0
+    },
+    {
+      "id": "HS-002",
+      "chapterId": "c1",
+      "question": "Sản phẩm cuối cùng của quá trình đường phân từ 1 phân tử Glucose trong điều kiện hiếu khí là gì?",
+      "options": [
+        { "text": "2 phân tử Pyruvate, 2 ATP và 2 NADH", "isCorrect": true, "note": "1 Glucose (6C) bị bẻ gãy tạo 2 Pyruvate (3C) kèm 2 ATP ròng và 2 NADH." },
+        { "text": "2 phân tử Lactate và 4 ATP", "isCorrect": false, "note": "Lactate chỉ tạo thành trong điều kiện kỵ khí (lên men lactic)." },
+        { "text": "1 Acetyl-CoA và 1 CO2", "isCorrect": false, "note": "Đây là phản ứng oxy hóa pyruvate tại ty thể." },
+        { "text": "Ethanol và CO2", "isCorrect": false, "note": "Đây là sản phẩm lên men rượu của nấm men." }
+      ],
+      "answerIndex": 0
+    }
+  ]
+}
