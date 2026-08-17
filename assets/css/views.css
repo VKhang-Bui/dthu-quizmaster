@@ -2023,7 +2023,7 @@ body.is-resizing-quiz {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 44px;
+  gap: 32px;
   box-shadow: 0 4px 16px rgba(2, 132, 199, 0.08);
   transition: all 200ms ease;
 }
@@ -2046,7 +2046,7 @@ body.is-resizing-quiz {
 
 .home-mission-content {
   flex: 1;
-  max-width: 660px;
+  max-width: 780px;
 }
 
 .creator-pill-tag {
@@ -2087,7 +2087,7 @@ body.is-resizing-quiz {
   line-height: 1.65;
   color: #334155;
   margin: 0 0 16px 0;
-  max-width: 620px;
+  max-width: 760px;
 }
 
 [data-theme="dark"] .mission-desc {
@@ -2098,7 +2098,7 @@ body.is-resizing-quiz {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  max-width: 640px;
+  max-width: 780px;
 }
 
 .mission-pill {
