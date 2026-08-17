@@ -64,4 +64,85 @@
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Quiz dynamic font size */
+  --quiz-font-size: 15px;
+}
+
+/* ── DARK THEME ────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg-app: #0f172a;
+  --surface: #1e293b;
+  --surface-subtle: #334155;
+  --surface-hover: #334155;
+
+  --border: #334155;
+  --border-hover: #475569;
+  --border-focus: #60a5fa;
+
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #94a3b8;
+  --text-inverse: #0f172a;
+
+  --brand-primary: #3b82f6;
+  --brand-primary-hover: #60a5fa;
+  --brand-light: #1e3a8a;
+  --brand-text: #93c5fd;
+
+  --success-bg: #064e3b;
+  --success-border: #059669;
+  --success-text: #a7f3d0;
+
+  --danger-bg: #450a0a;
+  --danger-border: #dc2626;
+  --danger-text: #fca5a5;
+
+  --warning-bg: #451a03;
+  --warning-border: #d97706;
+  --warning-text: #fde68a;
+
+  --info-bg: #082f49;
+  --info-border: #0284c7;
+  --info-text: #bae6fd;
+}
+
+/* ── ACCENT COLOR THEMES ───────────────────────────────────────────── */
+[data-accent="emerald"] {
+  --brand-primary: #059669;
+  --brand-primary-hover: #047857;
+  --brand-light: #ecfdf5;
+  --brand-text: #065f46;
+}
+[data-theme="dark"][data-accent="emerald"] {
+  --brand-primary: #10b981;
+  --brand-primary-hover: #34d399;
+  --brand-light: #064e3b;
+  --brand-text: #a7f3d0;
+}
+
+[data-accent="purple"] {
+  --brand-primary: #7c3aed;
+  --brand-primary-hover: #6d28d9;
+  --brand-light: #f5f3ff;
+  --brand-text: #5b21b6;
+}
+[data-theme="dark"][data-accent="purple"] {
+  --brand-primary: #8b5cf6;
+  --brand-primary-hover: #a78bfa;
+  --brand-light: #4c1d95;
+  --brand-text: #ddd6fe;
+}
+
+[data-accent="amber"] {
+  --brand-primary: #d97706;
+  --brand-primary-hover: #b45309;
+  --brand-light: #fffbeb;
+  --brand-text: #92400e;
+}
+[data-theme="dark"][data-accent="amber"] {
+  --brand-primary: #f59e0b;
+  --brand-primary-hover: #fbbf24;
+  --brand-light: #78350f;
+  --brand-text: #fde68a;
 }

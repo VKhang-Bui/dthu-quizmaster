@@ -353,7 +353,7 @@ const StorageService = {
     localStorage.removeItem(this.KEYS.SUPPRESSED_WARNINGS);
   },
 
-  // ── 8. Cài Đặt Hệ Thống & Tùy Chỉnh Thông Báo (Settings) ─────
+  // ── 8. Cài Đặt Hệ Thống & Tùy Chỉnh (Settings) ──────────────
   getAppSettings() {
     try {
       const data = localStorage.getItem(this.KEYS.SETTINGS);
@@ -362,6 +362,9 @@ const StorageService = {
 
     // Cấu hình mặc định
     return {
+      theme: "light", // 'light' | 'dark' | 'auto'
+      accentColor: "blue", // 'blue' | 'emerald' | 'purple' | 'amber'
+      fontSize: "normal", // 'normal' | 'large' | 'xlarge'
       toastDuration: 3500, // 3.5 giây
       soundEnabled: true,
       autoScrollToError: true
@@ -373,5 +376,39 @@ const StorageService = {
     const updated = Object.assign({}, current, settings);
     localStorage.setItem(this.KEYS.SETTINGS, JSON.stringify(updated));
     return updated;
+  },
+
+  // ── 9. Sao Lưu & Phục Hồi Toàn Diện Dữ Liệu (Backup & Restore) ──
+  exportFullBackupData() {
+    return {
+      app: "DThu QuizMaster",
+      version: "2.0",
+      exportDate: new Date().toISOString(),
+      userProfile: this.getUserProfile(),
+      subjects: this.getSubjects(),
+      drafts: this.getDraftSubjects(),
+      materials: this.getMaterials(),
+      history: this.getHistory(),
+      mistakes: this.getMistakes(),
+      settings: this.getAppSettings(),
+      suppressedWarnings: this.getSuppressedWarnings()
+    };
+  },
+
+  restoreFullBackupData(backup) {
+    if (!backup || typeof backup !== "object") {
+      throw new Error("Dữ liệu file sao lưu không hợp lệ!");
+    }
+
+    if (backup.userProfile) this.saveUserProfile(backup.userProfile);
+    if (backup.subjects) this.saveSubjects(backup.subjects);
+    if (backup.drafts) this.saveDraftSubjects(backup.drafts);
+    if (backup.materials) this.saveMaterials(backup.materials);
+    if (backup.history) localStorage.setItem(this.KEYS.HISTORY, JSON.stringify(backup.history));
+    if (backup.mistakes) localStorage.setItem(this.KEYS.MISTAKES, JSON.stringify(backup.mistakes));
+    if (backup.settings) this.saveAppSettings(backup.settings);
+    if (backup.suppressedWarnings) localStorage.setItem(this.KEYS.SUPPRESSED_WARNINGS, JSON.stringify(backup.suppressedWarnings));
+
+    return true;
   }
 };

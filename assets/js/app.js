@@ -20,12 +20,39 @@ const App = {
 
   // Khởi động ứng dụng
   async init() {
+    this.applyThemeSettings();
     if (typeof DataLoader !== "undefined") {
       await DataLoader.init();
     }
     this.renderHeader();
     this.navigateTo("home");
     this.bindGlobalEvents();
+  },
+
+  // Áp dụng Theme (Sáng/Tối), Màu chủ đạo & Cỡ chữ từ Cài Đặt
+  applyThemeSettings() {
+    const settings = StorageService.getAppSettings();
+    let isDark = false;
+    if (settings.theme === "dark") {
+      isDark = true;
+    } else if (settings.theme === "auto") {
+      isDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    }
+
+    if (isDark) {
+      document.documentElement.setAttribute("data-theme", "dark");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+
+    document.documentElement.setAttribute("data-accent", settings.accentColor || "blue");
+
+    const fontSizes = {
+      normal: "15px",
+      large: "16.5px",
+      xlarge: "18px"
+    };
+    document.documentElement.style.setProperty("--quiz-font-size", fontSizes[settings.fontSize] || "15px");
   },
 
   // Global Header (Tinh gọn tối đa, tập trung vào Trang chủ & Khối Người Dùng)
@@ -50,7 +77,7 @@ const App = {
       </nav>
 
       <!-- Khối Người Dùng (Bấm vào để mở Thanh trượt bên phải) -->
-      <div class="header-user-widget" onclick="App.openUserDrawer()" title="Nhấp để mở Menu Cá nhân & Tiện ích">
+      <div class="header-user-widget" onclick="App.openUserDrawer('main')" title="Nhấp để mở Menu Cá nhân & Tiện ích">
         <div style="font-size: 20px;">${profile.avatar || '👨‍🎓'}</div>
         <div style="display: flex; flex-direction: column; text-align: left;">
           <span style="font-size: 13px; font-weight: 700; color: var(--text-primary); line-height: 1.2;">${profile.fullName}</span>
@@ -64,101 +91,15 @@ const App = {
     `;
   },
 
-  openUserDrawer() {
-    const profile = StorageService.getUserProfile();
-    const mistakes = StorageService.getMistakes();
-    const drafts = StorageService.getDraftSubjects();
-    const history = StorageService.getHistory();
-
+  // ═════════════════════════════════════════════════════════════════════════
+  // HỆ THỐNG THANH TRƯỢT ĐA TẦNG (DRILL-DOWN DRAWER NAVIGATION)
+  // ═════════════════════════════════════════════════════════════════════════
+  openUserDrawer(level = "main") {
     const drawer = document.getElementById("userDrawer");
     const overlay = document.getElementById("userDrawerOverlay");
-    const body = document.getElementById("userDrawerBody");
-    const footer = document.getElementById("userDrawerFooter");
+    if (!drawer || !overlay) return;
 
-    if (!drawer || !overlay || !body) return;
-
-    body.innerHTML = `
-      <!-- Thẻ Hồ Sơ Sinh Viên -->
-      <div class="user-hub-profile-card">
-        <div style="font-size: 38px; line-height: 1;">${profile.avatar || '👨‍🎓'}</div>
-        <div style="flex: 1; min-width: 0;">
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
-            <h3 style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${profile.fullName}</h3>
-            <span class="user-role-badge ${profile.role}">${profile.role === 'admin' ? '🛡️ Admin' : '👨‍🎓 SV'}</span>
-          </div>
-          <div style="font-size: 12px; color: var(--text-secondary); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-            MSSV: <strong>${profile.studentId || 'Chưa cập nhật'}</strong>
-          </div>
-          <div style="display: flex; gap: 10px; margin-top: 8px; font-size: 12px;">
-            <span style="color: #b45309; font-weight: 800;">⚡ ${profile.totalExp} EXP</span>
-            <span style="color: #0369a1; font-weight: 700;">📝 ${history.length} bài</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Danh Sách Các Khối Tính Năng (1 Dòng - Gọn Gàng) -->
-      <div>
-        <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.04em; margin-bottom: 8px;">
-          Tiện ích & Quản lý
-        </div>
-        <div class="drawer-nav-list">
-          <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('leaderboard');">
-            <span class="drawer-icon">🏆</span>
-            <span class="drawer-label">Bảng Xếp Hạng</span>
-            <span class="drawer-arrow">➔</span>
-          </button>
-
-          <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('materials');">
-            <span class="drawer-icon">📚</span>
-            <span class="drawer-label">Kho Tài Liệu (.txt)</span>
-            <span class="drawer-arrow">➔</span>
-          </button>
-
-          <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('parser');">
-            <span class="drawer-icon">📝</span>
-            <span class="drawer-label">Nhập & Đóng Góp Đề</span>
-            <span class="drawer-arrow">➔</span>
-          </button>
-
-          <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('mistakes');">
-            <span class="drawer-icon">🎯</span>
-            <span class="drawer-label">Ngân Hàng Câu Sai</span>
-            ${mistakes.length > 0 ? `<span class="badge" style="background:#fee2e2; color:#b91c1c; font-weight:700;">${mistakes.length}</span>` : `<span class="drawer-arrow">➔</span>`}
-          </button>
-
-          <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('manage');">
-            <span class="drawer-icon">⚙️</span>
-            <span class="drawer-label">Quản Lý Bộ Đề</span>
-            <span class="drawer-arrow">➔</span>
-          </button>
-
-          <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.openSettingsModal();">
-            <span class="drawer-icon">🛠️</span>
-            <span class="drawer-label">Cài Đặt & Cảnh Báo</span>
-            <span class="drawer-arrow">➔</span>
-          </button>
-
-          ${profile.role === 'admin' ? `
-            <button class="drawer-nav-btn drawer-nav-btn-admin" onclick="App.closeUserDrawer(); App.navigateTo('moderation');">
-              <span class="drawer-icon">🛡️</span>
-              <span class="drawer-label">Duyệt Đề Đóng Góp</span>
-              ${drafts.length > 0 ? `<span class="badge" style="background:#fef3c7; color:#92400e; font-weight:700;">${drafts.length}</span>` : `<span class="drawer-arrow">➔</span>`}
-            </button>
-          ` : ''}
-        </div>
-      </div>
-    `;
-
-    if (footer) {
-      footer.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-          <button class="btn btn-sm" style="width: 100%; font-size: 12.5px;" onclick="App.toggleUserRole(); App.openUserDrawer();">
-            🔄 Vai trò: <strong>${profile.role === 'admin' ? 'Chuyển sang Sinh viên' : 'Chuyển sang Admin'}</strong>
-          </button>
-        </div>
-      `;
-    }
-
+    this.renderDrawerLevel(level);
     drawer.classList.add("active");
     overlay.classList.add("active");
   },
@@ -168,12 +109,580 @@ const App = {
     document.getElementById("userDrawerOverlay")?.classList.remove("active");
   },
 
+  renderDrawerLevel(level) {
+    const drawer = document.getElementById("userDrawer");
+    if (!drawer) return;
+
+    const profile = StorageService.getUserProfile();
+    const mistakes = StorageService.getMistakes();
+    const drafts = StorageService.getDraftSubjects();
+    const history = StorageService.getHistory();
+    const settings = StorageService.getAppSettings();
+
+    let headerHtml = "";
+    let bodyHtml = "";
+    let footerHtml = "";
+
+    switch (level) {
+      // ── CẤP 0: MENU CHÍNH CỦA NGƯỜI DÙNG ─────────────────────────────────
+      case "main":
+        headerHtml = `
+          <div class="drawer-header-left">
+            <h3>👤 Trung Tâm Cá Nhân</h3>
+          </div>
+          <button class="drawer-close" onclick="App.closeUserDrawer()">&times;</button>
+        `;
+
+        bodyHtml = `
+          <div class="drawer-slide-content">
+            <!-- Thẻ Hồ Sơ Sinh Viên -->
+            <div class="user-hub-profile-card">
+              <div style="font-size: 38px; line-height: 1;">${profile.avatar || '👨‍🎓'}</div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                  <h3 style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${profile.fullName}</h3>
+                  <span class="user-role-badge ${profile.role}">${profile.role === 'admin' ? '🛡️ Admin' : '👨‍🎓 SV'}</span>
+                </div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  MSSV: <strong>${profile.studentId || 'Chưa cập nhật'}</strong>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 8px; font-size: 12px;">
+                  <span style="color: #b45309; font-weight: 800;">⚡ ${profile.totalExp} EXP</span>
+                  <span style="color: #0369a1; font-weight: 700;">📝 ${history.length} bài</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Danh Sách Các Khối Tính Năng (1 Dòng) -->
+            <div>
+              <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.04em; margin-bottom: 8px;">
+                Tiện ích & Quản lý
+              </div>
+              <div class="drawer-nav-list">
+                <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('leaderboard');">
+                  <span class="drawer-icon">🏆</span>
+                  <span class="drawer-label">Bảng Xếp Hạng</span>
+                  <span class="drawer-arrow">➔</span>
+                </button>
+
+                <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('materials');">
+                  <span class="drawer-icon">📚</span>
+                  <span class="drawer-label">Kho Tài Liệu (.txt)</span>
+                  <span class="drawer-arrow">➔</span>
+                </button>
+
+                <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('parser');">
+                  <span class="drawer-icon">📝</span>
+                  <span class="drawer-label">Nhập & Đóng Góp Đề</span>
+                  <span class="drawer-arrow">➔</span>
+                </button>
+
+                <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('mistakes');">
+                  <span class="drawer-icon">🎯</span>
+                  <span class="drawer-label">Ngân Hàng Câu Sai</span>
+                  ${mistakes.length > 0 ? `<span class="badge" style="background:#fee2e2; color:#b91c1c; font-weight:700;">${mistakes.length}</span>` : `<span class="drawer-arrow">➔</span>`}
+                </button>
+
+                <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('manage');">
+                  <span class="drawer-icon">⚙️</span>
+                  <span class="drawer-label">Quản Lý Bộ Đề</span>
+                  <span class="drawer-arrow">➔</span>
+                </button>
+
+                <button class="drawer-nav-btn" style="background: var(--surface-subtle); border-color: var(--brand-primary);" onclick="App.renderDrawerLevel('settings')">
+                  <span class="drawer-icon">🛠️</span>
+                  <span class="drawer-label"><strong>Cài Đặt Hệ Thống</strong></span>
+                  <span class="drawer-arrow">➔</span>
+                </button>
+
+                ${profile.role === 'admin' ? `
+                  <button class="drawer-nav-btn drawer-nav-btn-admin" onclick="App.closeUserDrawer(); App.navigateTo('moderation');">
+                    <span class="drawer-icon">🛡️</span>
+                    <span class="drawer-label">Duyệt Đề Đóng Góp</span>
+                    ${drafts.length > 0 ? `<span class="badge" style="background:#fef3c7; color:#92400e; font-weight:700;">${drafts.length}</span>` : `<span class="drawer-arrow">➔</span>`}
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+
+        footerHtml = `
+          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <button class="btn btn-sm" style="width: 100%; font-size: 12.5px;" onclick="App.toggleUserRole();">
+              🔄 Vai trò: <strong>${profile.role === 'admin' ? 'Chuyển sang Sinh viên' : 'Chuyển sang Admin'}</strong>
+            </button>
+          </div>
+        `;
+        break;
+
+      // ── CẤP 1: MENU CÀI ĐẶT TỔNG (SETTINGS MAIN) ───────────────────────────
+      case "settings":
+        headerHtml = `
+          <div class="drawer-header-left">
+            <button class="drawer-back-btn" onclick="App.renderDrawerLevel('main')">← Quay lại</button>
+            <h3>⚙️ Cài Đặt Hệ Thống</h3>
+          </div>
+          <button class="drawer-close" onclick="App.closeUserDrawer()">&times;</button>
+        `;
+
+        bodyHtml = `
+          <div class="drawer-slide-content">
+            <p style="font-size: 13px; color: var(--text-secondary); margin: 0 0 6px 0;">
+              Tùy chỉnh giao diện, thông báo, hồ sơ cá nhân và quản lý dữ liệu ôn thi:
+            </p>
+
+            <div class="drawer-nav-list">
+              <button class="drawer-nav-btn" onclick="App.renderDrawerLevel('settings-theme')">
+                <span class="drawer-icon">🎨</span>
+                <span class="drawer-label">Giao Diện & Hiển Thị</span>
+                <span class="drawer-arrow">➔</span>
+              </button>
+
+              <button class="drawer-nav-btn" onclick="App.renderDrawerLevel('settings-alerts')">
+                <span class="drawer-icon">🔔</span>
+                <span class="drawer-label">Thông Báo & Cảnh Báo</span>
+                <span class="drawer-arrow">➔</span>
+              </button>
+
+              <button class="drawer-nav-btn" onclick="App.renderDrawerLevel('settings-profile')">
+                <span class="drawer-icon">👤</span>
+                <span class="drawer-label">Thông Tin Cá Nhân & Avatar</span>
+                <span class="drawer-arrow">➔</span>
+              </button>
+
+              <button class="drawer-nav-btn" onclick="App.renderDrawerLevel('settings-data')">
+                <span class="drawer-icon">💾</span>
+                <span class="drawer-label">Sao Lưu & Dữ Liệu</span>
+                <span class="drawer-arrow">➔</span>
+              </button>
+
+              <button class="drawer-nav-btn" onclick="App.renderDrawerLevel('settings-about')">
+                <span class="drawer-icon">ℹ️</span>
+                <span class="drawer-label">Thông Tin Ứng Dụng</span>
+                <span class="drawer-arrow">➔</span>
+              </button>
+            </div>
+          </div>
+        `;
+        break;
+
+      // ── CẤP 2: GIAO DIỆN & HIỂN THỊ (THEME / DARK MODE) ───────────────────
+      case "settings-theme":
+        headerHtml = `
+          <div class="drawer-header-left">
+            <button class="drawer-back-btn" onclick="App.renderDrawerLevel('settings')">← Cài đặt</button>
+            <h3>🎨 Giao Diện & Hiển Thị</h3>
+          </div>
+          <button class="drawer-close" onclick="App.closeUserDrawer()">&times;</button>
+        `;
+
+        bodyHtml = `
+          <div class="drawer-slide-content">
+            <!-- 1. Chế độ màu Sáng/Tối -->
+            <div>
+              <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 8px; display: block;">
+                🌓 Chế độ hiển thị:
+              </label>
+              <div class="theme-options-grid">
+                <div class="theme-option-card ${settings.theme === 'light' ? 'active' : ''}" onclick="App.setThemeSetting('light')">
+                  <div style="font-size: 20px; margin-bottom: 4px;">☀️</div>
+                  <div style="font-size: 12.5px;">Sáng</div>
+                </div>
+                <div class="theme-option-card ${settings.theme === 'dark' ? 'active' : ''}" onclick="App.setThemeSetting('dark')">
+                  <div style="font-size: 20px; margin-bottom: 4px;">🌙</div>
+                  <div style="font-size: 12.5px;">Tối</div>
+                </div>
+                <div class="theme-option-card ${settings.theme === 'auto' ? 'active' : ''}" onclick="App.setThemeSetting('auto')">
+                  <div style="font-size: 20px; margin-bottom: 4px;">💻</div>
+                  <div style="font-size: 12.5px;">Tự động</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Màu sắc chủ đạo (Accent Color) -->
+            <div>
+              <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 8px; display: block;">
+                🌈 Màu sắc chủ đạo:
+              </label>
+              <div class="color-dots-row">
+                <button class="color-dot-btn ${settings.accentColor === 'blue' || !settings.accentColor ? 'active' : ''}" style="background: #2563eb;" title="Xanh DThu" onclick="App.setAccentSetting('blue')">✓</button>
+                <button class="color-dot-btn ${settings.accentColor === 'emerald' ? 'active' : ''}" style="background: #059669;" title="Xanh Sinh Học" onclick="App.setAccentSetting('emerald')">✓</button>
+                <button class="color-dot-btn ${settings.accentColor === 'purple' ? 'active' : ''}" style="background: #7c3aed;" title="Tím Hoàng Gia" onclick="App.setAccentSetting('purple')">✓</button>
+                <button class="color-dot-btn ${settings.accentColor === 'amber' ? 'active' : ''}" style="background: #d97706;" title="Cam Năng Động" onclick="App.setAccentSetting('amber')">✓</button>
+              </div>
+            </div>
+
+            <!-- 3. Cỡ chữ câu hỏi -->
+            <div>
+              <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 8px; display: block;">
+                🔤 Cỡ chữ phòng thi & câu hỏi:
+              </label>
+              <div class="theme-options-grid">
+                <div class="theme-option-card ${settings.fontSize === 'normal' || !settings.fontSize ? 'active' : ''}" onclick="App.setFontSizeSetting('normal')">
+                  <div style="font-size: 14px; font-weight: 700;">A</div>
+                  <div style="font-size: 12px; margin-top: 2px;">Chuẩn (15px)</div>
+                </div>
+                <div class="theme-option-card ${settings.fontSize === 'large' ? 'active' : ''}" onclick="App.setFontSizeSetting('large')">
+                  <div style="font-size: 17px; font-weight: 700;">A</div>
+                  <div style="font-size: 12px; margin-top: 2px;">Lớn (16.5px)</div>
+                </div>
+                <div class="theme-option-card ${settings.fontSize === 'xlarge' ? 'active' : ''}" onclick="App.setFontSizeSetting('xlarge')">
+                  <div style="font-size: 20px; font-weight: 700;">A</div>
+                  <div style="font-size: 12px; margin-top: 2px;">Rất lớn (18px)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+
+      // ── CẤP 2: THÔNG BÁO & CẢNH BÁO ──────────────────────────────────────
+      case "settings-alerts":
+        const suppressed = StorageService.getSuppressedWarnings();
+        const known = StorageService.KNOWN_WARNINGS;
+
+        headerHtml = `
+          <div class="drawer-header-left">
+            <button class="drawer-back-btn" onclick="App.renderDrawerLevel('settings')">← Cài đặt</button>
+            <h3>🔔 Thông Báo & Cảnh Báo</h3>
+          </div>
+          <button class="drawer-close" onclick="App.closeUserDrawer()">&times;</button>
+        `;
+
+        bodyHtml = `
+          <div class="drawer-slide-content">
+            <!-- Thời gian Toast -->
+            <div>
+              <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 6px; display: block;">
+                ⏱️ Thời gian thông báo nổi (Toast):
+              </label>
+              <select class="form-control" onchange="App.onToastDurationChange(this.value)">
+                <option value="2500" ${settings.toastDuration === 2500 ? 'selected' : ''}>2.5 giây (Nhanh)</option>
+                <option value="3500" ${settings.toastDuration === 3500 || !settings.toastDuration ? 'selected' : ''}>3.5 giây (Chuẩn)</option>
+                <option value="5000" ${settings.toastDuration === 5000 ? 'selected' : ''}>5.0 giây (Chậm)</option>
+              </select>
+            </div>
+
+            <!-- Quản lý Cảnh báo đã ẩn -->
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label class="form-label" style="font-size: 13px; font-weight: 700; margin: 0;">
+                  🛡️ Quản lý hộp thoại cảnh báo:
+                </label>
+                <button class="btn btn-sm" style="font-size: 11px; padding: 2px 6px;" onclick="App.resetAllWarningsDrawer()">
+                  🔄 Bật tất cả
+                </button>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                ${Object.keys(known).map(k => {
+                  const item = known[k];
+                  const isSupp = !!suppressed[k];
+                  return `
+                    <div style="padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                      <div style="min-width: 0;">
+                        <strong style="font-size: 13px; color: var(--text-primary); display: block;">${item.title}</strong>
+                        <span style="font-size: 11.5px; color: var(--text-secondary);">${isSupp ? '⚠️ Đã chọn ẩn (Tự đồng ý)' : '✓ Đang bật cảnh báo'}</span>
+                      </div>
+                      <button class="btn btn-sm ${isSupp ? 'btn-primary' : ''}" style="font-size: 11.5px; padding: 3px 8px; flex-shrink: 0;" onclick="App.toggleWarningDrawerKey('${k}')">
+                        ${isSupp ? 'Bật lại' : 'Tắt'}
+                      </button>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+
+      // ── CẤP 2: THÔNG TIN CÁ NHÂN & AVATAR ────────────────────────────────
+      case "settings-profile":
+        headerHtml = `
+          <div class="drawer-header-left">
+            <button class="drawer-back-btn" onclick="App.renderDrawerLevel('settings')">← Cài đặt</button>
+            <h3>👤 Hồ Sơ Cá Nhân</h3>
+          </div>
+          <button class="drawer-close" onclick="App.closeUserDrawer()">&times;</button>
+        `;
+
+        const avatars = ["👨‍🎓", "👩‍🎓", "🧑‍💻", "🧪", "🧬", "🌟", "📚", "🏆", "🎓", "🦁", "🦉", "🚀"];
+
+        bodyHtml = `
+          <div class="drawer-slide-content">
+            <!-- Chọn Avatar Emoji -->
+            <div>
+              <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 6px; display: block;">
+                Chọn Avatar đại diện:
+              </label>
+              <div class="avatar-picker-grid">
+                ${avatars.map(a => `
+                  <button class="avatar-choice-btn ${profile.avatar === a ? 'active' : ''}" onclick="App.selectAvatarDrawer('${a}')">
+                    ${a}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+
+            <!-- Họ tên -->
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-size: 13px; font-weight: 700;">Họ và tên:</label>
+              <input type="text" id="drwProfName" class="form-control" value="${profile.fullName}">
+            </div>
+
+            <!-- MSSV -->
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-size: 13px; font-weight: 700;">Mã số sinh viên (MSSV):</label>
+              <input type="text" id="drwProfId" class="form-control" value="${profile.studentId || ''}">
+            </div>
+
+            <!-- Khoa / Ngành -->
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-size: 13px; font-weight: 700;">Khoa / Chuyên ngành:</label>
+              <input type="text" id="drwProfDept" class="form-control" value="${profile.department || ''}">
+            </div>
+
+            <button class="btn btn-primary" style="width: 100%; margin-top: 4px;" onclick="App.saveProfileFromDrawer()">
+              💾 Lưu Thông Tin Cá Nhân
+            </button>
+          </div>
+        `;
+        break;
+
+      // ── CẤP 2: SAO LƯU & DỮ LIỆU (BACKUP & RESTORE) ──────────────────────
+      case "settings-data":
+        headerHtml = `
+          <div class="drawer-header-left">
+            <button class="drawer-back-btn" onclick="App.renderDrawerLevel('settings')">← Cài đặt</button>
+            <h3>💾 Sao Lưu & Dữ Liệu</h3>
+          </div>
+          <button class="drawer-close" onclick="App.closeUserDrawer()">&times;</button>
+        `;
+
+        bodyHtml = `
+          <div class="drawer-slide-content">
+            <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">
+              Xuất hoặc nạp toàn bộ ngân hàng câu hỏi, điểm EXP và dữ liệu ôn thi ra file JSON để đồng bộ giữa các thiết bị:
+            </p>
+
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <button class="btn btn-primary" style="width: 100%;" onclick="App.downloadFullBackup()">
+                📥 Tải file sao lưu toàn bộ (.json)
+              </button>
+
+              <button class="btn" style="width: 100%;" onclick="App.triggerRestoreBackupFile()">
+                📤 Phục hồi dữ liệu từ file backup
+              </button>
+            </div>
+
+            <div style="border-top: 1px dashed var(--border); padding-top: 14px; margin-top: 4px;">
+              <label class="form-label" style="font-size: 13px; font-weight: 700; color: var(--danger); margin-bottom: 8px; display: block;">
+                🧹 Dọn dẹp dữ liệu:
+              </label>
+
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button class="btn btn-sm" style="color: var(--danger); text-align: left;" onclick="App.clearMistakesData()">
+                  🗑️ Xóa danh sách câu làm sai (${mistakes.length} câu)
+                </button>
+                <button class="btn btn-sm" style="color: var(--danger); text-align: left;" onclick="App.clearHistoryData()">
+                  🗑️ Xóa lịch sử làm bài thi (${history.length} bài)
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+
+      // ── CẤP 2: THÔNG TIN ỨNG DỤNG (ABOUT) ─────────────────────────────────
+      case "settings-about":
+        headerHtml = `
+          <div class="drawer-header-left">
+            <button class="drawer-back-btn" onclick="App.renderDrawerLevel('settings')">← Cài đặt</button>
+            <h3>ℹ️ Thông Tin Ứng Dụng</h3>
+          </div>
+          <button class="drawer-close" onclick="App.closeUserDrawer()">&times;</button>
+        `;
+
+        bodyHtml = `
+          <div class="drawer-slide-content" style="text-align: center; padding: 12px 0;">
+            <div style="font-size: 48px; margin-bottom: 8px;">🎓</div>
+            <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0;">DThu QuizMaster</h3>
+            <div style="font-size: 13px; color: var(--brand-text); font-weight: 700; margin-top: 2px;">Phiên bản v2.0 (Open-Core)</div>
+
+            <div style="text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; margin-top: 16px; font-size: 13px; line-height: 1.6; color: var(--text-secondary);">
+              <div>🏛️ <strong>Trường:</strong> Đại học Đồng Tháp (DThu)</div>
+              <div>👨‍🎓 <strong>Tác giả:</strong> Bùi Văn Khang</div>
+              <div>🧬 <strong>Chuyên ngành:</strong> Công nghệ Sinh học</div>
+              <div>🚀 <strong>Mục tiêu:</strong> Nền tảng ôn thi trắc nghiệm mở, lưu trữ tài liệu .txt và chia sẻ đề thi miễn phí 100% cho sinh viên.</div>
+            </div>
+
+            <div style="margin-top: 16px;">
+              <a href="https://github.com/VKhang-Bui/dthu-quizmaster" target="_blank" class="btn btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+                🔗 Kho mã nguồn GitHub ➔
+              </a>
+            </div>
+          </div>
+        `;
+        break;
+    }
+
+    const drawerHeader = document.querySelector(".drawer-header");
+    const drawerBody = document.getElementById("userDrawerBody");
+    const drawerFooter = document.getElementById("userDrawerFooter");
+
+    if (drawerHeader) drawerHeader.innerHTML = headerHtml;
+    if (drawerBody) drawerBody.innerHTML = bodyHtml;
+    if (drawerFooter) {
+      drawerFooter.innerHTML = footerHtml;
+      drawerFooter.style.display = footerHtml ? "block" : "none";
+    }
+  },
+
+  // Actions for Drawer Settings:
+  setThemeSetting(theme) {
+    StorageService.saveAppSettings({ theme });
+    this.applyThemeSettings();
+    this.renderDrawerLevel("settings-theme");
+    this.showToast(`Đã chuyển sang chế độ: ${theme === 'dark' ? '🌙 Tối' : theme === 'light' ? '☀️ Sáng' : '💻 Tự động'}`, "success", 2000);
+  },
+
+  setAccentSetting(color) {
+    StorageService.saveAppSettings({ accentColor: color });
+    this.applyThemeSettings();
+    this.renderDrawerLevel("settings-theme");
+    this.showToast("Đã cập nhật màu sắc chủ đạo!", "success", 2000);
+  },
+
+  setFontSizeSetting(size) {
+    StorageService.saveAppSettings({ fontSize: size });
+    this.applyThemeSettings();
+    this.renderDrawerLevel("settings-theme");
+    this.showToast("Đã cập nhật cỡ chữ câu hỏi!", "success", 2000);
+  },
+
+  resetAllWarningsDrawer() {
+    StorageService.resetSuppressedWarnings();
+    this.showToast("✅ Đã bật lại toàn bộ các cảnh báo gốc!", "success", 2500);
+    this.renderDrawerLevel("settings-alerts");
+  },
+
+  toggleWarningDrawerKey(key) {
+    if (StorageService.isWarningSuppressed(key)) {
+      StorageService.unsuppressWarning(key);
+      this.showToast(`Đã bật lại: ${StorageService.KNOWN_WARNINGS[key]?.title || key}`, "success", 2000);
+    } else {
+      StorageService.suppressWarning(key);
+      this.showToast(`Đã tắt (ẩn): ${StorageService.KNOWN_WARNINGS[key]?.title || key}`, "info", 2000);
+    }
+    this.renderDrawerLevel("settings-alerts");
+  },
+
+  selectAvatarDrawer(avatar) {
+    const profile = StorageService.getUserProfile();
+    profile.avatar = avatar;
+    StorageService.saveUserProfile(profile);
+    this.renderHeader();
+    this.renderDrawerLevel("settings-profile");
+  },
+
+  saveProfileFromDrawer() {
+    const name = document.getElementById("drwProfName")?.value.trim();
+    const id = document.getElementById("drwProfId")?.value.trim();
+    const dept = document.getElementById("drwProfDept")?.value.trim();
+
+    if (!name) {
+      this.showToast("⚠️ Họ và tên không được để trống!", "warning");
+      return;
+    }
+
+    const profile = StorageService.getUserProfile();
+    profile.fullName = name;
+    profile.studentId = id;
+    profile.department = dept || profile.department;
+
+    StorageService.saveUserProfile(profile);
+    this.renderHeader();
+    this.showToast("✅ Đã lưu thông tin cá nhân thành công!", "success", 2500);
+    this.renderDrawerLevel("main");
+  },
+
+  downloadFullBackup() {
+    const backup = StorageService.exportFullBackupData();
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup, null, 2));
+    const a = document.createElement("a");
+    a.href = dataStr;
+    a.download = `dthu-quizmaster-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    this.showToast("📥 Đã tải file sao lưu dữ liệu (.json) thành công!", "success", 3000);
+  },
+
+  triggerRestoreBackupFile() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const json = JSON.parse(event.target.result);
+          StorageService.restoreFullBackupData(json);
+          this.applyThemeSettings();
+          this.renderHeader();
+          this.showToast("🎉 Đã phục hồi dữ liệu thành công!", "success", 3500);
+          this.renderDrawerLevel("main");
+          this.navigateTo("home");
+        } catch (err) {
+          this.showToast("❌ File sao lưu không hợp lệ: " + err.message, "danger", 4000);
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  },
+
+  clearMistakesData() {
+    this.showConfirmDialog({
+      title: "Xóa toàn bộ câu làm sai",
+      message: "Bạn có chắc chắn muốn xóa toàn bộ danh sách câu làm sai không?",
+      icon: "🗑️",
+      confirmText: "Xóa danh sách",
+      isDanger: true,
+      onConfirm: () => {
+        localStorage.removeItem(StorageService.KEYS.MISTAKES);
+        this.showToast("Đã dọn dẹp danh sách câu làm sai!", "success", 2500);
+        this.renderDrawerLevel("settings-data");
+      }
+    });
+  },
+
+  clearHistoryData() {
+    this.showConfirmDialog({
+      title: "Xóa lịch sử làm bài thi",
+      message: "Bạn có chắc chắn muốn xóa toàn bộ lịch sử các lần làm bài thi trước đây không?",
+      icon: "🗑️",
+      confirmText: "Xóa lịch sử",
+      isDanger: true,
+      onConfirm: () => {
+        localStorage.removeItem(StorageService.KEYS.HISTORY);
+        this.showToast("Đã xóa toàn bộ lịch sử làm bài thi!", "success", 2500);
+        this.renderDrawerLevel("settings-data");
+      }
+    });
+  },
+
   toggleUserRole() {
     const profile = StorageService.getUserProfile();
     const newRole = profile.role === "admin" ? "student" : "admin";
     StorageService.switchUserRole(newRole);
     this.renderHeader();
     this.showToast(`Đã chuyển vai trò sang: ${newRole === 'admin' ? '🛡️ Ban Biên Tập (Admin)' : '👨‍🎓 Sinh Viên'}`, 'info', 2500);
+    this.renderDrawerLevel("main");
     if (this.currentView === "moderation" && newRole === "student") {
       this.navigateTo("home");
     } else {
@@ -282,83 +791,10 @@ const App = {
   },
 
   // ═════════════════════════════════════════════════════════════════════════
-  // 3. SETTINGS MODAL (CÀI ĐẶT THÔNG BÁO & QUẢN LÝ CẢNH BÁO ĐÃ ẨN)
+  // 3. SETTINGS & APP CONFIG (MỞ THANH TRƯỢT CÀI ĐẶT)
   // ═════════════════════════════════════════════════════════════════════════
   openSettingsModal() {
-    const settings = StorageService.getAppSettings();
-    const suppressed = StorageService.getSuppressedWarnings();
-    const knownWarnings = StorageService.KNOWN_WARNINGS;
-
-    const modal = document.getElementById("globalModal");
-    const title = document.getElementById("modalTitle");
-    const body = document.getElementById("modalBody");
-    const footer = document.getElementById("modalFooter");
-
-    title.textContent = "🛠️ Cài Đặt Hệ Thống & Cảnh Báo";
-
-    body.innerHTML = `
-      <div>
-        <!-- Cấu hình Toast Duration -->
-        <div class="settings-section">
-          <div class="settings-section-title">⏱️ Thời gian hiển thị Thông báo (Toast)</div>
-          <div class="settings-row">
-            <div class="settings-row-info">
-              <strong>Tự động biến mất sau</strong>
-              <span>Chọn thời gian thông báo nổi ở góc phải tự tắt</span>
-            </div>
-            <select id="selToastDuration" class="form-control" style="width: 140px;" onchange="App.onToastDurationChange(this.value)">
-              <option value="2500" ${settings.toastDuration === 2500 ? 'selected' : ''}>2.5 giây (Nhanh)</option>
-              <option value="3500" ${settings.toastDuration === 3500 || !settings.toastDuration ? 'selected' : ''}>3.5 giây (Chuẩn)</option>
-              <option value="5000" ${settings.toastDuration === 5000 ? 'selected' : ''}>5.0 giây (Chậm)</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Quản lý Cảnh báo Đã Ẩn -->
-        <div class="settings-section">
-          <div class="settings-section-title" style="display: flex; justify-content: space-between; align-items: center;">
-            <span>🛡️ Quản lý Hộp thoại Cảnh báo (Confirm)</span>
-            <button class="btn btn-sm" style="font-size: 11.5px; padding: 3px 8px;" onclick="App.resetAllWarnings()">
-              🔄 Khôi phục tất cả
-            </button>
-          </div>
-          <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 12px;">
-            Khi bạn tích chọn <em>"Không hiển thị lại cảnh báo này"</em>, hệ thống sẽ ghi nhớ tại đây. Bạn có thể bật lại bất cứ lúc nào:
-          </p>
-
-          <div style="display: flex; flex-direction: column; gap: 8px;">
-            ${Object.keys(knownWarnings).map(key => {
-              const item = knownWarnings[key];
-              const isSuppressed = !!suppressed[key];
-              return `
-                <div class="settings-row">
-                  <div class="settings-row-info">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <strong>${item.title}</strong>
-                      <span class="badge ${isSuppressed ? 'badge-yellow' : 'badge-green'}" style="font-size: 10px;">
-                        ${isSuppressed ? 'Đã ẩn (Tự đồng ý)' : 'Đang bật'}
-                      </span>
-                    </div>
-                    <span>${item.description}</span>
-                  </div>
-                  <div>
-                    <button class="btn btn-sm ${isSuppressed ? 'btn-primary' : ''}" style="font-size: 12px; padding: 4px 10px;" onclick="App.toggleWarningKey('${key}')">
-                      ${isSuppressed ? 'Bật lại' : 'Tắt (Ẩn)'}
-                    </button>
-                  </div>
-                </div>
-              `;
-            }).join('')}
-          </div>
-        </div>
-      </div>
-    `;
-
-    footer.innerHTML = `
-      <button class="btn btn-primary" onclick="App.closeModal()">Xong</button>
-    `;
-
-    modal.classList.add("active");
+    this.openUserDrawer("settings");
   },
 
   onToastDurationChange(val) {
@@ -375,13 +811,13 @@ const App = {
       StorageService.suppressWarning(key);
       this.showToast(`Đã tắt (ẩn) cảnh báo: ${StorageService.KNOWN_WARNINGS[key]?.title || key}`, "info");
     }
-    this.openSettingsModal();
+    this.renderDrawerLevel("settings-alerts");
   },
 
   resetAllWarnings() {
     StorageService.resetSuppressedWarnings();
     this.showToast("✅ Đã khôi phục toàn bộ các cảnh báo gốc của hệ thống!", "success");
-    this.openSettingsModal();
+    this.renderDrawerLevel("settings-alerts");
   },
 
   // ═════════════════════════════════════════════════════════════════════════
