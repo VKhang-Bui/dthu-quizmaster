@@ -364,6 +364,67 @@ const StorageService = {
     return this.updateUser(id, { status: newStatus });
   },
 
+  isLoggedIn() {
+    try {
+      const data = localStorage.getItem(this.KEYS.USER_PROFILE);
+      if (data) {
+        const parsed = JSON.parse(data);
+        return Boolean(parsed && parsed.id && parsed.role !== "guest");
+      }
+    } catch (e) {}
+    return false;
+  },
+
+  logout() {
+    localStorage.removeItem(this.KEYS.USER_PROFILE);
+    return true;
+  },
+
+  getUserProfile() {
+    try {
+      const data = localStorage.getItem(this.KEYS.USER_PROFILE);
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (parsed && parsed.role !== "guest") {
+          return parsed;
+        }
+      }
+    } catch (e) {}
+
+    // Trả về đối tượng Khách (Guest) nếu chưa đăng nhập
+    return {
+      id: "guest",
+      fullName: "Khách (Chưa đăng nhập)",
+      studentId: "",
+      department: "Trường Đại học Đồng Tháp",
+      role: "guest",
+      avatar: "👤",
+      totalExp: 0,
+      quizzesCompleted: 0,
+      permissions: {
+        canApproveDrafts: false,
+        canEditSubjects: false,
+        canManageMaterials: false,
+        canManageUsers: false
+      }
+    };
+  },
+
+  saveUserProfile(profile) {
+    if (!profile || profile.role === "guest") {
+      localStorage.removeItem(this.KEYS.USER_PROFILE);
+      return;
+    }
+    localStorage.setItem(this.KEYS.USER_PROFILE, JSON.stringify(profile));
+    // Cập nhật lại trong danh sách người dùng
+    const list = this.getAllUsers();
+    const idx = list.findIndex(u => u.id === profile.id || (profile.studentId && u.studentId === profile.studentId));
+    if (idx !== -1) {
+      list[idx] = Object.assign({}, list[idx], profile);
+      this.saveAllUsers(list);
+    }
+  },
+
   authenticateUser(studentId, pinCode) {
     const user = this.getUserByStudentId(studentId);
     if (!user) {
@@ -381,36 +442,15 @@ const StorageService = {
   },
 
   hasPermission(permissionName) {
+    if (!this.isLoggedIn()) return false;
     const profile = this.getUserProfile();
     if (profile.role === "admin") return true;
     if (profile.permissions && profile.permissions[permissionName] === true) return true;
     return false;
   },
 
-  getUserProfile() {
-    try {
-      const data = localStorage.getItem(this.KEYS.USER_PROFILE);
-      if (data) return JSON.parse(data);
-    } catch (e) {}
-
-    const all = this.getAllUsers();
-    const defaultProfile = all[0] || this.DEFAULT_USERS[0];
-    this.saveUserProfile(defaultProfile);
-    return defaultProfile;
-  },
-
-  saveUserProfile(profile) {
-    localStorage.setItem(this.KEYS.USER_PROFILE, JSON.stringify(profile));
-    // Cập nhật lại trong danh sách người dùng
-    const list = this.getAllUsers();
-    const idx = list.findIndex(u => u.id === profile.id || u.studentId === profile.studentId);
-    if (idx !== -1) {
-      list[idx] = Object.assign({}, list[idx], profile);
-      this.saveAllUsers(list);
-    }
-  },
-
   addExp(points, reason = "") {
+    if (!this.isLoggedIn()) return 0; // Khách không tích lũy EXP
     const profile = this.getUserProfile();
     profile.totalExp = (profile.totalExp || 0) + points;
     this.saveUserProfile(profile);
@@ -422,35 +462,6 @@ const StorageService = {
     if (!user) return null;
     this.saveUserProfile(user);
     return user;
-  },
-
-  switchUserRole(newRole) {
-    const profile = this.getUserProfile();
-    profile.role = newRole;
-    if (newRole === "admin") {
-      profile.permissions = {
-        canApproveDrafts: true,
-        canEditSubjects: true,
-        canManageMaterials: true,
-        canManageUsers: true
-      };
-    } else if (newRole === "editor") {
-      profile.permissions = {
-        canApproveDrafts: true,
-        canEditSubjects: false,
-        canManageMaterials: true,
-        canManageUsers: false
-      };
-    } else {
-      profile.permissions = {
-        canApproveDrafts: false,
-        canEditSubjects: false,
-        canManageMaterials: false,
-        canManageUsers: false
-      };
-    }
-    this.saveUserProfile(profile);
-    return profile;
   },
 
   // ── 4. Quản lý Tài Liệu Học Tập (.txt & Tóm tắt) ────────────
@@ -528,6 +539,7 @@ const StorageService = {
   },
 
   recordMistake(subjectId, question, userWrongAnswerIndex) {
+    if (!this.isLoggedIn()) return; // Khách không lưu ngân hàng câu sai
     const mistakes = this.getMistakes();
     const existing = mistakes.find(m => m.subjectId === subjectId && m.question.id === question.id);
     if (existing) {

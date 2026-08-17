@@ -59,8 +59,15 @@ const App = {
   renderHeader() {
     const headerEl = document.getElementById("appHeader");
     if (!headerEl) return;
+    const isLogged = StorageService.isLoggedIn();
     const profile = StorageService.getUserProfile();
-    const pendingDrafts = StorageService.getDraftSubjects();
+
+    let roleBadge = `<span class="user-role-badge" style="font-size: 10px; padding: 1px 6px; background:#f1f5f9; color:#64748b;">Khách</span>`;
+    if (isLogged) {
+      if (profile.role === "admin") roleBadge = `<span class="user-role-badge admin" style="font-size: 10px; padding: 1px 6px;">👑 Admin</span>`;
+      else if (profile.role === "editor") roleBadge = `<span class="user-role-badge editor" style="font-size: 10px; padding: 1px 6px; background:#eff6ff; color:#1e40af;">🛡️ Editor</span>`;
+      else roleBadge = `<span class="user-role-badge student" style="font-size: 10px; padding: 1px 6px;">👨‍🎓 SV</span>`;
+    }
 
     headerEl.innerHTML = `
       <div class="header-brand" onclick="App.navigateTo('home')">
@@ -77,13 +84,15 @@ const App = {
       </nav>
 
       <!-- Khối Người Dùng (Bấm vào để mở Thanh trượt bên phải) -->
-      <div class="header-user-widget" onclick="App.openUserDrawer('main')" title="Nhấp để mở Menu Cá nhân & Tiện ích">
-        <div style="font-size: 20px;">${profile.avatar || '👨‍🎓'}</div>
+      <div class="header-user-widget" onclick="App.openUserDrawer('main')" title="${isLogged ? 'Xem menu cá nhân & tiện ích' : 'Nhấp để đăng nhập'}">
+        <div style="font-size: 20px;">${isLogged ? (profile.avatar || '👨‍🎓') : '👤'}</div>
         <div style="display: flex; flex-direction: column; text-align: left;">
-          <span style="font-size: 13px; font-weight: 700; color: var(--text-primary); line-height: 1.2;">${profile.fullName}</span>
+          <span style="font-size: 13px; font-weight: 700; color: var(--text-primary); line-height: 1.2;">
+            ${isLogged ? profile.fullName : 'Khách (Chưa đăng nhập)'}
+          </span>
           <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
-            <span class="user-exp-chip" style="font-size: 11.5px;">⚡ ${profile.totalExp} EXP</span>
-            <span class="user-role-badge ${profile.role}" style="font-size: 10px; padding: 1px 6px;">${profile.role === 'admin' ? '🛡️ Admin' : '👨‍🎓 SV'}</span>
+            ${isLogged ? `<span class="user-exp-chip" style="font-size: 11.5px;">⚡ ${profile.totalExp} EXP</span>` : ''}
+            ${roleBadge}
           </div>
         </div>
         <div style="font-size: 12px; color: var(--text-tertiary); margin-left: 2px;">▸</div>
@@ -109,10 +118,19 @@ const App = {
     document.getElementById("userDrawerOverlay")?.classList.remove("active");
   },
 
+  logoutUser() {
+    StorageService.logout();
+    this.closeUserDrawer();
+    this.renderHeader();
+    this.showToast("👋 Đã đăng xuất về chế độ Khách!", "info", 2500);
+    this.navigateTo("home");
+  },
+
   renderDrawerLevel(level) {
     const drawer = document.getElementById("userDrawer");
     if (!drawer) return;
 
+    const isLogged = StorageService.isLoggedIn();
     const profile = StorageService.getUserProfile();
     const mistakes = StorageService.getMistakes();
     const drafts = StorageService.getDraftSubjects();
@@ -128,103 +146,125 @@ const App = {
       case "main":
         headerHtml = `
           <div class="drawer-header-left">
-            <h3>👤 Trung Tâm Cá Nhân</h3>
+            <h3>👤 Trung Tâm Người Dùng</h3>
           </div>
           <button class="drawer-close" onclick="App.closeUserDrawer()">&times;</button>
         `;
 
-        bodyHtml = `
-          <div class="drawer-slide-content">
-            <!-- Thẻ Hồ Sơ Sinh Viên -->
-            <div class="user-hub-profile-card">
-              <div style="font-size: 38px; line-height: 1;">${profile.avatar || '👨‍🎓'}</div>
-              <div style="flex: 1; min-width: 0;">
-                <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
-                  <h3 style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${profile.fullName}</h3>
-                  <span class="user-role-badge ${profile.role}">${profile.role === 'admin' ? '🛡️ Admin' : '👨‍🎓 SV'}</span>
+        if (!isLogged) {
+          // ── GIAO DIỆN KHÁCH: KHÔNG HIỆN GÌ, CHỈ HIỆN 1 KHỐI NÚT ĐĂNG NHẬP Ở CHÍNH GIỮA ──
+          bodyHtml = `
+            <div class="drawer-slide-content" style="text-align: center; padding: 48px 12px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+              <div style="font-size: 56px; margin-bottom: 14px; line-height: 1;">🔒</div>
+              <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0 0 8px 0;">Chế Độ Khách</h3>
+              <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin: 0 0 24px 0; max-width: 290px;">
+                Bạn đang duyệt web ở chế độ Khách. Vui lòng đăng nhập tài khoản sinh viên DThu để mở khóa toàn bộ tính năng: Ôn tập có đáp án & giải thích, Kho tài liệu (.txt), Ngân hàng câu sai, Tích lũy EXP và Đóng góp đề thi.
+              </p>
+              <button class="btn btn-primary" style="width: 100%; max-width: 290px; padding: 13px; font-size: 14px; font-weight: 700;" onclick="App.closeUserDrawer(); App.openAccountSwitcherModal();">
+                🔑 Đăng Nhập / Chọn Tài Khoản ➔
+              </button>
+            </div>
+          `;
+          footerHtml = "";
+        } else {
+          // ── GIAO DIỆN THÀNH VIÊN ĐÃ ĐĂNG NHẬP: HIỆN ĐẦY ĐỦ TIỆN ÍCH & NÚT Ở CUỐI ──
+          let roleBadgeText = '<span class="user-role-badge student">👨‍🎓 SV</span>';
+          if (profile.role === "admin") roleBadgeText = '<span class="user-role-badge admin">👑 Admin</span>';
+          else if (profile.role === "editor") roleBadgeText = '<span class="user-role-badge editor" style="background:#eff6ff; color:#1e40af;">🛡️ Editor</span>';
+
+          bodyHtml = `
+            <div class="drawer-slide-content">
+              <!-- Thẻ Hồ Sơ Sinh Viên -->
+              <div class="user-hub-profile-card">
+                <div style="font-size: 38px; line-height: 1;">${profile.avatar || '👨‍🎓'}</div>
+                <div style="flex: 1; min-width: 0;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                    <h3 style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${profile.fullName}</h3>
+                    ${roleBadgeText}
+                  </div>
+                  <div style="font-size: 12px; color: var(--text-secondary); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    MSSV: <strong>${profile.studentId || 'Chưa cập nhật'}</strong>
+                  </div>
+                  <div style="display: flex; gap: 10px; margin-top: 8px; font-size: 12px;">
+                    <span style="color: #b45309; font-weight: 800;">⚡ ${profile.totalExp} EXP</span>
+                    <span style="color: #0369a1; font-weight: 700;">📝 ${history.length} bài</span>
+                  </div>
                 </div>
-                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                  MSSV: <strong>${profile.studentId || 'Chưa cập nhật'}</strong>
+              </div>
+
+              <!-- Danh Sách Các Khối Tính Năng (1 Dòng) -->
+              <div>
+                <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.04em; margin-bottom: 8px;">
+                  Tiện ích & Quản lý
                 </div>
-                <div style="display: flex; gap: 10px; margin-top: 8px; font-size: 12px;">
-                  <span style="color: #b45309; font-weight: 800;">⚡ ${profile.totalExp} EXP</span>
-                  <span style="color: #0369a1; font-weight: 700;">📝 ${history.length} bài</span>
+                <div class="drawer-nav-list">
+                  <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('leaderboard');">
+                    <span class="drawer-icon">🏆</span>
+                    <span class="drawer-label">Bảng Xếp Hạng</span>
+                    <span class="drawer-arrow">➔</span>
+                  </button>
+
+                  <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('materials');">
+                    <span class="drawer-icon">📚</span>
+                    <span class="drawer-label">Kho Tài Liệu (.txt)</span>
+                    <span class="drawer-arrow">➔</span>
+                  </button>
+
+                  <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('parser');">
+                    <span class="drawer-icon">📝</span>
+                    <span class="drawer-label">Nhập & Đóng Góp Đề</span>
+                    <span class="drawer-arrow">➔</span>
+                  </button>
+
+                  <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('mistakes');">
+                    <span class="drawer-icon">🎯</span>
+                    <span class="drawer-label">Ngân Hàng Câu Sai</span>
+                    ${mistakes.length > 0 ? `<span class="badge" style="background:#fee2e2; color:#b91c1c; font-weight:700;">${mistakes.length}</span>` : `<span class="drawer-arrow">➔</span>`}
+                  </button>
+
+                  <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('manage');">
+                    <span class="drawer-icon">⚙️</span>
+                    <span class="drawer-label">Quản Lý Bộ Đề</span>
+                    <span class="drawer-arrow">➔</span>
+                  </button>
+
+                  <button class="drawer-nav-btn" style="background: var(--surface-subtle); border-color: var(--brand-primary);" onclick="App.renderDrawerLevel('settings')">
+                    <span class="drawer-icon">🛠️</span>
+                    <span class="drawer-label"><strong>Cài Đặt Hệ Thống</strong></span>
+                    <span class="drawer-arrow">➔</span>
+                  </button>
+
+                  ${(profile.role === 'admin' || StorageService.hasPermission('canApproveDrafts')) ? `
+                    <button class="drawer-nav-btn drawer-nav-btn-admin" onclick="App.closeUserDrawer(); App.navigateTo('moderation');">
+                      <span class="drawer-icon">🛡️</span>
+                      <span class="drawer-label">Duyệt Đề Đóng Góp</span>
+                      ${drafts.length > 0 ? `<span class="badge" style="background:#fef3c7; color:#92400e; font-weight:700;">${drafts.length}</span>` : `<span class="drawer-arrow">➔</span>`}
+                    </button>
+                  ` : ''}
+
+                  ${(profile.role === 'admin' || StorageService.hasPermission('canManageUsers')) ? `
+                    <button class="drawer-nav-btn" style="border-color: #3b82f6; background: #eff6ff; color: #1d4ed8;" onclick="App.closeUserDrawer(); App.navigateTo('users-management');">
+                      <span class="drawer-icon">👥</span>
+                      <span class="drawer-label"><strong>Quản Lý Người Dùng</strong></span>
+                      <span class="badge" style="background:#dbeafe; color:#1e40af; font-weight:700;">${StorageService.getAllUsers().length}</span>
+                    </button>
+                  ` : ''}
                 </div>
               </div>
             </div>
+          `;
 
-            <!-- Danh Sách Các Khối Tính Năng (1 Dòng) -->
-            <div>
-              <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.04em; margin-bottom: 8px;">
-                Tiện ích & Quản lý
-              </div>
-              <div class="drawer-nav-list">
-                <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('leaderboard');">
-                  <span class="drawer-icon">🏆</span>
-                  <span class="drawer-label">Bảng Xếp Hạng</span>
-                  <span class="drawer-arrow">➔</span>
-                </button>
-
-                <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('materials');">
-                  <span class="drawer-icon">📚</span>
-                  <span class="drawer-label">Kho Tài Liệu (.txt)</span>
-                  <span class="drawer-arrow">➔</span>
-                </button>
-
-                <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('parser');">
-                  <span class="drawer-icon">📝</span>
-                  <span class="drawer-label">Nhập & Đóng Góp Đề</span>
-                  <span class="drawer-arrow">➔</span>
-                </button>
-
-                <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('mistakes');">
-                  <span class="drawer-icon">🎯</span>
-                  <span class="drawer-label">Ngân Hàng Câu Sai</span>
-                  ${mistakes.length > 0 ? `<span class="badge" style="background:#fee2e2; color:#b91c1c; font-weight:700;">${mistakes.length}</span>` : `<span class="drawer-arrow">➔</span>`}
-                </button>
-
-                <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('manage');">
-                  <span class="drawer-icon">⚙️</span>
-                  <span class="drawer-label">Quản Lý Bộ Đề</span>
-                  <span class="drawer-arrow">➔</span>
-                </button>
-
-                <button class="drawer-nav-btn" style="background: var(--surface-subtle); border-color: var(--brand-primary);" onclick="App.renderDrawerLevel('settings')">
-                  <span class="drawer-icon">🛠️</span>
-                  <span class="drawer-label"><strong>Cài Đặt Hệ Thống</strong></span>
-                  <span class="drawer-arrow">➔</span>
-                </button>
-
-                ${(profile.role === 'admin' || StorageService.hasPermission('canApproveDrafts')) ? `
-                  <button class="drawer-nav-btn drawer-nav-btn-admin" onclick="App.closeUserDrawer(); App.navigateTo('moderation');">
-                    <span class="drawer-icon">🛡️</span>
-                    <span class="drawer-label">Duyệt Đề Đóng Góp</span>
-                    ${drafts.length > 0 ? `<span class="badge" style="background:#fef3c7; color:#92400e; font-weight:700;">${drafts.length}</span>` : `<span class="drawer-arrow">➔</span>`}
-                  </button>
-                ` : ''}
-
-                ${(profile.role === 'admin' || StorageService.hasPermission('canManageUsers')) ? `
-                  <button class="drawer-nav-btn" style="border-color: #3b82f6; background: #eff6ff; color: #1d4ed8;" onclick="App.closeUserDrawer(); App.navigateTo('users-management');">
-                    <span class="drawer-icon">👥</span>
-                    <span class="drawer-label"><strong>Quản Lý Người Dùng</strong></span>
-                    <span class="badge" style="background:#dbeafe; color:#1e40af; font-weight:700;">${StorageService.getAllUsers().length}</span>
-                  </button>
-                ` : ''}
-              </div>
+          footerHtml = `
+            <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+              <button class="btn btn-primary btn-sm" style="width: 100%; font-size: 13px;" onclick="App.closeUserDrawer(); App.openAccountSwitcherModal();">
+                🔑 Đổi Tài Khoản ➔
+              </button>
+              <button class="btn btn-sm btn-danger" style="width: 100%; font-size: 12px;" onclick="App.logoutUser()">
+                🚪 Đăng Xuất (Về Khách)
+              </button>
             </div>
-          </div>
-        `;
-
-        footerHtml = `
-          <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
-            <button class="btn btn-primary btn-sm" style="width: 100%; font-size: 13px;" onclick="App.closeUserDrawer(); App.openAccountSwitcherModal();">
-              🔑 Đăng Nhập / Đổi Tài Khoản ➔
-            </button>
-            <button class="btn btn-sm" style="width: 100%; font-size: 12px; color: var(--text-secondary);" onclick="App.toggleUserRole();">
-              🔄 Vai trò nhanh: <strong>${profile.role === 'admin' ? 'Chuyển sang Sinh viên' : 'Chuyển sang Admin'}</strong>
-            </button>
-          </div>
-        `;
+          `;
+        }
         break;
 
       // ── CẤP 1: MENU CÀI ĐẶT TỔNG (SETTINGS MAIN) ───────────────────────────
@@ -688,17 +728,7 @@ const App = {
   },
 
   toggleUserRole() {
-    const profile = StorageService.getUserProfile();
-    const newRole = profile.role === "admin" ? "student" : "admin";
-    StorageService.switchUserRole(newRole);
-    this.renderHeader();
-    this.showToast(`Đã chuyển vai trò sang: ${newRole === 'admin' ? '🛡️ Ban Biên Tập (Admin)' : '👨‍🎓 Sinh Viên'}`, 'info', 2500);
-    this.renderDrawerLevel("main");
-    if (this.currentView === "moderation" && newRole === "student") {
-      this.navigateTo("home");
-    } else {
-      this.navigateTo(this.currentView);
-    }
+    this.openAccountSwitcherModal();
   },
 
   updateActiveNav(view) {
@@ -965,6 +995,11 @@ const App = {
   // 1. HOME VIEW (TRANG CHỦ MÔN HỌC - TÍCH HỢP HUB TABS CHÍNH THỨC & DRAFTS)
   // ═════════════════════════════════════════════════════════════════════════
   switchHubTab(tab) {
+    if (tab === "drafts" && !StorageService.isLoggedIn()) {
+      this.showToast("🔒 Vui lòng đăng nhập để tham gia làm các bộ đề thử nghiệm do cộng đồng sinh viên đóng góp!", "warning", 3500);
+      this.openAccountSwitcherModal();
+      return;
+    }
     this.currentHubTab = tab;
     const mainContainer = document.getElementById("mainContent");
     this.renderHomeView(mainContainer);
@@ -973,6 +1008,7 @@ const App = {
   renderHomeView(container) {
     const officialSubjects = StorageService.getSubjects();
     const draftSubjects = StorageService.getDraftSubjects();
+    const isLogged = StorageService.isLoggedIn();
     const activeList = this.currentHubTab === "official" ? officialSubjects : draftSubjects;
 
     container.innerHTML = `
@@ -999,7 +1035,7 @@ const App = {
             🟢 Ngân hàng Chính thức <span class="badge-tab-count">${officialSubjects.length}</span>
           </button>
           <button class="hub-tab-btn ${this.currentHubTab === 'drafts' ? 'active' : ''}" onclick="App.switchHubTab('drafts')">
-            🟡 Đề Cộng đồng (Thử nghiệm) <span class="badge-tab-count">${draftSubjects.length}</span>
+            ${isLogged ? `🟡 Đề Cộng đồng (Thử nghiệm) <span class="badge-tab-count">${draftSubjects.length}</span>` : `🔒 Đề Cộng đồng (${draftSubjects.length})`}
           </button>
         </div>
 
@@ -1338,6 +1374,23 @@ const App = {
   // 3. SMART TEXT PARSER VIEW (NHẬP ĐỀ TỰ ĐỘNG)
   // ═════════════════════════════════════════════════════════════════════════
   renderParserView(container, preselectedSubjectId) {
+    if (!StorageService.isLoggedIn()) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 70px 20px; max-width: 550px; margin: 0 auto;">
+          <div style="font-size: 52px; margin-bottom: 14px;">📝</div>
+          <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary);">Công Cụ Nhập Đề & Đóng Góp Đề Thi</h3>
+          <p style="color: var(--text-secondary); margin-top: 8px; line-height: 1.6;">
+            Vui lòng đăng nhập tài khoản sinh viên DThu để sử dụng công cụ bóc tách câu hỏi thông minh và gửi đóng góp đề thi lên hệ thống (+30 EXP).
+          </p>
+          <div style="display: flex; gap: 10px; justify-content: center; margin-top: 22px;">
+            <button class="btn btn-primary" onclick="App.openAccountSwitcherModal()">🔑 Đăng Nhập Ngay ➔</button>
+            <button class="btn" onclick="App.navigateTo('home')">🏠 Về Trang Chủ</button>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
     const subjects = StorageService.getSubjects();
     const defaultSubId = preselectedSubjectId || (subjects[0] ? subjects[0].id : "");
 
@@ -1669,26 +1722,37 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     if (!subject) return;
     this.activeSubject = subject;
 
+    const isLogged = StorageService.isLoggedIn();
     const modal = document.getElementById("globalModal");
     const title = document.getElementById("modalTitle");
     const body = document.getElementById("modalBody");
     const footer = document.getElementById("modalFooter");
 
-    title.textContent = `Ôn tập: ${subject.name}`;
+    title.textContent = `Làm bài: ${subject.name}`;
 
     body.innerHTML = `
       <div class="form-group">
         <label class="form-label">1. Chọn chế độ làm bài:</label>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          ${isLogged ? `
+            <label style="border: 1.5px solid var(--border); padding: 14px; border-radius: var(--radius-sm); cursor: pointer; display: flex; gap: 10px; align-items: flex-start;">
+              <input type="radio" name="quizMode" value="practice" checked style="margin-top: 4px;">
+              <div>
+                <strong style="display: block; font-size: 14px;">🟢 Chế độ Ôn tập</strong>
+                <span style="font-size: 12px; color: var(--text-secondary);">Hiện đáp án & giải thích ngay sau mỗi câu chọn</span>
+              </div>
+            </label>
+          ` : `
+            <label style="border: 1.5px solid var(--border); padding: 14px; border-radius: var(--radius-sm); opacity: 0.6; cursor: not-allowed; display: flex; gap: 10px; align-items: flex-start; background: var(--surface-subtle);" title="Chế độ ôn tập yêu cầu đăng nhập">
+              <input type="radio" name="quizMode" value="practice" disabled style="margin-top: 4px;">
+              <div>
+                <strong style="display: block; font-size: 14px; color: var(--text-secondary);">🟢 Chế độ Ôn tập <span class="badge" style="background:#fee2e2; color:#b91c1c; font-size:10px;">🔒 Cần đăng nhập</span></strong>
+                <span style="font-size: 12px; color: var(--text-tertiary);">Đăng nhập để xem đáp án & giải thích ngay</span>
+              </div>
+            </label>
+          `}
           <label style="border: 1.5px solid var(--border); padding: 14px; border-radius: var(--radius-sm); cursor: pointer; display: flex; gap: 10px; align-items: flex-start;">
-            <input type="radio" name="quizMode" value="practice" checked style="margin-top: 4px;">
-            <div>
-              <strong style="display: block; font-size: 14px;">🟢 Chế độ Ôn tập</strong>
-              <span style="font-size: 12px; color: var(--text-secondary);">Hiện đáp án & giải thích ngay sau mỗi câu chọn</span>
-            </div>
-          </label>
-          <label style="border: 1.5px solid var(--border); padding: 14px; border-radius: var(--radius-sm); cursor: pointer; display: flex; gap: 10px; align-items: flex-start;">
-            <input type="radio" name="quizMode" value="exam" style="margin-top: 4px;">
+            <input type="radio" name="quizMode" value="exam" ${!isLogged ? 'checked' : ''} style="margin-top: 4px;">
             <div>
               <strong style="display: block; font-size: 14px;">⏱️ Chế độ Thi thử</strong>
               <span style="font-size: 12px; color: var(--text-secondary);">Có đồng hồ đếm ngược, nộp bài mới biết điểm</span>
@@ -2483,6 +2547,23 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
   // 7. MISTAKES VAULT (NGÂN HÀNG CÂU SAI ĐỂ ÔN LẠI)
   // ═════════════════════════════════════════════════════════════════════════
   renderMistakesView(container) {
+    if (!StorageService.isLoggedIn()) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 70px 20px; max-width: 550px; margin: 0 auto;">
+          <div style="font-size: 52px; margin-bottom: 14px;">🎯</div>
+          <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary);">Ngân Hàng Câu Sai (Mistake Vault)</h3>
+          <p style="color: var(--text-secondary); margin-top: 8px; line-height: 1.6;">
+            Vui lòng đăng nhập tài khoản sinh viên DThu để hệ thống tự động lưu vết và luyện tập lại các câu hỏi từng làm sai trong quá trình thi.
+          </p>
+          <div style="display: flex; gap: 10px; justify-content: center; margin-top: 22px;">
+            <button class="btn btn-primary" onclick="App.openAccountSwitcherModal()">🔑 Đăng Nhập Ngay ➔</button>
+            <button class="btn" onclick="App.navigateTo('home')">🏠 Về Trang Chủ</button>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
     const mistakes = StorageService.getMistakes();
 
     container.innerHTML = `
@@ -2632,6 +2713,23 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
   // 8. STUDY MATERIALS VIEW (KHO TÀI LIỆU .TXT)
   // ═════════════════════════════════════════════════════════════════════════
   renderMaterialsView(container, activeId) {
+    if (!StorageService.isLoggedIn()) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 70px 20px; max-width: 550px; margin: 0 auto;">
+          <div style="font-size: 52px; margin-bottom: 14px;">📚</div>
+          <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary);">Kho Tài Liệu Học Tập (.txt)</h3>
+          <p style="color: var(--text-secondary); margin-top: 8px; line-height: 1.6;">
+            Vui lòng đăng nhập tài khoản sinh viên DThu để mở khóa toàn bộ kho tài liệu tóm tắt lý thuyết, đề cương ôn thi và tải về máy.
+          </p>
+          <div style="display: flex; gap: 10px; justify-content: center; margin-top: 22px;">
+            <button class="btn btn-primary" onclick="App.openAccountSwitcherModal()">🔑 Đăng Nhập Ngay ➔</button>
+            <button class="btn" onclick="App.navigateTo('home')">🏠 Về Trang Chủ</button>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
     const materials = StorageService.getMaterials();
     const active = materials.find(m => m.id === activeId) || materials[0];
     this.activeMaterialId = active ? active.id : null;
@@ -2789,13 +2887,17 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
   // ═════════════════════════════════════════════════════════════════════════
   renderModerationView(container) {
     const profile = StorageService.getUserProfile();
-    if (profile.role !== "admin") {
+    const canApprove = profile.role === "admin" || StorageService.hasPermission("canApproveDrafts");
+    if (!canApprove) {
       container.innerHTML = `
-        <div style="text-align: center; padding: 60px 20px;">
+        <div style="text-align: center; padding: 60px 20px; max-width: 600px; margin: 0 auto;">
           <div style="font-size: 48px; margin-bottom: 12px;">🛡️</div>
-          <h3>Khu vực dành riêng cho Ban Biên Tập / Admin</h3>
-          <p style="color: var(--text-secondary); margin-top: 6px;">Vui lòng chuyển vai trò sang Admin ở góc trên bên phải để vào trang duyệt đề.</p>
-          <button class="btn btn-primary" style="margin-top: 16px;" onclick="App.toggleUserRole()">Chuyển sang quyền Admin</button>
+          <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary);">Khu vực dành riêng cho Ban Biên Tập / Admin</h3>
+          <p style="color: var(--text-secondary); margin-top: 6px;">Bạn cần đăng nhập tài khoản Quản trị viên (Admin) hoặc Ban Biên tập (Editor) có quyền duyệt đề để truy cập trang này.</p>
+          <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+            <button class="btn btn-primary" onclick="App.openAccountSwitcherModal()">🔑 Đổi sang tài khoản Admin / Editor</button>
+            <button class="btn" onclick="App.navigateTo('home')">🏠 Về Trang Chủ</button>
+          </div>
         </div>
       `;
       return;
