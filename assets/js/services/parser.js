@@ -64,9 +64,13 @@ const SmartParserService = {
     const keyMap = {};
     if (!text) return keyMap;
 
-    const keySectionMatch = text.match(/(?:BẢNG\s+ĐÁP\s+ÁN|ĐÁP\s+ÁN\s+TRẮC\s+NGHIỆM|ANSWER\s+KEY|KEY\s+ĐÁP\s+ÁN|HƯỚNG\s+DẪN\s+CHẤM)[\s\:\-]+([\s\S]+)$/i);
-    const searchScope = keySectionMatch ? keySectionMatch[1] : text;
+    // CHỈ kích hoạt khi có tiêu đề BẢNG ĐÁP ÁN / ANSWER KEY rõ ràng
+    const keySectionMatch = text.match(/(?:(?:^|\n)\s*(?:BẢNG\s+ĐÁP\s+ÁN|ĐÁP\s+ÁN\s+TRẮC\s+NGHIỆM|ANSWER\s+KEY|KEY\s+ĐÁP\s+ÁN|HƯỚNG\s+DẪN\s+CHẤM)[\s\:\-]+)([\s\S]+)$/i);
+    if (!keySectionMatch) {
+      return keyMap; // Không có tiêu đề bảng đáp án thì không tự ý đoán mò!
+    }
 
+    const searchScope = keySectionMatch[1];
     const matches = searchScope.matchAll(/(?:Câu\s*)?(\d+)\s*[\.\:\-\/]?\s*([A-Ea-eĐđ])\b/gi);
     for (const m of matches) {
       const num = parseInt(m[1], 10);
@@ -511,7 +515,10 @@ const SmartParserService = {
       const paragraphs = doc.getElementsByTagName("w:p");
       const lines = [];
 
-      const NON_BLACK_REGEX = /^(?!(?:000000|000|auto|333333|555555|111111|444444|none)$)/i;
+      const RED_COLORS = [
+        "ff0000", "red", "c00000", "ed1c24", "e00000", "d32f2f", "b71c1c",
+        "dc2626", "e11d48", "f43f5e", "990000", "cc0000", "b91c1c", "991b1b", "c53929", "f87171", "ef4444"
+      ];
 
       for (let i = 0; i < paragraphs.length; i++) {
         const p = paragraphs[i];
@@ -523,43 +530,33 @@ const SmartParserService = {
           const r = runs[j];
           const rPr = r.getElementsByTagName("w:rPr")[0];
           let isUnderlined = false;
-          let isColored = false;
+          let isRed = false;
           let isHighlighted = false;
-          let isBold = false;
 
           if (rPr) {
-            // Kiểm tra thẻ gạch chân <w:u>
+            // 1. Kiểm tra thẻ gạch chân <w:u>
             const u = rPr.getElementsByTagName("w:u")[0];
             if (u) {
               const uVal = u.getAttribute("w:val");
-              if (!uVal || uVal !== "none") {
+              if (!uVal || (uVal !== "none" && uVal !== "0")) {
                 isUnderlined = true;
               }
             }
 
-            // Kiểm tra thẻ màu chữ <w:color> (bất kỳ màu nào khác màu đen/xám mặc định)
+            // 2. Kiểm tra thẻ màu chữ ĐỎ <w:color>
             const color = rPr.getElementsByTagName("w:color")[0];
             if (color) {
               const colorVal = (color.getAttribute("w:val") || "").toLowerCase().trim();
-              if (NON_BLACK_REGEX.test(colorVal)) {
-                isColored = true;
+              if (RED_COLORS.some(rc => colorVal.includes(rc))) {
+                isRed = true;
               }
             }
 
-            // Kiểm tra thẻ in đậm <w:b>
-            const b = rPr.getElementsByTagName("w:b")[0] || rPr.getElementsByTagName("w:bCs")[0];
-            if (b) {
-              const bVal = b.getAttribute("w:val");
-              if (!bVal || bVal === "true" || bVal === "1") {
-                isBold = true;
-              }
-            }
-
-            // Kiểm tra thẻ highlight <w:highlight>
+            // 3. Kiểm tra thẻ highlight màu <w:highlight>
             const highlight = rPr.getElementsByTagName("w:highlight")[0];
             if (highlight) {
               const hVal = (highlight.getAttribute("w:val") || "").toLowerCase().trim();
-              if (hVal && hVal !== "none") {
+              if (hVal && ["yellow", "red", "green", "cyan", "magenta"].includes(hVal)) {
                 isHighlighted = true;
               }
             }
@@ -571,10 +568,10 @@ const SmartParserService = {
             runText += textNodes[k].textContent;
           }
 
-          // Nếu run chứa ký tự hoặc text được gạch chân / đổi màu / highlight / in đậm
-          if (runText && (isUnderlined || isColored || isHighlighted || isBold)) {
-            // Nếu đánh dấu ở chữ cái đầu dòng A., B., C., Đ. hoặc toàn bộ dòng
-            if (j === 0 || /^\s*[A-Ea-eĐđ][\.\)\:\*]/.test(runText) || isUnderlined || isColored || isHighlighted) {
+          // Chỉ đánh dấu đúng nếu run có chứa ký tự hoặc chữ cái phương án VÀ có gạch chân, chữ màu đỏ hoặc highlight
+          if (runText && (isUnderlined || isRed || isHighlighted)) {
+            // Nếu đánh dấu ở chữ cái đầu dòng A., B., C., Đ. hoặc chữ cái phương án
+            if (j === 0 || /^\s*[A-Ea-eĐđ][\.\)\:\*]/.test(runText) || isUnderlined || isRed || isHighlighted) {
               isOptionMarkedCorrect = true;
             }
           }
@@ -584,10 +581,10 @@ const SmartParserService = {
 
         const trimmed = lineText.trim();
         if (trimmed) {
-          // Nếu dòng là phương án A, B, C, D, Đ và được gạch chân hoặc tô màu trong Word
+          // Nếu dòng là phương án A, B, C, D, Đ
           const isOptionLine = /^\s*\[?([A-Ea-eĐđ])\]?[\.\)\:\*]/.test(trimmed);
           if (isOptionLine && isOptionMarkedCorrect) {
-            // Chuẩn hóa thành Mẫu 2 với đuôi ' > Đúng'
+            // Chỉ thêm ' > Đúng' nếu thực sự được gạch chân hoặc tô đỏ trong Word
             if (!trimmed.includes(">") && !trimmed.endsWith("*")) {
               lines.push(`${trimmed} > Đúng`);
             } else {
