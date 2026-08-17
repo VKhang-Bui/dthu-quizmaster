@@ -4594,13 +4594,13 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
 
         <!-- 3 Tab Chức Năng Quản Trị Chuyên Sâu Tinh Gọn -->
         <div class="hub-tabs" style="margin-bottom: 24px; flex-wrap: wrap;">
-          <button class="hub-tab-btn ${this.adminLeaderboardTab === 'seasons' ? 'active' : ''}" onclick="App.adminLeaderboardTab = 'seasons'; App.renderLeaderboardAdminView(document.getElementById('mainContent'));">
+          <button class="hub-tab-btn ${this.adminLeaderboardTab === 'seasons' ? 'active' : ''}" onclick="App.switchAdminLeaderboardTab('seasons')">
             🏆 Quản Lý Mùa Giải (${seasons.length})
           </button>
-          <button class="hub-tab-btn ${this.adminLeaderboardTab === 'members' ? 'active' : ''}" onclick="App.adminLeaderboardTab = 'members'; App.renderLeaderboardAdminView(document.getElementById('mainContent'));">
+          <button class="hub-tab-btn ${this.adminLeaderboardTab === 'members' ? 'active' : ''}" onclick="App.switchAdminLeaderboardTab('members')">
             👥 Quản Trị Thành Viên (${allUsers.length})
           </button>
-          <button class="hub-tab-btn ${this.adminLeaderboardTab === 'audit_logs' ? 'active' : ''}" onclick="App.adminLeaderboardTab = 'audit_logs'; App.renderLeaderboardAdminView(document.getElementById('mainContent'));">
+          <button class="hub-tab-btn ${this.adminLeaderboardTab === 'audit_logs' ? 'active' : ''}" onclick="App.switchAdminLeaderboardTab('audit_logs')">
             📋 Nhật Ký Kiểm Toán (${auditLogs.length})
           </button>
         </div>
@@ -4726,7 +4726,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                 <div style="display: flex; gap: 10px; flex: 1; min-width: 280px; flex-wrap: wrap; align-items: center;">
                   <div class="search-input-wrapper" style="flex: 1; min-width: 180px;">
                     <span class="search-icon">🔍</span>
-                    <input type="text" class="form-control" placeholder="Tìm theo tên, MSSV..." value="${this.adminMemberSearch}" oninput="App.adminMemberSearch = this.value; App.renderLeaderboardAdminView(document.getElementById('mainContent'));">
+                    <input type="text" id="adminMemberSearchInput" class="form-control" placeholder="Tìm theo tên, MSSV, khoa..." value="${this.adminMemberSearch}" oninput="App.onAdminMemberSearch(this.value)">
                   </div>
                   <select class="form-control" style="width: auto; min-width: 180px;" onchange="App.adminMemberDept = this.value; App.renderLeaderboardAdminView(document.getElementById('mainContent'));">
                     <option value="all" ${this.adminMemberDept === 'all' ? 'selected' : ''}>🏛️ Tất cả Khoa / Viện</option>
@@ -4843,62 +4843,8 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                 </table>
               </div>
             </div>
-              </div>
-
-              ${archives.length === 0 ? `
-                <div style="text-align: center; padding: 48px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text-secondary);">
-                  <div style="font-size: 40px; margin-bottom: 10px;">📜</div>
-                  <strong>Chưa có mùa giải cũ nào được lưu trữ!</strong>
-                  <div style="font-size: 13px; margin-top: 4px;">Khi bạn đóng băng hoặc tạo mùa mới, kết quả của mùa hiện tại sẽ được tự động lưu tại đây.</div>
-                </div>
-              ` : archives.map(arc => `
-                <div class="season-archive-card">
-                  <div class="season-archive-header">
-                    <div>
-                      <strong style="font-size: 16px; color: var(--text-primary);">🏆 ${arc.seasonName}</strong>
-                      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
-                        Khóa ngày: ${new Date(arc.closedAt).toLocaleString('vi-VN')} · Bởi: <strong>${arc.closedBy || 'Admin'}</strong>
-                      </div>
-                    </div>
-                    <div style="display: flex; gap: 6px; align-items: center;">
-                      <button class="btn btn-sm" style="background:#15803d; color:#fff; font-weight:700;" onclick="App.exportSeasonCSV('${arc.id}')">
-                        📥 Tải CSV
-                      </button>
-                      <button class="btn btn-sm" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;" onclick="App.confirmDeleteSeasonAction('${arc.id}')">
-                        🗑️ Xóa Bản Lưu
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- Danh sách Top 3 của mùa giải đó -->
-                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-top: 12px;">
-                    <!-- Top EXP -->
-                    <div style="background: var(--surface-subtle); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
-                      <div style="font-size: 12.5px; font-weight: 800; color: #b45309; margin-bottom: 8px;">⚡ Top 3 Học Tập (EXP):</div>
-                      ${(arc.topExp || []).slice(0, 3).map((item, i) => `
-                        <div style="display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 4px;">
-                          <span>${i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'} <strong>${item.name || item.rawName}</strong> (${item.department || ''})</span>
-                          <strong style="color: #b45309;">${item.exp || item.seasonExp || 0} EXP</strong>
-                        </div>
-                      `).join('')}
-                    </div>
-
-                    <!-- Top CP -->
-                    <div style="background: var(--surface-subtle); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
-                      <div style="font-size: 12.5px; font-weight: 800; color: #15803d; margin-bottom: 8px;">🌟 Top 3 Cống Hiến (CP):</div>
-                      ${(arc.topCp || []).slice(0, 3).map((item, i) => `
-                        <div style="display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 4px;">
-                          <span>${i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'} <strong>${item.name || item.rawName}</strong> (${item.department || ''})</span>
-                          <strong style="color: #15803d;">${item.cp || item.seasonCp || 0} CP</strong>
-                        </div>
-                      `).join('')}
-                    </div>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
           ` : `
-            <!-- TAB 5: NHẬT KÝ KIỂM TOÁN QUẢN TRỊ (ADMIN AUDIT LOGS) -->
+            <!-- TAB 3: NHẬT KÝ KIỂM TOÁN QUẢN TRỊ (ADMIN AUDIT LOGS) -->
             <div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
                 <div>
@@ -4960,6 +4906,28 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       </div>
     `;
   },
+
+  switchAdminLeaderboardTab(tab) {
+    this.adminLeaderboardTab = tab;
+    const container = document.getElementById("mainContent");
+    if (container) {
+      this.renderLeaderboardAdminView(container);
+    }
+  },
+
+  onAdminMemberSearch(val) {
+    this.adminMemberSearch = val;
+    const container = document.getElementById("mainContent");
+    if (container) {
+      this.renderLeaderboardAdminView(container);
+      const input = document.getElementById("adminMemberSearchInput");
+      if (input) {
+        input.focus();
+        input.setSelectionRange(val.length, val.length);
+      }
+    }
+  },
+
 
   saveAdminLeaderboardDisplaySettingsAction() {
     const isPublic = document.getElementById("adminLeaderboardIsPublicCheckbox")?.checked ?? true;
