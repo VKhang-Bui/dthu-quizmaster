@@ -10,6 +10,7 @@ const StorageService = {
     HISTORY: "dthu_quiz_history_v2",
     MISTAKES: "dthu_quiz_mistakes_v2",
     USER_PROFILE: "dthu_quiz_user_profile_v2",
+    USERS_LIST: "dthu_quiz_users_list_v2",
     MATERIALS: "dthu_quiz_materials_v2",
     SUPPRESSED_WARNINGS: "dthu_quiz_suppressed_warnings_v2",
     SETTINGS: "dthu_quiz_app_settings_v2"
@@ -180,30 +181,233 @@ const StorageService = {
     return true;
   },
 
-  // ── 3. Quản lý Hồ sơ Người Dùng & EXP (User Profile) ────────
+  // ── 3. Quản lý Danh Sách Người Dùng & Phân Quyền (User & Roles) ──
+  DEFAULT_USERS: [
+    {
+      id: "USR-01",
+      fullName: "Bùi Văn Khang",
+      studentId: "220101001",
+      department: "Khoa Nông nghiệp - Sinh học",
+      role: "admin", // 'admin' | 'editor' | 'student'
+      avatar: "👨‍🎓",
+      pinCode: "123456",
+      permissions: {
+        canApproveDrafts: true,
+        canEditSubjects: true,
+        canManageMaterials: true,
+        canManageUsers: true
+      },
+      totalExp: 520,
+      streakDays: 7,
+      quizzesCompleted: 18,
+      status: "active", // 'active' | 'suspended'
+      createdAt: "2026-01-10T08:00:00.000Z"
+    },
+    {
+      id: "USR-02",
+      fullName: "Nguyễn Thị Mai",
+      studentId: "220102045",
+      department: "Khoa Sư phạm Khoa học Xã hội",
+      role: "editor",
+      avatar: "👩‍🎓",
+      pinCode: "123456",
+      permissions: {
+        canApproveDrafts: true,
+        canEditSubjects: false,
+        canManageMaterials: true,
+        canManageUsers: false
+      },
+      totalExp: 380,
+      streakDays: 4,
+      quizzesCompleted: 12,
+      status: "active",
+      createdAt: "2026-01-15T09:30:00.000Z"
+    },
+    {
+      id: "USR-03",
+      fullName: "Trần Minh Hoàng",
+      studentId: "220103112",
+      department: "Khoa Kỹ thuật - Công nghệ",
+      role: "student",
+      avatar: "🧑‍💻",
+      pinCode: "123456",
+      permissions: {
+        canApproveDrafts: false,
+        canEditSubjects: false,
+        canManageMaterials: false,
+        canManageUsers: false
+      },
+      totalExp: 190,
+      streakDays: 2,
+      quizzesCompleted: 8,
+      status: "active",
+      createdAt: "2026-02-01T14:20:00.000Z"
+    },
+    {
+      id: "USR-04",
+      fullName: "Lê Văn Nam",
+      studentId: "220104089",
+      department: "Khoa Kinh tế - Quản trị",
+      role: "student",
+      avatar: "🦁",
+      pinCode: "123456",
+      permissions: {
+        canApproveDrafts: false,
+        canEditSubjects: false,
+        canManageMaterials: false,
+        canManageUsers: false
+      },
+      totalExp: 110,
+      streakDays: 1,
+      quizzesCompleted: 4,
+      status: "active",
+      createdAt: "2026-02-10T10:00:00.000Z"
+    }
+  ],
+
+  getAllUsers() {
+    try {
+      const data = localStorage.getItem(this.KEYS.USERS_LIST);
+      if (data) {
+        const list = JSON.parse(data);
+        if (Array.isArray(list) && list.length > 0) return list;
+      }
+    } catch (e) {}
+
+    this.saveAllUsers(this.DEFAULT_USERS);
+    return this.DEFAULT_USERS;
+  },
+
+  saveAllUsers(users) {
+    localStorage.setItem(this.KEYS.USERS_LIST, JSON.stringify(users));
+  },
+
+  getUserById(id) {
+    const list = this.getAllUsers();
+    return list.find(u => u.id === id) || null;
+  },
+
+  getUserByStudentId(studentId) {
+    if (!studentId) return null;
+    const list = this.getAllUsers();
+    return list.find(u => u.studentId && u.studentId.trim().toLowerCase() === studentId.trim().toLowerCase()) || null;
+  },
+
+  createUser(userData) {
+    const list = this.getAllUsers();
+    const existing = this.getUserByStudentId(userData.studentId);
+    if (existing) {
+      throw new Error(`Mã số sinh viên ${userData.studentId} đã tồn tại trong hệ thống!`);
+    }
+
+    const defaultPerms = {
+      canApproveDrafts: userData.role === "admin" || userData.role === "editor",
+      canEditSubjects: userData.role === "admin",
+      canManageMaterials: userData.role === "admin" || userData.role === "editor",
+      canManageUsers: userData.role === "admin"
+    };
+
+    const newUser = {
+      id: "USR-" + Date.now(),
+      fullName: userData.fullName || "Sinh viên DThu",
+      studentId: userData.studentId || "",
+      department: userData.department || "Đại học Đồng Tháp",
+      role: userData.role || "student",
+      avatar: userData.avatar || "👨‍🎓",
+      pinCode: userData.pinCode || "123456",
+      permissions: Object.assign({}, defaultPerms, userData.permissions || {}),
+      totalExp: userData.totalExp || 0,
+      streakDays: 1,
+      quizzesCompleted: 0,
+      status: userData.status || "active",
+      createdAt: new Date().toISOString()
+    };
+
+    list.push(newUser);
+    this.saveAllUsers(list);
+    return newUser;
+  },
+
+  updateUser(id, updates) {
+    const list = this.getAllUsers();
+    const idx = list.findIndex(u => u.id === id);
+    if (idx === -1) return null;
+
+    list[idx] = Object.assign({}, list[idx], updates);
+    this.saveAllUsers(list);
+
+    // Nếu đang chỉnh sửa chính người dùng đang đăng nhập, cập nhật luôn active user profile
+    const active = this.getUserProfile();
+    if (active && active.id === id) {
+      this.saveUserProfile(list[idx]);
+    }
+
+    return list[idx];
+  },
+
+  deleteUser(id) {
+    const list = this.getAllUsers();
+    const active = this.getUserProfile();
+    if (active && active.id === id) {
+      throw new Error("Không thể xóa tài khoản Quản trị viên bạn đang đăng nhập!");
+    }
+
+    const filtered = list.filter(u => u.id !== id);
+    this.saveAllUsers(filtered);
+    return true;
+  },
+
+  toggleUserStatus(id) {
+    const user = this.getUserById(id);
+    if (!user) return null;
+    const newStatus = user.status === "active" ? "suspended" : "active";
+    return this.updateUser(id, { status: newStatus });
+  },
+
+  authenticateUser(studentId, pinCode) {
+    const user = this.getUserByStudentId(studentId);
+    if (!user) {
+      throw new Error("Không tìm thấy tài khoản với Mã số sinh viên này!");
+    }
+    if (user.status === "suspended") {
+      throw new Error("Tài khoản này hiện đang bị tạm khóa. Vui lòng liên hệ Admin!");
+    }
+    if (user.pinCode && user.pinCode !== pinCode) {
+      throw new Error("Mã PIN đăng nhập không chính xác!");
+    }
+
+    this.saveUserProfile(user);
+    return user;
+  },
+
+  hasPermission(permissionName) {
+    const profile = this.getUserProfile();
+    if (profile.role === "admin") return true;
+    if (profile.permissions && profile.permissions[permissionName] === true) return true;
+    return false;
+  },
+
   getUserProfile() {
     try {
       const data = localStorage.getItem(this.KEYS.USER_PROFILE);
       if (data) return JSON.parse(data);
     } catch (e) {}
 
-    const defaultProfile = {
-      id: "DTHU-USR-01",
-      fullName: "Bùi Văn Khang",
-      studentId: "220101001",
-      department: "Khoa Sư phạm Khoa học Tự nhiên",
-      role: "admin", // 'student' hoặc 'admin'
-      avatar: "👨‍🎓",
-      totalExp: 240,
-      streakDays: 5,
-      createdAt: new Date().toISOString()
-    };
+    const all = this.getAllUsers();
+    const defaultProfile = all[0] || this.DEFAULT_USERS[0];
     this.saveUserProfile(defaultProfile);
     return defaultProfile;
   },
 
   saveUserProfile(profile) {
     localStorage.setItem(this.KEYS.USER_PROFILE, JSON.stringify(profile));
+    // Cập nhật lại trong danh sách người dùng
+    const list = this.getAllUsers();
+    const idx = list.findIndex(u => u.id === profile.id || u.studentId === profile.studentId);
+    if (idx !== -1) {
+      list[idx] = Object.assign({}, list[idx], profile);
+      this.saveAllUsers(list);
+    }
   },
 
   addExp(points, reason = "") {
@@ -213,9 +417,38 @@ const StorageService = {
     return profile.totalExp;
   },
 
+  switchActiveUser(userId) {
+    const user = this.getUserById(userId);
+    if (!user) return null;
+    this.saveUserProfile(user);
+    return user;
+  },
+
   switchUserRole(newRole) {
     const profile = this.getUserProfile();
     profile.role = newRole;
+    if (newRole === "admin") {
+      profile.permissions = {
+        canApproveDrafts: true,
+        canEditSubjects: true,
+        canManageMaterials: true,
+        canManageUsers: true
+      };
+    } else if (newRole === "editor") {
+      profile.permissions = {
+        canApproveDrafts: true,
+        canEditSubjects: false,
+        canManageMaterials: true,
+        canManageUsers: false
+      };
+    } else {
+      profile.permissions = {
+        canApproveDrafts: false,
+        canEditSubjects: false,
+        canManageMaterials: false,
+        canManageUsers: false
+      };
+    }
     this.saveUserProfile(profile);
     return profile;
   },

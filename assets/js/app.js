@@ -195,11 +195,19 @@ const App = {
                   <span class="drawer-arrow">➔</span>
                 </button>
 
-                ${profile.role === 'admin' ? `
+                ${(profile.role === 'admin' || StorageService.hasPermission('canApproveDrafts')) ? `
                   <button class="drawer-nav-btn drawer-nav-btn-admin" onclick="App.closeUserDrawer(); App.navigateTo('moderation');">
                     <span class="drawer-icon">🛡️</span>
                     <span class="drawer-label">Duyệt Đề Đóng Góp</span>
                     ${drafts.length > 0 ? `<span class="badge" style="background:#fef3c7; color:#92400e; font-weight:700;">${drafts.length}</span>` : `<span class="drawer-arrow">➔</span>`}
+                  </button>
+                ` : ''}
+
+                ${(profile.role === 'admin' || StorageService.hasPermission('canManageUsers')) ? `
+                  <button class="drawer-nav-btn" style="border-color: #3b82f6; background: #eff6ff; color: #1d4ed8;" onclick="App.closeUserDrawer(); App.navigateTo('users-management');">
+                    <span class="drawer-icon">👥</span>
+                    <span class="drawer-label"><strong>Quản Lý Người Dùng</strong></span>
+                    <span class="badge" style="background:#dbeafe; color:#1e40af; font-weight:700;">${StorageService.getAllUsers().length}</span>
                   </button>
                 ` : ''}
               </div>
@@ -208,9 +216,12 @@ const App = {
         `;
 
         footerHtml = `
-          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-            <button class="btn btn-sm" style="width: 100%; font-size: 12.5px;" onclick="App.toggleUserRole();">
-              🔄 Vai trò: <strong>${profile.role === 'admin' ? 'Chuyển sang Sinh viên' : 'Chuyển sang Admin'}</strong>
+          <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+            <button class="btn btn-primary btn-sm" style="width: 100%; font-size: 13px;" onclick="App.closeUserDrawer(); App.openAccountSwitcherModal();">
+              🔑 Đăng Nhập / Đổi Tài Khoản ➔
+            </button>
+            <button class="btn btn-sm" style="width: 100%; font-size: 12px; color: var(--text-secondary);" onclick="App.toggleUserRole();">
+              🔄 Vai trò nhanh: <strong>${profile.role === 'admin' ? 'Chuyển sang Sinh viên' : 'Chuyển sang Admin'}</strong>
             </button>
           </div>
         `;
@@ -917,6 +928,9 @@ const App = {
         break;
       case "moderation":
         this.renderModerationView(mainContainer);
+        break;
+      case "users-management":
+        this.renderUsersManagementView(mainContainer);
         break;
       case "quiz":
         this.renderQuizView(mainContainer);
@@ -2898,7 +2912,655 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
   },
 
   // ═════════════════════════════════════════════════════════════════════════
-  // 10. MANAGE VIEW (QUẢN LÝ MÔN HỌC & ĐỀ THI)
+  // 10. USERS MANAGEMENT DASHBOARD (QUẢN LÝ NGƯỜI DÙNG & PHÂN QUYỀN CHO ADMIN)
+  // ═════════════════════════════════════════════════════════════════════════
+  renderUsersManagementView(container) {
+    const profile = StorageService.getUserProfile();
+    const canManage = profile.role === "admin" || StorageService.hasPermission("canManageUsers");
+
+    if (!canManage) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 70px 20px; max-width: 600px; margin: 0 auto;">
+          <div style="font-size: 54px; margin-bottom: 12px;">🛡️</div>
+          <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary);">Khu vực dành riêng cho Quản Trị Viên (Admin)</h3>
+          <p style="color: var(--text-secondary); margin-top: 8px; line-height: 1.6;">
+            Bạn hiện đang đăng nhập với vai trò <strong>${profile.role === 'editor' ? 'Ban Biên Tập (Editor)' : 'Sinh Viên (Student)'}</strong> và không có quyền truy cập vào bảng điều khiển quản lý người dùng.
+          </p>
+          <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+            <button class="btn btn-primary" onclick="App.openAccountSwitcherModal()">🔑 Đổi sang tài khoản Admin</button>
+            <button class="btn" onclick="App.navigateTo('home')">🏠 Về Trang chủ</button>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    const allUsers = StorageService.getAllUsers();
+    const admins = allUsers.filter(u => u.role === "admin");
+    const editors = allUsers.filter(u => u.role === "editor");
+    const students = allUsers.filter(u => u.role === "student");
+    const depts = [...new Set(allUsers.map(u => u.department || "Khác"))];
+
+    container.innerHTML = `
+      <div class="view-users-management">
+        <!-- Top Header -->
+        <div class="users-management-header">
+          <div>
+            <h2 style="font-size: 24px; font-weight: 800; color: var(--text-primary);">👥 Quản Trị Người Dùng & Phân Quyền</h2>
+            <p style="color: var(--text-secondary); margin-top: 4px;">
+              Quản lý danh sách sinh viên, cấp quyền biên tập viên, kiểm soát trạng thái tài khoản và phân quyền chức năng.
+            </p>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="App.openCreateUserModal()">➕ Thêm Thành Viên Mới</button>
+            <button class="btn" onclick="App.openAccountSwitcherModal()">🔄 Đổi Tài Khoản</button>
+          </div>
+        </div>
+
+        <!-- 4 Thẻ Thống Kê -->
+        <div class="users-stat-grid">
+          <div class="user-stat-card">
+            <div class="user-stat-icon">👥</div>
+            <div>
+              <div class="user-stat-num">${allUsers.length}</div>
+              <div class="user-stat-label">Tổng thành viên</div>
+            </div>
+          </div>
+          <div class="user-stat-card">
+            <div class="user-stat-icon">👑</div>
+            <div>
+              <div class="user-stat-num" style="color: #b45309;">${admins.length}</div>
+              <div class="user-stat-label">Quản trị viên (Admin)</div>
+            </div>
+          </div>
+          <div class="user-stat-card">
+            <div class="user-stat-icon">🛡️</div>
+            <div>
+              <div class="user-stat-num" style="color: #1d4ed8;">${editors.length}</div>
+              <div class="user-stat-label">Ban Biên Tập (Editor)</div>
+            </div>
+          </div>
+          <div class="user-stat-card">
+            <div class="user-stat-icon">👨‍🎓</div>
+            <div>
+              <div class="user-stat-num" style="color: #059669;">${students.length}</div>
+              <div class="user-stat-label">Sinh viên tiêu chuẩn</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Thanh Tìm kiếm & Bộ lọc -->
+        <div class="search-filter-bar" style="margin: 0;">
+          <div class="search-input-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="userSearchInput" class="form-control" placeholder="Tìm theo tên, mã số sinh viên (MSSV)..." oninput="App.onSearchUsers()">
+          </div>
+          <select id="userRoleFilter" class="form-control" style="width: auto; min-width: 170px;" onchange="App.onSearchUsers()">
+            <option value="all">Tất cả vai trò</option>
+            <option value="admin">👑 Quản trị viên (Admin)</option>
+            <option value="editor">🛡️ Ban Biên Tập (Editor)</option>
+            <option value="student">👨‍🎓 Sinh viên</option>
+          </select>
+          <select id="userDeptFilter" class="form-control" style="width: auto; min-width: 200px;" onchange="App.onSearchUsers()">
+            <option value="all">Tất cả khoa / ngành</option>
+            ${depts.map(d => `<option value="${d}">${d}</option>`).join('')}
+          </select>
+        </div>
+
+        <!-- Bảng Danh Sách Người Dùng -->
+        <div class="users-table-container">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>Thành Viên</th>
+                <th>Khoa / Ngành</th>
+                <th>Vai Trò</th>
+                <th>Quyền Hạn Cấp Phép</th>
+                <th>Điểm EXP</th>
+                <th>Trạng Thái</th>
+                <th style="text-align: right;">Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody">
+              ${this.renderUsersTableRows(allUsers)}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  },
+
+  renderUsersTableRows(users) {
+    if (!users || users.length === 0) {
+      return `
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 48px; color: var(--text-tertiary);">
+            Không tìm thấy thành viên nào phù hợp.
+          </td>
+        </tr>
+      `;
+    }
+
+    const currentProfile = StorageService.getUserProfile();
+
+    return users.map(u => {
+      const isCurrent = currentProfile && currentProfile.id === u.id;
+      const perms = u.permissions || {};
+
+      let roleBadge = `<span class="role-badge-student">👨‍🎓 Sinh Viên</span>`;
+      if (u.role === "admin") {
+        roleBadge = `<span class="role-badge-admin">👑 Admin</span>`;
+      } else if (u.role === "editor") {
+        roleBadge = `<span class="role-badge-editor">🛡️ Ban Biên Tập</span>`;
+      }
+
+      return `
+        <tr>
+          <td>
+            <div class="user-info-cell">
+              <div class="user-avatar-badge">${u.avatar || '👨‍🎓'}</div>
+              <div>
+                <div style="font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                  ${u.fullName}
+                  ${isCurrent ? '<span class="badge" style="background:#dbeafe; color:#1e40af; font-size:10px;">Bạn</span>' : ''}
+                </div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
+                  MSSV: <strong>${u.studentId || 'Chưa cập nhật'}</strong>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td style="color: var(--text-secondary); font-size: 13px;">
+            ${u.department || 'ĐH Đồng Tháp'}
+          </td>
+          <td>${roleBadge}</td>
+          <td>
+            <div style="display: flex; flex-wrap: wrap; gap: 2px; max-width: 240px;">
+              <span class="perm-pill ${perms.canApproveDrafts ? 'active' : ''}" title="Duyệt đề thi đóng góp">${perms.canApproveDrafts ? '✓' : '✗'} Duyệt đề</span>
+              <span class="perm-pill ${perms.canEditSubjects ? 'active' : ''}" title="Sửa ngân hàng môn học">${perms.canEditSubjects ? '✓' : '✗'} Sửa môn</span>
+              <span class="perm-pill ${perms.canManageMaterials ? 'active' : ''}" title="Quản lý tài liệu .txt">${perms.canManageMaterials ? '✓' : '✗'} Tài liệu</span>
+              <span class="perm-pill ${perms.canManageUsers ? 'active' : ''}" title="Quản trị người dùng">${perms.canManageUsers ? '✓' : '✗'} QL User</span>
+            </div>
+          </td>
+          <td>
+            <div style="font-weight: 800; color: #b45309;">⚡ ${u.totalExp || 0} EXP</div>
+            <div style="font-size: 11.5px; color: var(--text-tertiary);">${u.quizzesCompleted || 0} bài thi</div>
+          </td>
+          <td>
+            <span class="${u.status === 'suspended' ? 'status-badge-suspended' : 'status-badge-active'}">
+              ${u.status === 'suspended' ? '🚫 Đã khóa' : '✓ Hoạt động'}
+            </span>
+          </td>
+          <td style="text-align: right;">
+            <div style="display: inline-flex; gap: 6px;">
+              <button class="btn btn-sm" title="Chỉnh sửa quyền & thông tin" onclick="App.openEditUserModal('${u.id}')">
+                ✏️ Sửa
+              </button>
+              ${!isCurrent ? `
+                <button class="btn btn-sm" title="${u.status === 'suspended' ? 'Mở khóa tài khoản' : 'Tạm khóa tài khoản'}" onclick="App.toggleUserStatusAction('${u.id}')">
+                  ${u.status === 'suspended' ? '🔓 Mở' : '🔒 Khóa'}
+                </button>
+                <button class="btn btn-sm btn-primary" title="Đăng nhập tài khoản này" onclick="App.switchAccountTo('${u.id}')">
+                  🔄 Chọn
+                </button>
+                <button class="btn btn-sm btn-danger" title="Xóa tài khoản" onclick="App.deleteUserConfirm('${u.id}')">
+                  🗑️
+                </button>
+              ` : ''}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  },
+
+  onSearchUsers() {
+    const query = document.getElementById("userSearchInput")?.value.toLowerCase().trim() || "";
+    const role = document.getElementById("userRoleFilter")?.value || "all";
+    const dept = document.getElementById("userDeptFilter")?.value || "all";
+
+    const all = StorageService.getAllUsers();
+    const filtered = all.filter(u => {
+      const matchQuery = (u.fullName && u.fullName.toLowerCase().includes(query)) || (u.studentId && u.studentId.toLowerCase().includes(query));
+      const matchRole = role === "all" || u.role === role;
+      const matchDept = dept === "all" || u.department === dept;
+      return matchQuery && matchRole && matchDept;
+    });
+
+    const tbody = document.getElementById("usersTableBody");
+    if (tbody) tbody.innerHTML = this.renderUsersTableRows(filtered);
+  },
+
+  // Modal Tạo Thành Viên Mới
+  openCreateUserModal() {
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = "➕ Thêm Thành Viên Mới Vào Hệ Thống";
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label">Họ và tên (*):</label>
+          <input type="text" id="newUsrName" class="form-control" placeholder="Ví dụ: Nguyễn Văn An">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Mã số sinh viên (MSSV) (*):</label>
+            <input type="text" id="newUsrId" class="form-control" placeholder="Ví dụ: 220105001">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Mã PIN Đăng nhập (6 số):</label>
+            <input type="password" id="newUsrPin" class="form-control" value="123456" maxlength="6">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label">Khoa / Chuyên ngành:</label>
+          <input type="text" id="newUsrDept" class="form-control" placeholder="Ví dụ: Khoa Nông nghiệp - Sinh học">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Vai trò chính (*):</label>
+            <select id="newUsrRole" class="form-control" onchange="App.onNewUserRoleChange(this.value)">
+              <option value="student">👨‍🎓 Sinh Viên</option>
+              <option value="editor">🛡️ Ban Biên Tập (Editor)</option>
+              <option value="admin">👑 Quản Trị Viên (Admin)</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Avatar đại diện:</label>
+            <select id="newUsrAvatar" class="form-control">
+              <option value="👨‍🎓">👨‍🎓 Nam Sinh Viên</option>
+              <option value="👩‍🎓">👩‍🎓 Nữ Sinh Viên</option>
+              <option value="🧑‍💻">🧑‍💻 Lập Trình Viên</option>
+              <option value="🧪">🧪 Nhà Khoa Học</option>
+              <option value="🧬">🧬 Sinh Học</option>
+              <option value="🌟">🌟 Tinh Hoa</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Bộ cấp quyền chi tiết -->
+        <div style="border-top: 1px dashed var(--border); padding-top: 12px; margin-top: 4px;">
+          <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 8px; display: block;">
+            Cấp quyền hạn chi tiết:
+          </label>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <label class="perm-checkbox-item">
+              <input type="checkbox" id="permApproveDrafts">
+              <div>
+                <strong style="font-size: 13px; display: block;">Duyệt đề thi đóng góp (canApproveDrafts)</strong>
+                <span style="font-size: 12px; color: var(--text-secondary);">Cho phép xem xét, chỉnh sửa và phê duyệt các bộ đề cộng đồng.</span>
+              </div>
+            </label>
+
+            <label class="perm-checkbox-item">
+              <input type="checkbox" id="permEditSubjects">
+              <div>
+                <strong style="font-size: 13px; display: block;">Quản lý & Sửa đề gốc (canEditSubjects)</strong>
+                <span style="font-size: 12px; color: var(--text-secondary);">Cho phép thêm môn mới, tạo chương và xóa câu hỏi gốc.</span>
+              </div>
+            </label>
+
+            <label class="perm-checkbox-item">
+              <input type="checkbox" id="permManageMaterials" checked>
+              <div>
+                <strong style="font-size: 13px; display: block;">Quản lý tài liệu (.txt) (canManageMaterials)</strong>
+                <span style="font-size: 12px; color: var(--text-secondary);">Cho phép tải lên và chỉnh sửa kho tài liệu học tập.</span>
+              </div>
+            </label>
+
+            <label class="perm-checkbox-item">
+              <input type="checkbox" id="permManageUsers">
+              <div>
+                <strong style="font-size: 13px; display: block;">Quản lý người dùng & Phân quyền (canManageUsers)</strong>
+                <span style="font-size: 12px; color: var(--text-secondary);">Toàn quyền thêm/sửa/khóa thành viên và phân quyền.</span>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Hủy</button>
+      <button class="btn btn-primary" onclick="App.saveNewUser()">Lưu Thành Viên</button>
+    `;
+
+    modal.classList.add("active");
+  },
+
+  onNewUserRoleChange(role) {
+    const pApprove = document.getElementById("permApproveDrafts");
+    const pEdit = document.getElementById("permEditSubjects");
+    const pMat = document.getElementById("permManageMaterials");
+    const pUsers = document.getElementById("permManageUsers");
+
+    if (role === "admin") {
+      if (pApprove) pApprove.checked = true;
+      if (pEdit) pEdit.checked = true;
+      if (pMat) pMat.checked = true;
+      if (pUsers) pUsers.checked = true;
+    } else if (role === "editor") {
+      if (pApprove) pApprove.checked = true;
+      if (pEdit) pEdit.checked = false;
+      if (pMat) pMat.checked = true;
+      if (pUsers) pUsers.checked = false;
+    } else {
+      if (pApprove) pApprove.checked = false;
+      if (pEdit) pEdit.checked = false;
+      if (pMat) pMat.checked = false;
+      if (pUsers) pUsers.checked = false;
+    }
+  },
+
+  saveNewUser() {
+    const name = document.getElementById("newUsrName")?.value.trim();
+    const id = document.getElementById("newUsrId")?.value.trim();
+    const pin = document.getElementById("newUsrPin")?.value.trim() || "123456";
+    const dept = document.getElementById("newUsrDept")?.value.trim() || "Đại học Đồng Tháp";
+    const role = document.getElementById("newUsrRole")?.value || "student";
+    const avatar = document.getElementById("newUsrAvatar")?.value || "👨‍🎓";
+
+    if (!name || !id) {
+      this.showToast("⚠️ Vui lòng nhập đầy đủ Họ tên và Mã số sinh viên (MSSV)!", "warning");
+      return;
+    }
+
+    try {
+      const newUser = StorageService.createUser({
+        fullName: name,
+        studentId: id,
+        pinCode: pin,
+        department: dept,
+        role: role,
+        avatar: avatar,
+        permissions: {
+          canApproveDrafts: document.getElementById("permApproveDrafts")?.checked || false,
+          canEditSubjects: document.getElementById("permEditSubjects")?.checked || false,
+          canManageMaterials: document.getElementById("permManageMaterials")?.checked || false,
+          canManageUsers: document.getElementById("permManageUsers")?.checked || false
+        }
+      });
+
+      this.closeModal();
+      this.showToast(`🎉 Đã thêm thành viên "${name}" (${id}) thành công!`, "success", 3500);
+      this.renderUsersManagementView(document.getElementById("mainContent"));
+    } catch (err) {
+      this.showToast("❌ " + err.message, "danger", 4000);
+    }
+  },
+
+  // Modal Chỉnh Sửa & Phân Quyền Thành Viên
+  openEditUserModal(userId) {
+    const user = StorageService.getUserById(userId);
+    if (!user) return;
+
+    const perms = user.permissions || {};
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = `✏️ Phân Quyền & Chỉnh Sửa: ${user.fullName}`;
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label">Họ và tên (*):</label>
+          <input type="text" id="editUsrName" class="form-control" value="${user.fullName}">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Mã số sinh viên (MSSV):</label>
+            <input type="text" id="editUsrId" class="form-control" value="${user.studentId || ''}">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Mã PIN Đăng nhập:</label>
+            <input type="text" id="editUsrPin" class="form-control" value="${user.pinCode || '123456'}">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label">Khoa / Chuyên ngành:</label>
+          <input type="text" id="editUsrDept" class="form-control" value="${user.department || ''}">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Vai trò (*):</label>
+            <select id="editUsrRole" class="form-control">
+              <option value="student" ${user.role === 'student' ? 'selected' : ''}>👨‍🎓 Sinh Viên</option>
+              <option value="editor" ${user.role === 'editor' ? 'selected' : ''}>🛡️ Ban Biên Tập (Editor)</option>
+              <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>👑 Quản Trị Viên (Admin)</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Điểm EXP tích lũy:</label>
+            <input type="number" id="editUsrExp" class="form-control" value="${user.totalExp || 0}">
+          </div>
+        </div>
+
+        <!-- Bộ cấp quyền chi tiết -->
+        <div style="border-top: 1px dashed var(--border); padding-top: 12px; margin-top: 4px;">
+          <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 8px; display: block;">
+            Cấp quyền hạn chi tiết:
+          </label>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <label class="perm-checkbox-item">
+              <input type="checkbox" id="editPermApproveDrafts" ${perms.canApproveDrafts ? 'checked' : ''}>
+              <div>
+                <strong style="font-size: 13px; display: block;">Duyệt đề thi đóng góp (canApproveDrafts)</strong>
+                <span style="font-size: 12px; color: var(--text-secondary);">Cho phép xem xét, chỉnh sửa và phê duyệt các bộ đề cộng đồng.</span>
+              </div>
+            </label>
+
+            <label class="perm-checkbox-item">
+              <input type="checkbox" id="editPermEditSubjects" ${perms.canEditSubjects ? 'checked' : ''}>
+              <div>
+                <strong style="font-size: 13px; display: block;">Quản lý & Sửa đề gốc (canEditSubjects)</strong>
+                <span style="font-size: 12px; color: var(--text-secondary);">Cho phép thêm môn mới, tạo chương và xóa câu hỏi gốc.</span>
+              </div>
+            </label>
+
+            <label class="perm-checkbox-item">
+              <input type="checkbox" id="editPermManageMaterials" ${perms.canManageMaterials ? 'checked' : ''}>
+              <div>
+                <strong style="font-size: 13px; display: block;">Quản lý tài liệu (.txt) (canManageMaterials)</strong>
+                <span style="font-size: 12px; color: var(--text-secondary);">Cho phép tải lên và chỉnh sửa kho tài liệu học tập.</span>
+              </div>
+            </label>
+
+            <label class="perm-checkbox-item">
+              <input type="checkbox" id="editPermManageUsers" ${perms.canManageUsers ? 'checked' : ''}>
+              <div>
+                <strong style="font-size: 13px; display: block;">Quản lý người dùng & Phân quyền (canManageUsers)</strong>
+                <span style="font-size: 12px; color: var(--text-secondary);">Toàn quyền thêm/sửa/khóa thành viên và phân quyền.</span>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Hủy</button>
+      <button class="btn btn-primary" onclick="App.saveEditedUser('${user.id}')">Lưu Thay Đổi</button>
+    `;
+
+    modal.classList.add("active");
+  },
+
+  saveEditedUser(userId) {
+    const name = document.getElementById("editUsrName")?.value.trim();
+    const id = document.getElementById("editUsrId")?.value.trim();
+    const pin = document.getElementById("editUsrPin")?.value.trim();
+    const dept = document.getElementById("editUsrDept")?.value.trim();
+    const role = document.getElementById("editUsrRole")?.value || "student";
+    const exp = parseInt(document.getElementById("editUsrExp")?.value, 10) || 0;
+
+    if (!name) {
+      this.showToast("⚠️ Họ và tên không được để trống!", "warning");
+      return;
+    }
+
+    StorageService.updateUser(userId, {
+      fullName: name,
+      studentId: id,
+      pinCode: pin,
+      department: dept,
+      role: role,
+      totalExp: exp,
+      permissions: {
+        canApproveDrafts: document.getElementById("editPermApproveDrafts")?.checked || false,
+        canEditSubjects: document.getElementById("editPermEditSubjects")?.checked || false,
+        canManageMaterials: document.getElementById("editPermManageMaterials")?.checked || false,
+        canManageUsers: document.getElementById("editPermManageUsers")?.checked || false
+      }
+    });
+
+    this.closeModal();
+    this.renderHeader();
+    this.showToast("✅ Đã cập nhật quyền hạn và thông tin người dùng thành công!", "success", 3000);
+    this.renderUsersManagementView(document.getElementById("mainContent"));
+  },
+
+  toggleUserStatusAction(userId) {
+    const updated = StorageService.toggleUserStatus(userId);
+    if (updated) {
+      this.showToast(`Đã ${updated.status === 'suspended' ? '🔒 khóa' : '🔓 mở khóa'} tài khoản: ${updated.fullName}`, "info", 2500);
+      this.renderUsersManagementView(document.getElementById("mainContent"));
+    }
+  },
+
+  deleteUserConfirm(userId) {
+    const user = StorageService.getUserById(userId);
+    if (!user) return;
+
+    this.showConfirmDialog({
+      title: "Xác nhận xóa tài khoản",
+      message: `Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản của <strong>"${user.fullName}" (MSSV: ${user.studentId})</strong> không?`,
+      icon: "🗑️",
+      confirmText: "Xóa tài khoản",
+      isDanger: true,
+      onConfirm: () => {
+        try {
+          StorageService.deleteUser(userId);
+          this.showToast(`Đã xóa tài khoản "${user.fullName}" khỏi hệ thống!`, "success", 3000);
+          this.renderUsersManagementView(document.getElementById("mainContent"));
+        } catch (err) {
+          this.showToast("❌ " + err.message, "danger", 3500);
+        }
+      }
+    });
+  },
+
+  switchAccountTo(userId) {
+    const user = StorageService.switchActiveUser(userId);
+    if (user) {
+      this.renderHeader();
+      this.showToast(`🎉 Đã chuyển sang tài khoản: ${user.fullName} (${user.role.toUpperCase()})`, "success", 3000);
+      this.navigateTo("home");
+    }
+  },
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // MODAL ĐĂNG NHẬP & CHUYỂN ĐỔI TÀI KHOẢN (ACCOUNT SWITCHER & LOGIN)
+  // ═════════════════════════════════════════════════════════════════════════
+  openAccountSwitcherModal() {
+    const allUsers = StorageService.getAllUsers();
+    const currentProfile = StorageService.getUserProfile();
+
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = "🔑 Đăng Nhập & Chuyển Đổi Tài Khoản";
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <!-- Phần 1: Chọn Nhanh Tài Khoản Trên Máy -->
+        <div>
+          <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 8px; display: block;">
+            1. Chọn nhanh tài khoản có sẵn trên thiết bị:
+          </label>
+          <div style="display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto;">
+            ${allUsers.map(u => {
+              const isCurrent = currentProfile && currentProfile.id === u.id;
+              let roleStr = "👨‍🎓 Sinh Viên";
+              if (u.role === "admin") roleStr = "👑 Quản Trị Viên";
+              else if (u.role === "editor") roleStr = "🛡️ Ban Biên Tập";
+
+              return `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border: 1.5px solid ${isCurrent ? 'var(--brand-primary)' : 'var(--border)'}; background: ${isCurrent ? 'var(--brand-light)' : 'var(--surface)'}; border-radius: var(--radius-sm); cursor: pointer;" onclick="App.switchAccountTo('${u.id}'); App.closeModal();">
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="font-size: 24px;">${u.avatar || '👨‍🎓'}</div>
+                    <div>
+                      <strong style="font-size: 13.5px; color: var(--text-primary); display: block;">${u.fullName} ${isCurrent ? '(Đang dùng)' : ''}</strong>
+                      <span style="font-size: 11.5px; color: var(--text-secondary);">MSSV: ${u.studentId} · ${roleStr}</span>
+                    </div>
+                  </div>
+                  <button class="btn btn-sm ${isCurrent ? 'btn-primary' : ''}" style="font-size: 12px;">
+                    ${isCurrent ? '✓ Đang bật' : 'Chọn ➔'}
+                  </button>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <!-- Phần 2: Đăng Nhập Với MSSV & Mã PIN -->
+        <div style="border-top: 1px dashed var(--border); padding-top: 14px;">
+          <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 8px; display: block;">
+            2. Hoặc Đăng nhập bằng MSSV & Mã PIN:
+          </label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+            <input type="text" id="loginStudentId" class="form-control" placeholder="Nhập MSSV (Ví dụ: 220101001)">
+            <input type="password" id="loginPinCode" class="form-control" placeholder="Mã PIN (Mặc định: 123456)">
+          </div>
+          <button class="btn btn-primary" style="width: 100%;" onclick="App.loginWithCredentials()">
+            🚀 Xác Thực & Đăng Nhập
+          </button>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Đóng</button>
+    `;
+
+    modal.classList.add("active");
+  },
+
+  loginWithCredentials() {
+    const mssv = document.getElementById("loginStudentId")?.value.trim();
+    const pin = document.getElementById("loginPinCode")?.value.trim();
+
+    if (!mssv) {
+      this.showToast("⚠️ Vui lòng nhập Mã số sinh viên (MSSV)!", "warning");
+      return;
+    }
+
+    try {
+      const user = StorageService.authenticateUser(mssv, pin);
+      this.closeModal();
+      this.renderHeader();
+      this.showToast(`🎉 Đăng nhập thành công! Chào mừng ${user.fullName} (${user.role.toUpperCase()})`, "success", 3500);
+      this.navigateTo("home");
+    } catch (err) {
+      this.showToast("❌ " + err.message, "danger", 4000);
+    }
+  },
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // 11. MANAGE VIEW (QUẢN LÝ MÔN HỌC & ĐỀ THI)
   // ═════════════════════════════════════════════════════════════════════════
   renderManageView(container) {
     const subjects = StorageService.getSubjects();
