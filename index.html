@@ -58,19 +58,97 @@
     </div>
   </div>
 
-  <!-- Global Footer (Tự động ẩn/hiện theo router, chỉ hiển thị ở Trang Chủ) -->
+  <!-- Global Rich Footer (Tự động hiển thị ở Trang Chủ) -->
   <footer class="app-footer" id="appFooter" style="display: none;">
     <div class="footer-container">
-      <div class="footer-bottom">
-        <div class="footer-copyright">
-          © 2026 <strong>DThu QuizMaster</strong> · Trường Đại học Đồng Tháp. Phát triển bởi <strong>Bùi Văn Khang</strong> (Lớp ĐHCNSH24A · Khoa Kỹ thuật - Công nghệ).
+      <!-- Top Branding Row -->
+      <div class="footer-top-row">
+        <div class="footer-brand-meta">
+          <div class="footer-brand-title">
+            <span class="footer-brand-icon">🎓</span>
+            <span class="footer-brand-text">DThu QuizMaster <span class="footer-pro-badge">PRO v2.6</span></span>
+          </div>
+          <p class="footer-brand-desc">
+            Nền tảng Tự học, Ngân hàng đề thi trắc nghiệm học phần và Khảo thí trực tuyến dành riêng cho sinh viên Trường Đại học Đồng Tháp.
+          </p>
         </div>
-        <div class="footer-bottom-links">
-          <a href="javascript:void(0)" onclick="App.openContactModal()">📩 Góp Ý Hệ Thống</a>
-          <span>·</span>
-          <a href="javascript:void(0)" onclick="App.openForgotPasswordModal()">❓ Quên Mã PIN</a>
-          <span>·</span>
-          <a href="javascript:void(0)" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })">Về Đầu Trang ↑</a>
+        <div class="footer-sys-status">
+          <div class="footer-status-pill">
+            <span class="status-indicator-dot"></span>
+            <span>Cloud Supabase Engine: <strong>Hoạt Động Ổn Định</strong></span>
+          </div>
+          <div class="footer-version-tag">
+            <span>⚡ Local-First PWA</span> · <span>🔒 DThu Academic Integrity</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main 4-Column Grid -->
+      <div class="footer-main-grid">
+        <!-- Col 1: Về Nền Tảng -->
+        <div class="footer-col">
+          <h4 class="footer-col-title">🏛️ Đại Học Đồng Tháp</h4>
+          <ul class="footer-links-list">
+            <li><a href="https://dthu.edu.vn" target="_blank" rel="noopener noreferrer">🌐 Cổng thông tin DThu (dthu.edu.vn)</a></li>
+            <li><a href="https://online.dthu.edu.vn" target="_blank" rel="noopener noreferrer">📚 Cổng đào tạo tín chỉ sinh viên</a></li>
+            <li><a href="javascript:void(0)" onclick="App.navigateTo('materials')">📖 Thư viện tài liệu học tập (.txt)</a></li>
+            <li><a href="javascript:void(0)" onclick="App.navigateTo('leaderboard')">🏆 Bảng Xếp Hạng & Bảng Vàng</a></li>
+          </ul>
+        </div>
+
+        <!-- Col 2: Trung Tâm Khảo Thí -->
+        <div class="footer-col">
+          <h4 class="footer-col-title">🎯 Ôn Tập & Khảo Thí</h4>
+          <ul class="footer-links-list">
+            <li><a href="javascript:void(0)" onclick="App.switchHubTab('official'); App.navigateTo('home'); window.scrollTo({ top: 380, behavior: 'smooth' });">🟢 Ngân hàng đề thi chính thức</a></li>
+            <li><a href="javascript:void(0)" onclick="App.switchHubTab('drafts'); App.navigateTo('home'); window.scrollTo({ top: 380, behavior: 'smooth' });">🟡 Ngân hàng đề thi cộng đồng</a></li>
+            <li><a href="javascript:void(0)" onclick="App.navigateTo('parser')">📝 Bóc tách & Tạo đề thi mới (Parser)</a></li>
+            <li><a href="javascript:void(0)" onclick="App.navigateTo('mistakes')">🎯 Ngân hàng câu làm sai (Mistakes)</a></li>
+            <li><a href="javascript:void(0)" onclick="App.navigateTo('syntax-guide', { from: 'guide' })">💡 Tra cứu cú pháp ký tự đề thi</a></li>
+          </ul>
+        </div>
+
+        <!-- Col 3: Hỗ Trợ Sinh Viên 24/7 -->
+        <div class="footer-col">
+          <h4 class="footer-col-title">🆘 Hỗ Trợ Sinh Viên 24/7</h4>
+          <ul class="footer-links-list">
+            <li><a href="javascript:void(0)" onclick="App.openForgotPasswordModal()">🔑 Khôi phục mã PIN qua OTP Email</a></li>
+            <li><a href="javascript:void(0)" onclick="App.openContactModal()">📩 Soạn phiếu báo lỗi câu hỏi & CSKH</a></li>
+            <li><a href="javascript:void(0)" onclick="App.openAccountSwitcherModal()">👤 Đăng nhập / Chuyển tài khoản</a></li>
+            <li><a href="javascript:void(0)" onclick="App.navigateTo('register')">📝 Đăng ký tài khoản sinh viên mới</a></li>
+            <li><span class="footer-hotline-inline">📞 Hotline: <a href="tel:0354616301" style="color:#38bdf8; font-weight:800;">0354 616 301</a></span></li>
+          </ul>
+        </div>
+
+        <!-- Col 4: Tác Giả & Phát Triển -->
+        <div class="footer-col">
+          <h4 class="footer-col-title">👨‍💻 Ban Phát Triển Dự Án</h4>
+          <div class="footer-author-box">
+            <div class="footer-author-name">Bùi Văn Khang <span class="footer-author-badge">Lead Developer</span></div>
+            <div class="footer-author-sub">Lớp <strong>ĐHCNSH24A</strong> · MSSV: <code>0024418475</code></div>
+            <div class="footer-author-dept">🏛️ Khoa Kỹ thuật - Công nghệ · ĐH Đồng Tháp</div>
+            <div class="footer-author-email">📧 <a href="mailto:vkhg.bui@gmail.com">vkhg.bui@gmail.com</a></div>
+            
+            <div class="footer-social-links">
+              <a href="https://github.com/VKhang-Bui/dthu-quizmaster" target="_blank" rel="noopener noreferrer" class="footer-soc-btn gh" title="Mã nguồn GitHub">⭐ GitHub</a>
+              <a href="https://www.linkedin.com/in/khang-trang-179557425/" target="_blank" rel="noopener noreferrer" class="footer-soc-btn in" title="LinkedIn">💼 LinkedIn</a>
+              <a href="https://www.youtube.com/@Shina18475" target="_blank" rel="noopener noreferrer" class="footer-soc-btn yt" title="Kênh YouTube">▶️ YouTube</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Copyright & Back to Top Bar -->
+      <div class="footer-bottom-bar">
+        <div class="footer-copy-text">
+          © 2026 <strong>DThu QuizMaster</strong>. Bản quyền thuộc về Đội ngũ Nghiên cứu & Phát triển Học thuật Sinh viên Trường Đại học Đồng Tháp.
+        </div>
+        <div class="footer-bottom-right">
+          <span class="footer-meta-pill">v2.6.0 Pro</span>
+          <button class="footer-back-to-top" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })" title="Cuộn lên đầu trang">
+            <span>Về Đầu Trang</span>
+            <span class="arrow-up">↑</span>
+          </button>
         </div>
       </div>
     </div>

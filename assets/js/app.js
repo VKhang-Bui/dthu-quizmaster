@@ -1254,82 +1254,27 @@ const App = {
           ${this.renderSubjectCards(activeList, this.currentHubTab === 'drafts')}
         </div>
 
-        <!-- Khối Giới Thiệu Tác Giả & Trung Tâm Liên Hệ Hỗ Trợ 24/7 -->
+        <!-- Khối Điểm Nhấn Sứ Mệnh Học Tập & Tiếp Nhận Góp Ý -->
         <section class="home-creator-section">
           <div class="creator-card-container">
-            <div class="creator-header">
-              <span class="creator-pill-tag">👨‍💻 Tác Giả & Ban Phát Triển</span>
-              <h3 class="creator-title">Đội Ngũ Xây Dựng & Hỗ Trợ Học Tập DThu</h3>
-              <p class="creator-subtitle">Hệ thống DThu QuizMaster được xây dựng và phát triển phi lợi nhuận nhằm hỗ trợ cộng đồng sinh viên Trường Đại học Đồng Tháp ôn thi trắc nghiệm hiệu quả.</p>
-            </div>
-
-            <div class="creator-content-grid">
-              <!-- Thẻ Tác Giả -->
-              <div class="creator-profile-card">
-                <div>
-                  <div class="creator-profile-header">
-                    <div class="creator-avatar">👨‍🎓</div>
-                    <div class="creator-info">
-                      <div class="creator-name-row">
-                        <h4>Bùi Văn Khang</h4>
-                        <span class="creator-verified-badge">✓ Trưởng Ban Phát Triển</span>
-                      </div>
-                      <div class="creator-role-text">Sinh viên Lớp: <strong>ĐHCNSH24A</strong> · MSSV: <strong>0024418475</strong></div>
-                      <div class="creator-dept-text">🏛️ Khoa Kỹ thuật - Công nghệ · Trường Đại học Đồng Tháp</div>
-                    </div>
-                  </div>
-
-                  <p class="creator-bio">
-                    "Mong muốn mang lại một công cụ ôn thi trắc nghiệm trực quan, bám sát ngân hàng đề cương giúp các bạn sinh viên DThu dễ dàng củng cố kiến thức và đạt kết quả cao nhất trong các kỳ thi học phần."
-                  </p>
-                </div>
-
-                <div class="creator-social-pills">
-                  <a href="https://www.youtube.com/@Shina18475" target="_blank" rel="noopener noreferrer" class="social-pill yt">
-                    <span>▶️ YouTube @Shina18475</span>
-                  </a>
-                  <a href="https://www.youtube.com/@Shina_VN" target="_blank" rel="noopener noreferrer" class="social-pill yt">
-                    <span>▶️ YouTube @Shina_VN</span>
-                  </a>
-                  <a href="https://www.linkedin.com/in/khang-trang-179557425/" target="_blank" rel="noopener noreferrer" class="social-pill in">
-                    <span>💼 LinkedIn: Khang Trang</span>
-                  </a>
-                  <a href="https://github.com/VKhang-Bui/dthu-quizmaster" target="_blank" rel="noopener noreferrer" class="social-pill gh">
-                    <span>⭐ GitHub Repository</span>
-                  </a>
+            <div class="home-mission-banner">
+              <div class="home-mission-content">
+                <span class="creator-pill-tag">✨ Sứ Mệnh Học Thuật Sinh Viên DThu</span>
+                <h3 class="mission-title">Hệ Thống Ôn Thi Trực Quan · Tự Học Mọi Lúc Mọi Nơi</h3>
+                <p class="mission-desc">
+                  DThu QuizMaster được xây dựng phi lợi nhuận với mục tiêu chuẩn hóa ngân hàng đề thi trắc nghiệm học phần, hỗ trợ giải thích chi tiết từng câu hỏi, đồng bộ tiến độ thời gian thực và tạo môi trường thi thử nghiêm túc, công bằng.
+                </p>
+                <div class="mission-pills-row">
+                  <span class="mission-pill">⚡ Chạy Offline PWA</span>
+                  <span class="mission-pill">☁️ Đồng bộ Supabase</span>
+                  <span class="mission-pill">🎯 Ngân hàng đề chuẩn DThu</span>
+                  <span class="mission-pill">🏆 Bảng Xếp Hạng Mùa Giải</span>
+                  <span class="mission-pill">📝 Soạn đề tự động Parser</span>
                 </div>
               </div>
-
-              <!-- Thẻ Kênh Liên Hệ CSKH 24/7 -->
-              <div class="creator-contact-card">
-                <div>
-                  <h4 class="contact-card-title">📞 Kênh Liên Hệ & Tiếp Nhận Góp Ý</h4>
-                  <p class="contact-card-desc">Gặp sự cố đăng nhập, quên mã PIN, phát hiện lỗi câu hỏi hoặc muốn đóng góp đề thi mới? Hãy liên hệ ngay:</p>
-
-                  <div class="contact-methods-list">
-                    <div class="contact-item">
-                      <div class="contact-item-icon">📧</div>
-                      <div class="contact-item-detail">
-                        <div class="contact-item-label">Hộp Thư Tiếp Nhận:</div>
-                        <a href="mailto:vkhg.bui@gmail.com" class="contact-link">vkhg.bui@gmail.com</a>
-                        <span class="contact-divider">·</span>
-                        <a href="mailto:giaosukhang621@gmail.com" class="contact-link">giaosukhang621@gmail.com</a>
-                      </div>
-                    </div>
-
-                    <div class="contact-item">
-                      <div class="contact-item-icon">📱</div>
-                      <div class="contact-item-detail">
-                        <div class="contact-item-label">Hotline & Zalo Kỹ Thuật (24/7):</div>
-                        <a href="tel:0354616301" class="contact-link-highlight">0354 616 301</a>
-                        <span class="contact-tag">Hỗ trợ nhanh</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <button class="btn btn-primary btn-contact-action" onclick="App.openContactModal()">
-                  <span>📩 Soạn Lời Nhắn / Gửi Góp Ý</span>
+              <div class="home-mission-action">
+                <button class="btn btn-primary btn-lg" onclick="App.openContactModal()" style="white-space: nowrap; padding: 14px 22px; font-weight: 800; font-size: 13.5px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25);">
+                  <span>📩 Gửi Góp Ý / Báo Lỗi Đề Thi</span>
                   <span>➔</span>
                 </button>
               </div>
