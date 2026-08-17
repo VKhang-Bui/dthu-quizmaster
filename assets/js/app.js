@@ -101,6 +101,36 @@ const App = {
   renderHeader() {
     const headerEl = document.getElementById("appHeader");
     if (!headerEl) return;
+
+    // ── CHẾ ĐỘ TẬP TRUNG LÀM BÀI (ZEN FOCUS EXAM HEADER) ───────────────────
+    if (this.currentView === "quiz") {
+      const subjectName = this.activeSession ? this.activeSession.subjectName : "Phòng Làm Bài";
+      const modeLabel = this.activeSession && this.activeSession.mode === "exam" ? "Thi Thử Tính Giờ" : "Ôn Tập Có Lời Giải";
+
+      headerEl.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 0 4px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="font-size: 22px; line-height: 1;">🔒</div>
+            <div>
+              <div style="font-size: 14.5px; font-weight: 800; color: var(--text-primary); line-height: 1.2;">
+                ${subjectName}
+              </div>
+              <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 1px;">
+                Chế độ tập trung (${modeLabel}) · Tránh phân tâm & không thoát nhầm
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button class="btn btn-sm btn-danger" onclick="App.confirmExitQuiz()" style="font-weight: 700; font-size: 12.5px;">
+              🚪 Rời phòng làm bài
+            </button>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
     const isLogged = StorageService.isLoggedIn();
     const profile = StorageService.getUserProfile();
 
@@ -444,8 +474,21 @@ const App = {
           <button class="drawer-close" onclick="App.closeUserDrawer()">&times;</button>
         `;
 
+        const isWarnOnLeaveQuiz = (settings.warnOnLeaveQuiz !== false);
+
         bodyHtml = `
           <div class="drawer-slide-content">
+            <!-- Cảnh báo khi rời bài thi dở dang -->
+            <div style="background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px;">
+              <label style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin: 0;">
+                <div style="padding-right: 10px;">
+                  <strong style="font-size: 13.5px; color: var(--text-primary); display: block; margin-bottom: 2px;">🚪 Cảnh báo khi rời bài thi / đóng tab:</strong>
+                  <span style="font-size: 11.5px; color: var(--text-secondary); line-height: 1.4; display: block;">Cảnh báo khi chưa nộp bài mà tải lại trang (F5), đóng tab hoặc thoát</span>
+                </div>
+                <input type="checkbox" ${isWarnOnLeaveQuiz ? 'checked' : ''} onchange="App.toggleWarnOnLeaveQuiz(this.checked)" style="width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;">
+              </label>
+            </div>
+
             <!-- Thời gian Toast -->
             <div>
               <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 6px; display: block;">
@@ -666,6 +709,14 @@ const App = {
       StorageService.suppressWarning(key);
       this.showToast(`Đã tắt (ẩn): ${StorageService.KNOWN_WARNINGS[key]?.title || key}`, "info", 2000);
     }
+    this.renderDrawerLevel("settings-alerts");
+  },
+
+  toggleWarnOnLeaveQuiz(checked) {
+    const settings = StorageService.getAppSettings();
+    settings.warnOnLeaveQuiz = Boolean(checked);
+    StorageService.saveAppSettings(settings);
+    this.showToast(checked ? "✓ Đã bật cảnh báo khi rời bài thi dở dang!" : "⚠️ Đã tắt cảnh báo khi rời bài thi.", "info", 2500);
     this.renderDrawerLevel("settings-alerts");
   },
 
@@ -1010,6 +1061,7 @@ const App = {
   navigateTo(view, data = {}, pushHistory = true) {
     this.currentView = view;
     this.updateActiveNav(view);
+    this.renderHeader();
 
     // Cập nhật Browser History nếu pushHistory = true
     if (pushHistory && typeof window !== "undefined" && window.history && window.history.pushState) {
@@ -7375,6 +7427,17 @@ Câu 2: Nội dung câu hỏi số 2 ở đây?
       } else {
         const route = this.parseHashRoute();
         this.navigateTo(route.view, route.data || {}, false);
+      }
+    });
+
+    // Cảnh báo khi người dùng đóng tab / tải lại trang (F5) lúc đang làm bài thi chưa nộp
+    window.addEventListener("beforeunload", (e) => {
+      const settings = StorageService.getAppSettings();
+      const isWarnOnLeave = (settings.warnOnLeaveQuiz !== false);
+      if (isWarnOnLeave && App.currentView === "quiz" && App.activeSession && !App.activeSession.isSubmitted) {
+        e.preventDefault();
+        e.returnValue = "Bạn có bài thi/ôn tập đang làm dở chưa nộp. Bạn có chắc chắn muốn rời khỏi trang không?";
+        return e.returnValue;
       }
     });
 

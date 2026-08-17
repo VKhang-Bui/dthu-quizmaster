@@ -1103,7 +1103,8 @@ const StorageService = {
       fontSize: "normal", // 'normal' | 'large' | 'xlarge'
       toastDuration: 3500, // 3.5 giây
       soundEnabled: true,
-      autoScrollToError: true
+      autoScrollToError: true,
+      warnOnLeaveQuiz: true // Cảnh báo khi đóng tab / rời phòng thi dở dang
     };
   },
 
