@@ -508,17 +508,51 @@ const SmartParserService = {
     return null;
   },
 
+  /**
+   * Nhận diện phạm vi dải màu Đỏ - Đỏ Cam - Đỏ Rượu - Hồng Đỏ (Red Spectrum) trong MS Word:
+   * Sử dụng giải thuật phân tích kênh màu RGB để bao quát 100% các tông màu mắt thường nhìn thấy là Đỏ
+   */
+  isRedOrWarmAnswerColor(colorVal) {
+    if (!colorVal) return false;
+    const v = colorVal.toLowerCase().trim().replace(/^#/, "");
+
+    // 1. Tên màu trực tiếp
+    if (["red", "darkred", "crimson", "firebrick", "indianred", "tomato", "orangered"].includes(v)) {
+      return true;
+    }
+
+    // 2. Chuyển đổi mã Hex RGB
+    let hex = v;
+    if (hex.length === 3) {
+      hex = hex.split("").map(c => c + c).join("");
+    }
+    if (hex.length !== 6) return false;
+
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return false;
+
+    // 3. Quy tắc nhận diện dải màu Đỏ - Đỏ Cam - Đỏ Rượu:
+    // - Sắc đỏ (R) phải đủ nổi bật (>= 120), loại bỏ chữ màu đen hoặc xám thông thường
+    // - Sắc đỏ (R) phải áp đảo sắc xanh lá (G) và xanh dương (B) ít nhất 30%
+    if (r >= 120 && r > g * 1.3 && r > b * 1.3) {
+      return true;
+    }
+    // Hồng đỏ / Rose / Magenta (R cao, G thấp)
+    if (r >= 150 && r > g * 1.5) {
+      return true;
+    }
+
+    return false;
+  },
+
   parseDocxXmlToText(xmlStr) {
     try {
       const parser = new DOMParser();
       const doc = parser.parseFromString(xmlStr, "application/xml");
       const paragraphs = doc.getElementsByTagName("w:p");
       const lines = [];
-
-      const RED_COLORS = [
-        "ff0000", "red", "c00000", "ed1c24", "e00000", "d32f2f", "b71c1c",
-        "dc2626", "e11d48", "f43f5e", "990000", "cc0000", "b91c1c", "991b1b", "c53929", "f87171", "ef4444"
-      ];
 
       for (let i = 0; i < paragraphs.length; i++) {
         const p = paragraphs[i];
@@ -543,11 +577,11 @@ const SmartParserService = {
               }
             }
 
-            // 2. Kiểm tra thẻ màu chữ ĐỎ <w:color>
+            // 2. Kiểm tra thẻ màu chữ ĐỎ / ĐỎ CAM / ĐỎ RƯỢU theo dải màu RGB
             const color = rPr.getElementsByTagName("w:color")[0];
             if (color) {
-              const colorVal = (color.getAttribute("w:val") || "").toLowerCase().trim();
-              if (RED_COLORS.some(rc => colorVal.includes(rc))) {
+              const colorVal = color.getAttribute("w:val");
+              if (this.isRedOrWarmAnswerColor(colorVal)) {
                 isRed = true;
               }
             }
