@@ -100,9 +100,9 @@ const SmartParserService = {
     let globalExplanation = "";
 
     // 1. Tách dòng câu hỏi và các dòng lựa chọn
-    // Tìm vị trí dòng đầu tiên bắt đầu một phương án (A. hoặc *A. hoặc **A.** hoặc [A] hoặc A) )
+    // Tìm vị trí dòng đầu tiên bắt đầu một phương án (A. hoặc *A. hoặc <u>A.</u> hoặc [x] A. hoặc [A] hoặc A) )
     let firstOptionLineIdx = -1;
-    const optionStartPattern = /^\s*(?:\*\s*)?(?:\*{0,2})\[?([A-Ea-e])\]?[\.\)\:\*]\s+/;
+    const optionStartPattern = /^\s*(?:\*\s*|<u>|<ins>|\[x\]\s*|\(x\)\s*|\[Đúng\]\s*)?(?:\*{0,2}|_{0,2}|<u>|<ins>)?\[?([A-Ea-e])\]?(?:<\/u>|<\/ins>)?[\.\)\:\*\_]*(?:<\/u>|<\/ins>)?\s+/i;
 
     for (let i = 0; i < rawLines.length; i++) {
       if (optionStartPattern.test(rawLines[i])) {
@@ -161,12 +161,17 @@ const SmartParserService = {
         }
         const letter = optMatch[1].toUpperCase();
         // Lấy nội dung sau ký tự đánh dấu A., B., C...
-        const content = trimmedLine.replace(optionStartPattern, "").trim();
-        const hasAsteriskPrefix = trimmedLine.startsWith("*") || trimmedLine.startsWith("**");
+        let content = trimmedLine.replace(optionStartPattern, "").trim();
+        const hasAsteriskPrefix = /^\s*(?:\*|\[x\]|\(x\)|\[Đúng\]|<u>|<ins>|_)/i.test(trimmedLine) ||
+                                 /<u>\s*([A-Ea-e])\s*<\/u>/i.test(trimmedLine) ||
+                                 /<\/(?:u|ins)>/.test(trimmedLine) ||
+                                 /<font\s+color=['"]?red['"]?/i.test(trimmedLine) ||
+                                 /color:\s*red/i.test(trimmedLine);
 
         currentOption = {
           letter,
           content,
+          rawLine: trimmedLine,
           hasAsteriskPrefix
         };
       } else if (currentOption) {
@@ -188,6 +193,15 @@ const SmartParserService = {
       let text = ro.content;
       let isCorrect = ro.hasAsteriskPrefix || false;
       let note = "";
+
+      // Kiểm tra hậu tố đánh dấu đúng: [Đúng], (Đúng), (Đáp án đúng), hoặc dấu * ở cuối
+      if (/(?:\[Đúng\]|\(Đúng\)|\(Đáp án đúng\)|\*)$/i.test(text)) {
+        isCorrect = true;
+        text = text.replace(/(?:\[Đúng\]|\(Đúng\)|\(Đáp án đúng\)|\*)$/i, "").trim();
+      }
+
+      // Làm sạch thẻ HTML gạch chân còn sót lại ở nội dung
+      text = text.replace(/<\/?(?:u|ins|font|span)[^>]*>/gi, "").trim();
 
       // Kiểm tra cú pháp inline:
       // "A. Nội dung > Đúng: Giải thích" hoặc "A. Nội dung > **Đúng**: Giải thích"
@@ -365,15 +379,75 @@ const SmartParserService = {
       const paragraphs = doc.getElementsByTagName("w:p");
       const lines = [];
 
+      const RED_COLORS = [
+        "ff0000", "red", "c00000", "ed1c24", "e00000", "f00", "d32f2f", "b71c1c", "cc0000", "e11d48", "dc2626"
+      ];
+
       for (let i = 0; i < paragraphs.length; i++) {
         const p = paragraphs[i];
-        const textNodes = p.getElementsByTagName("w:t");
+        const runs = p.getElementsByTagName("w:r");
         let lineText = "";
-        for (let j = 0; j < textNodes.length; j++) {
-          lineText += textNodes[j].textContent;
+        let isOptionMarkedCorrect = false;
+
+        for (let j = 0; j < runs.length; j++) {
+          const r = runs[j];
+          const rPr = r.getElementsByTagName("w:rPr")[0];
+          let isUnderlined = false;
+          let isRed = false;
+          let isHighlighted = false;
+
+          if (rPr) {
+            // Kiểm tra thẻ gạch chân <w:u>
+            const u = rPr.getElementsByTagName("w:u")[0];
+            if (u) {
+              const uVal = u.getAttribute("w:val");
+              if (!uVal || uVal !== "none") {
+                isUnderlined = true;
+              }
+            }
+
+            // Kiểm tra thẻ màu chữ <w:color>
+            const color = rPr.getElementsByTagName("w:color")[0];
+            if (color) {
+              const colorVal = (color.getAttribute("w:val") || "").toLowerCase().trim();
+              if (RED_COLORS.some(rc => colorVal.includes(rc))) {
+                isRed = true;
+              }
+            }
+
+            // Kiểm tra thẻ highlight <w:highlight>
+            const highlight = rPr.getElementsByTagName("w:highlight")[0];
+            if (highlight) {
+              const hVal = (highlight.getAttribute("w:val") || "").toLowerCase().trim();
+              if (["red", "yellow", "green", "cyan", "magenta"].includes(hVal)) {
+                isHighlighted = true;
+              }
+            }
+          }
+
+          const textNodes = r.getElementsByTagName("w:t");
+          let runText = "";
+          for (let k = 0; k < textNodes.length; k++) {
+            runText += textNodes[k].textContent;
+          }
+
+          // Nếu run chứa ký tự hoặc text được gạch chân / tô đỏ / highlight
+          if (runText && (isUnderlined || isRed || isHighlighted)) {
+            isOptionMarkedCorrect = true;
+          }
+
+          lineText += runText;
         }
-        if (lineText.trim()) {
-          lines.push(lineText.trim());
+
+        const trimmed = lineText.trim();
+        if (trimmed) {
+          // Nếu dòng là phương án A, B, C, D và được gạch chân hoặc tô đỏ
+          const isOptionLine = /^\s*(?:\*\s*)?(?:\*{0,2})\[?([A-Ea-e])\]?[\.\)\:\*]/.test(trimmed);
+          if (isOptionLine && isOptionMarkedCorrect && !trimmed.startsWith("*")) {
+            lines.push(`* ${trimmed}`);
+          } else {
+            lines.push(trimmed);
+          }
         }
       }
       return lines.join("\n");
