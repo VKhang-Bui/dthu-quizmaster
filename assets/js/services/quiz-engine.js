@@ -18,19 +18,28 @@ const QuizEngine = {
     const {
       mode = "practice", // 'practice' (ôn tập) hoặc 'exam' (thi thử)
       chapterId = "all", // 'all' hoặc 'c1', 'c2'...
-      questionCount = "all", // 'all', 10, 20, 40, 50
+      chapterIds = null, // mảng các chapterId được chọn
+      questionCount = "all", // 'all', 10, 20, 30, 40, 50, 100 hoặc số cụ thể
       shuffleQuestions = true,
-      shuffleOptions = false
+      shuffleOptions = false,
+      customTimeMinutes = null,
+      instantFeedback = true, // Hiện đáp án ngay trong ôn tập
+      autoExpandNotes = true, // Tự mở giải thích
+      repeatMistakes = false, // Lặp lại câu sai đến khi đúng
+      warnTime = true,
+      autoSubmitOnTimeout = true
     } = options;
 
     let pool = [...(subject.questions || [])];
 
-    // Lọc theo chương nếu chọn
-    if (chapterId !== "all") {
+    // Lọc theo chương hoặc danh sách các chương được chọn
+    if (Array.isArray(chapterIds) && chapterIds.length > 0 && !chapterIds.includes("all")) {
+      pool = pool.filter(q => chapterIds.includes(q.chapterId));
+    } else if (chapterId && chapterId !== "all") {
       pool = pool.filter(q => q.chapterId === chapterId);
     }
 
-    // Trộn ngẫu nhiên câu hỏi
+    // Trộn ngẫu nhiên câu hỏi nếu bật
     if (shuffleQuestions) {
       pool = this.shuffleArray(pool);
     }
@@ -43,20 +52,50 @@ const QuizEngine = {
       }
     }
 
-    // Tính thời gian thi nếu là chế độ exam (Ví dụ: 1 phút / câu)
-    const timeLimitMinutes = mode === "exam" ? Math.max(5, Math.ceil(pool.length * 1.0)) : 0;
+    // Trộn ngẫu nhiên các phương án A-B-C-D nếu bật
+    if (shuffleOptions) {
+      pool = pool.map(q => {
+        if (!q.options || q.options.length <= 1) return q;
+        const indexedOpts = q.options.map((opt, oi) => ({ ...opt, origIdx: oi }));
+        const shuffledOpts = this.shuffleArray(indexedOpts);
+        const newAnswerIndex = shuffledOpts.findIndex(opt => opt.origIdx === q.answerIndex);
+        return {
+          ...q,
+          options: shuffledOpts,
+          answerIndex: newAnswerIndex >= 0 ? newAnswerIndex : q.answerIndex
+        };
+      });
+    }
+
+    // Tính thời gian thi nếu là chế độ exam (Ví dụ: 1 phút / câu hoặc số phút người dùng tùy chọn)
+    let timeLimitMinutes = 0;
+    if (mode === "exam") {
+      if (customTimeMinutes && parseInt(customTimeMinutes, 10) > 0) {
+        timeLimitMinutes = parseInt(customTimeMinutes, 10);
+      } else {
+        timeLimitMinutes = Math.max(5, Math.ceil(pool.length * 1.0));
+      }
+    }
 
     return {
       subjectId: subject.id,
       subjectName: subject.name,
       subjectCode: subject.code,
       mode,
-      chapterId,
+      chapterId: Array.isArray(chapterIds) ? chapterIds.join(',') : chapterId,
       timeLimitMinutes,
       timeRemainingSeconds: timeLimitMinutes * 60,
       totalQuestions: pool.length,
       questions: pool,
       answers: {}, // { [questionId]: selectedOptionIndex }
+      flags: {},
+      instantFeedback: (mode === "practice") ? Boolean(instantFeedback) : false,
+      autoExpandNotes: Boolean(autoExpandNotes),
+      repeatMistakes: (mode === "practice") ? Boolean(repeatMistakes) : false,
+      warnTime: Boolean(warnTime),
+      autoSubmitOnTimeout: Boolean(autoSubmitOnTimeout),
+      shuffleQuestions: Boolean(shuffleQuestions),
+      shuffleOptions: Boolean(shuffleOptions),
       startedAt: new Date().toISOString(),
       isSubmitted: false
     };

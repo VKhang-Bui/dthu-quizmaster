@@ -21,6 +21,8 @@ const App = {
   isChapterFilterMenuOpen: false,
   activeReviewDraftId: null,
   draftEditingQuestionIndex: null,
+  quizSetupSubjectId: null,
+  quizSetupState: null,
   timerInterval: null,
   letters: ['A', 'B', 'C', 'D', 'E'],
   QUESTIONS_PER_PAGE: 10,
@@ -1009,6 +1011,9 @@ const App = {
         break;
       case "register":
         this.renderRegisterView(mainContainer);
+        break;
+      case "quiz-setup":
+        this.renderQuizSetupView(mainContainer, data?.subjectId || this.quizSetupSubjectId);
         break;
       case "quiz":
         this.renderQuizView(mainContainer);
@@ -2529,90 +2534,533 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
   },
 
   // ═════════════════════════════════════════════════════════════════════════
-  // 4. MODAL CẤU HÌNH THI / ÔN TẬP
+  // 4. TRANG THIẾT LẬP BÀI THI & ÔN TẬP TOÀN DIỆN (QUIZ SETUP VIEW)
   // ═════════════════════════════════════════════════════════════════════════
   openQuizConfigModal(subjectId) {
-    const subject = StorageService.getSubjectById(subjectId);
-    if (!subject) return;
-    this.activeSubject = subject;
-
-    const isLogged = StorageService.isLoggedIn();
-    const modal = document.getElementById("globalModal");
-    const title = document.getElementById("modalTitle");
-    const body = document.getElementById("modalBody");
-    const footer = document.getElementById("modalFooter");
-
-    title.textContent = `Làm bài: ${subject.name}`;
-
-    body.innerHTML = `
-      <div class="form-group">
-        <label class="form-label">1. Chọn chế độ làm bài:</label>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-          ${isLogged ? `
-            <label style="border: 1.5px solid var(--border); padding: 14px; border-radius: var(--radius-sm); cursor: pointer; display: flex; gap: 10px; align-items: flex-start;">
-              <input type="radio" name="quizMode" value="practice" checked style="margin-top: 4px;">
-              <div>
-                <strong style="display: block; font-size: 14px;">🟢 Chế độ Ôn tập</strong>
-                <span style="font-size: 12px; color: var(--text-secondary);">Hiện đáp án & giải thích ngay sau mỗi câu chọn</span>
-              </div>
-            </label>
-          ` : `
-            <label style="border: 1.5px solid var(--border); padding: 14px; border-radius: var(--radius-sm); opacity: 0.6; cursor: not-allowed; display: flex; gap: 10px; align-items: flex-start; background: var(--surface-subtle);" title="Chế độ ôn tập yêu cầu đăng nhập">
-              <input type="radio" name="quizMode" value="practice" disabled style="margin-top: 4px;">
-              <div>
-                <strong style="display: block; font-size: 14px; color: var(--text-secondary);">🟢 Chế độ Ôn tập <span class="badge" style="background:#fee2e2; color:#b91c1c; font-size:10px;">🔒 Cần đăng nhập</span></strong>
-                <span style="font-size: 12px; color: var(--text-tertiary);">Đăng nhập để xem đáp án & giải thích ngay</span>
-              </div>
-            </label>
-          `}
-          <label style="border: 1.5px solid var(--border); padding: 14px; border-radius: var(--radius-sm); cursor: pointer; display: flex; gap: 10px; align-items: flex-start;">
-            <input type="radio" name="quizMode" value="exam" ${!isLogged ? 'checked' : ''} style="margin-top: 4px;">
-            <div>
-              <strong style="display: block; font-size: 14px;">⏱️ Chế độ Thi thử</strong>
-              <span style="font-size: 12px; color: var(--text-secondary);">Có đồng hồ đếm ngược, nộp bài mới biết điểm</span>
-            </div>
-          </label>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">2. Số lượng câu hỏi:</label>
-        <select id="configQuestionCount" class="form-control">
-          <option value="all">Toàn bộ ngân hàng câu hỏi (${subject.questions ? subject.questions.length : 0} câu)</option>
-          <option value="10">10 câu hỏi ngẫu nhiên</option>
-          <option value="20">20 câu hỏi ngẫu nhiên</option>
-          <option value="40">40 câu hỏi ngẫu nhiên</option>
-          <option value="50">50 câu hỏi ngẫu nhiên</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">3. Phạm vi ôn tập:</label>
-        <select id="configChapter" class="form-control">
-          <option value="all">Tất cả các chương</option>
-          ${(subject.chapters || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
-        </select>
-      </div>
-    `;
-
-    footer.innerHTML = `
-      <button class="btn" onclick="App.closeModal()">Đóng</button>
-      <button class="btn btn-primary" onclick="App.startQuizSession()">Bắt đầu làm bài 🚀</button>
-    `;
-
-    modal.classList.add("active");
+    this.navigateTo("quiz-setup", { subjectId });
   },
 
-  startQuizSession() {
-    const mode = document.querySelector('input[name="quizMode"]:checked')?.value || "practice";
-    const questionCount = document.getElementById("configQuestionCount")?.value || "all";
-    const chapterId = document.getElementById("configChapter")?.value || "all";
+  renderQuizSetupView(container, subjectId) {
+    const subject = StorageService.getSubjectById(subjectId || this.quizSetupSubjectId);
+    if (!subject) {
+      this.showToast("⚠️ Không tìm thấy thông tin môn học!", "warning");
+      this.navigateTo("home");
+      return;
+    }
 
-    const session = QuizEngine.createQuizSession(this.activeSubject, {
-      mode,
-      questionCount,
-      chapterId,
-      shuffleQuestions: true
+    this.activeSubject = subject;
+    this.quizSetupSubjectId = subject.id;
+    const isLogged = StorageService.isLoggedIn();
+
+    // Khởi tạo state cấu hình nếu chưa có hoặc khi đổi môn
+    if (!this.quizSetupState || this.quizSetupState.subjectId !== subject.id) {
+      this.quizSetupState = {
+        subjectId: subject.id,
+        mode: isLogged ? "practice" : "exam", // 'practice' hoặc 'exam'
+        instantFeedback: true, // Hiện đáp án ngay sau mỗi câu
+        autoExpandNotes: true, // Mở giải thích chi tiết
+        repeatMistakes: false, // Lặp lại câu sai đến khi đúng
+        timePreset: "auto", // 'auto', '15', '30', '45', '60', '90', 'custom'
+        customTimeMinutes: "",
+        warnTime: true,
+        autoSubmitOnTimeout: true,
+        questionCount: "all", // 'all', '10', '20', '30', '40', '50', '100', 'custom'
+        customQuestionCount: "",
+        shuffleQuestions: true,
+        shuffleOptions: true,
+        selectedChapters: ["all"]
+      };
+    }
+
+    const state = this.quizSetupState;
+    const allQuestions = subject.questions || [];
+    const chapters = subject.chapters || [];
+
+    // Tính toán số câu hỏi khả dụng theo phạm vi chương đã chọn
+    let availableQuestions = allQuestions;
+    const isAllChapters = state.selectedChapters.includes("all") || state.selectedChapters.length === 0;
+    if (!isAllChapters) {
+      availableQuestions = allQuestions.filter(q => state.selectedChapters.includes(q.chapterId));
+    }
+    const poolCount = availableQuestions.length;
+
+    // Số câu thực tế sẽ làm
+    let targetQuestionCount = poolCount;
+    if (state.questionCount === "custom") {
+      const parsed = parseInt(state.customQuestionCount, 10);
+      targetQuestionCount = (!isNaN(parsed) && parsed > 0) ? Math.min(parsed, poolCount) : poolCount;
+    } else if (state.questionCount !== "all") {
+      const parsed = parseInt(state.questionCount, 10);
+      targetQuestionCount = (!isNaN(parsed) && parsed > 0) ? Math.min(parsed, poolCount) : poolCount;
+    }
+
+    // Thời gian ước tính
+    let timeDisplayText = "Không giới hạn";
+    if (state.mode === "exam") {
+      if (state.timePreset === "auto") {
+        const mins = Math.max(5, Math.ceil(targetQuestionCount * 1.0));
+        timeDisplayText = `${mins} phút (${targetQuestionCount} câu × 1p)`;
+      } else if (state.timePreset === "custom") {
+        const mins = parseInt(state.customTimeMinutes, 10) || 45;
+        timeDisplayText = `${mins} phút (Tự đặt)`;
+      } else {
+        timeDisplayText = `${state.timePreset} phút`;
+      }
+    }
+
+    container.innerHTML = `
+      <div class="view-quiz-setup" style="padding: 24px 20px; max-width: 1100px; margin: 0 auto; width: 100%;">
+        
+        <!-- Breadcrumb & Top Bar -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 14px;">
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--text-secondary);">
+            <button class="btn btn-sm" onclick="App.navigateTo('home')">🏠 Trang chủ</button>
+            <span>/</span>
+            <button class="btn btn-sm" onclick="App.navigateTo('subject-detail', { subjectId: '${subject.id}' })">📚 ${subject.name}</button>
+            <span>/</span>
+            <span style="font-weight: 700; color: var(--text-primary);">⚙️ Thiết lập bài làm</span>
+          </div>
+
+          <button class="btn btn-sm" onclick="App.navigateTo('home')">
+            ← Quay lại danh sách môn
+          </button>
+        </div>
+
+        <!-- Layout 2 Cột: Bên Trái là Form Cấu Hình, Bên Phải là Sticky Summary -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; align-items: start;">
+          
+          <!-- CỘT TRÁI: 3 KHU VỰC CẤU HÌNH -->
+          <div style="display: flex; flex-direction: column; gap: 22px;">
+
+            <!-- ── KHU VỰC 1: CHẾ ĐỘ LÀM BÀI ─────────────────────────────── -->
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px;">
+                <span style="font-size: 18px;">🎯</span>
+                <h3 style="font-size: 17px; font-weight: 800; color: var(--text-primary); margin: 0;">
+                  1. Chọn Chế Độ Làm Bài
+                </h3>
+              </div>
+
+              <!-- 2 Cards Chọn Chế Độ -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                <!-- Tab Ôn Tập -->
+                <div 
+                  onclick="App.setQuizSetupMode('practice')" 
+                  style="border: 2px solid ${state.mode === 'practice' ? 'var(--brand-primary)' : 'var(--border)'}; background: ${state.mode === 'practice' ? '#f0fdf4' : 'var(--surface)'}; padding: 16px; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s ease; position: relative;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <strong style="font-size: 15px; color: ${state.mode === 'practice' ? '#15803d' : 'var(--text-primary)'};">
+                      🟢 Chế Độ Ôn Tập
+                    </strong>
+                    <input type="radio" name="setupModeRadio" ${state.mode === 'practice' ? 'checked' : ''} style="cursor: pointer;">
+                  </div>
+                  <p style="font-size: 12.5px; color: var(--text-secondary); margin: 0; line-height: 1.5;">
+                    Tự do củng cố kiến thức, học tới đâu xem đáp án & giải thích tới đó, không áp lực thời gian.
+                  </p>
+                </div>
+
+                <!-- Tab Thi Thử -->
+                <div 
+                  onclick="App.setQuizSetupMode('exam')" 
+                  style="border: 2px solid ${state.mode === 'exam' ? 'var(--brand-primary)' : 'var(--border)'}; background: ${state.mode === 'exam' ? '#eff6ff' : 'var(--surface)'}; padding: 16px; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s ease; position: relative;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <strong style="font-size: 15px; color: ${state.mode === 'exam' ? '#1d4ed8' : 'var(--text-primary)'};">
+                      ⏱️ Chế Độ Thi Thử
+                    </strong>
+                    <input type="radio" name="setupModeRadio" ${state.mode === 'exam' ? 'checked' : ''} style="cursor: pointer;">
+                  </div>
+                  <p style="font-size: 12.5px; color: var(--text-secondary); margin: 0; line-height: 1.5;">
+                    Mô phỏng phòng thi thật có bấm giờ đếm ngược, nộp bài mới biết điểm, lưu Lịch Sử Thi & BXH.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Tiện Ích Riêng Theo Chế Độ Đã Chọn -->
+              ${state.mode === 'practice' ? `
+                <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: var(--radius-sm); padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+                  <div style="font-size: 13px; font-weight: 700; color: #15803d;">
+                    ✨ Tiện ích & Tùy chọn chuyên biệt cho Ôn Tập:
+                  </div>
+
+                  <!-- Tùy chọn 1: Hiện đáp án ngay -->
+                  <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 13.5px; color: var(--text-primary);">
+                    <div>
+                      <strong>⚡ Hiện đáp án & Đúng/Sai ngay sau khi chọn:</strong>
+                      <div style="font-size: 12px; color: var(--text-secondary);">Chọn câu trả lời là biết ngay kết quả và vị trí đúng/sai</div>
+                    </div>
+                    <input type="checkbox" ${state.instantFeedback ? 'checked' : ''} onchange="App.setQuizSetupPracticeOption('instantFeedback', this.checked)" style="width: 18px; height: 18px; cursor: pointer;">
+                  </label>
+
+                  <!-- Tùy chọn 2: Tự mở giải thích -->
+                  <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 13.5px; color: var(--text-primary);">
+                    <div>
+                      <strong>💡 Hiển thị kèm giải thích chi tiết:</strong>
+                      <div style="font-size: 12px; color: var(--text-secondary);">Tự động hiển thị khung giải thích 💡 bên dưới câu hỏi</div>
+                    </div>
+                    <input type="checkbox" ${state.autoExpandNotes ? 'checked' : ''} onchange="App.setQuizSetupPracticeOption('autoExpandNotes', this.checked)" style="width: 18px; height: 18px; cursor: pointer;">
+                  </label>
+
+                  <!-- Tùy chọn 3: Lặp lại câu sai -->
+                  <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 13.5px; color: var(--text-primary);">
+                    <div>
+                      <strong>🔄 Chế độ Luyện Tập Lặp Lại (Mastery):</strong>
+                      <div style="font-size: 12px; color: var(--text-secondary);">Nếu trả lời sai, câu hỏi sẽ được đưa về cuối đề để bạn làm lại đến khi đúng</div>
+                    </div>
+                    <input type="checkbox" ${state.repeatMistakes ? 'checked' : ''} onchange="App.setQuizSetupPracticeOption('repeatMistakes', this.checked)" style="width: 18px; height: 18px; cursor: pointer;">
+                  </label>
+
+                  <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #16a34a; margin-top: 4px;">
+                    <span>⏳</span>
+                    <span>Chế độ ôn tập <strong>không giới hạn thời gian</strong> để bạn rèn luyện thoải mái nhất.</span>
+                  </div>
+                </div>
+              ` : `
+                <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: var(--radius-sm); padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+                  <div style="font-size: 13px; font-weight: 700; color: #1d4ed8;">
+                    ⏱️ Tùy chỉnh Thời Gian & Quy Tắc Phòng Thi:
+                  </div>
+
+                  <!-- Chọn thời gian làm bài -->
+                  <div>
+                    <label style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; display: block;">
+                      Thời gian làm bài thi:
+                    </label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                      ${['auto', '15', '30', '45', '60', '90', 'custom'].map(preset => {
+                        const isSel = (state.timePreset === preset);
+                        let label = `${preset} phút`;
+                        if (preset === 'auto') label = `⚡ Tự động (1p/câu)`;
+                        else if (preset === 'custom') label = `✏️ Tự nhập phút`;
+
+                        return `
+                          <button 
+                            type="button"
+                            onclick="App.setQuizSetupTimePreset('${preset}')" 
+                            class="btn btn-sm ${isSel ? 'btn-primary' : ''}" 
+                            style="${isSel ? 'font-weight: 800;' : 'background: #ffffff; border: 1px solid var(--border); color: var(--text-primary);'}">
+                            ${label}
+                          </button>
+                        `;
+                      }).join('')}
+                    </div>
+
+                    ${state.timePreset === 'custom' ? `
+                      <div style="margin-top: 10px; display: flex; align-items: center; gap: 8px;">
+                        <input 
+                          type="number" 
+                          min="1" 
+                          max="300" 
+                          class="form-control" 
+                          style="max-width: 150px; font-weight: 700;" 
+                          placeholder="Ví dụ: 45" 
+                          value="${state.customTimeMinutes}" 
+                          oninput="App.setQuizSetupCustomTime(this.value)">
+                        <span style="font-size: 13px; color: var(--text-secondary);">phút</span>
+                      </div>
+                    ` : ''}
+                  </div>
+
+                  <!-- Tùy chọn cảnh báo & tự nộp -->
+                  <div style="display: flex; flex-direction: column; gap: 8px; border-top: 1px dashed var(--border); padding-top: 10px;">
+                    <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 13px; color: var(--text-primary);">
+                      <span>🔔 Nhắc nhở cảnh báo khi còn 5 phút cuối</span>
+                      <input type="checkbox" ${state.warnTime ? 'checked' : ''} onchange="App.setQuizSetupExamOption('warnTime', this.checked)" style="width: 16px; height: 16px; cursor: pointer;">
+                    </label>
+
+                    <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 13px; color: var(--text-primary);">
+                      <span>📤 Tự động thu bài & tính điểm khi hết giờ</span>
+                      <input type="checkbox" ${state.autoSubmitOnTimeout ? 'checked' : ''} onchange="App.setQuizSetupExamOption('autoSubmitOnTimeout', this.checked)" style="width: 16px; height: 16px; cursor: pointer;">
+                    </label>
+                  </div>
+
+                  <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #2563eb;">
+                    <span>📜</span>
+                    <span>Kết quả bài thi thử sẽ được tự động ghi nhận vào <strong>Lịch Sử Thi (3 lần gần nhất)</strong>.</span>
+                  </div>
+                </div>
+              `}
+
+            </div>
+
+            <!-- ── KHU VỰC 2: CẤU HÌNH ĐỀ & TRỘN CÂU HỎI ─────────────────── -->
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px;">
+                <span style="font-size: 18px;">⚙️</span>
+                <h3 style="font-size: 17px; font-weight: 800; color: var(--text-primary); margin: 0;">
+                  2. Cấu Hình Đề & Trộn Câu Hỏi
+                </h3>
+              </div>
+
+              <!-- Số lượng câu hỏi cần làm -->
+              <div style="margin-bottom: 18px;">
+                <label style="font-size: 13.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; display: block;">
+                  Số lượng câu hỏi trong đề:
+                </label>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                  ${['all', '10', '20', '30', '40', '50', '100', 'custom'].map(count => {
+                    const isSel = (state.questionCount === count);
+                    let label = `${count} câu`;
+                    if (count === 'all') label = `Toàn bộ (${poolCount} câu)`;
+                    else if (count === 'custom') label = `✏️ Tự nhập`;
+
+                    return `
+                      <button 
+                        type="button"
+                        onclick="App.setQuizSetupQuestionCount('${count}')" 
+                        class="btn btn-sm ${isSel ? 'btn-primary' : ''}" 
+                        style="${isSel ? 'font-weight: 800;' : 'background: #ffffff; border: 1px solid var(--border); color: var(--text-primary);'}">
+                        ${label}
+                      </button>
+                    `;
+                  }).join('')}
+                </div>
+
+                ${state.questionCount === 'custom' ? `
+                  <div style="margin-top: 10px; display: flex; align-items: center; gap: 8px;">
+                    <input 
+                      type="number" 
+                      min="1" 
+                      max="${poolCount}" 
+                      class="form-control" 
+                      style="max-width: 150px; font-weight: 700;" 
+                      placeholder="Tối đa ${poolCount}" 
+                      value="${state.customQuestionCount}" 
+                      oninput="App.setQuizSetupCustomQuestionCount(this.value)">
+                    <span style="font-size: 13px; color: var(--text-secondary);">câu (trên tổng ${poolCount} câu khả dụng)</span>
+                  </div>
+                ` : ''}
+              </div>
+
+              <!-- Xáo trộn câu hỏi & Xáo trộn đáp án -->
+              <div style="display: flex; flex-direction: column; gap: 10px; border-top: 1px dashed var(--border); padding-top: 14px;">
+                <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 13.5px; color: var(--text-primary); padding: 8px 12px; background: #f8fafc; border-radius: var(--radius-sm);">
+                  <div>
+                    <strong>🔀 Xáo trộn thứ tự các câu hỏi (Đề ngẫu nhiên):</strong>
+                    <div style="font-size: 12px; color: var(--text-secondary);">Các câu hỏi sẽ được đảo vị trí ngẫu nhiên mỗi lần làm</div>
+                  </div>
+                  <input type="checkbox" ${state.shuffleQuestions ? 'checked' : ''} onchange="App.toggleQuizSetupShuffle('shuffleQuestions')" style="width: 18px; height: 18px; cursor: pointer;">
+                </label>
+
+                <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 13.5px; color: var(--text-primary); padding: 8px 12px; background: #f8fafc; border-radius: var(--radius-sm);">
+                  <div>
+                    <strong>🔤 Xáo trộn thứ tự các đáp án A - B - C - D:</strong>
+                    <div style="font-size: 12px; color: var(--text-secondary);">Tránh việc học vẹt vị trí chữ cái, rèn luyện tư duy thực chất</div>
+                  </div>
+                  <input type="checkbox" ${state.shuffleOptions ? 'checked' : ''} onchange="App.toggleQuizSetupShuffle('shuffleOptions')" style="width: 18px; height: 18px; cursor: pointer;">
+                </label>
+              </div>
+
+            </div>
+
+            <!-- ── KHU VỰC 3: PHẠM VI CHƯƠNG KIẾN THỨC ───────────────────── -->
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 18px;">📂</span>
+                  <h3 style="font-size: 17px; font-weight: 800; color: var(--text-primary); margin: 0;">
+                    3. Phạm Vi Chương Kiến Thức
+                  </h3>
+                </div>
+
+                <button class="btn btn-sm ${isAllChapters ? 'btn-primary' : ''}" onclick="App.toggleQuizSetupAllChapters()">
+                  ${isAllChapters ? '✓ Đang chọn Tất Cả' : 'Chọn Tất Cả Các Chương'}
+                </button>
+              </div>
+
+              <!-- Danh sách các chương với checkbox đa chọn -->
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                ${chapters.length === 0 ? `
+                  <div style="padding: 12px; background: #f8fafc; border-radius: var(--radius-sm); font-size: 13px; color: var(--text-secondary);">
+                    Môn học này chưa phân chia chương cụ thể. Toàn bộ ${allQuestions.length} câu hỏi sẽ được sử dụng.
+                  </div>
+                ` : `
+                  ${chapters.map((c, cIdx) => {
+                    const cQCount = allQuestions.filter(q => q.chapterId === c.id).length;
+                    const isChecked = isAllChapters || state.selectedChapters.includes(c.id);
+
+                    return `
+                      <label style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1.5px solid ${isChecked ? 'var(--brand-primary)' : 'var(--border)'}; background: ${isChecked ? '#f0fdf4' : '#ffffff'}; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s ease;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                          <input 
+                            type="checkbox" 
+                            ${isChecked ? 'checked' : ''} 
+                            onchange="App.toggleQuizSetupChapter('${c.id}')" 
+                            style="width: 17px; height: 17px; cursor: pointer;">
+                          <span style="font-weight: ${isChecked ? '700' : '500'}; color: ${isChecked ? '#14532d' : 'var(--text-primary)'}; font-size: 13.5px;">
+                            ${c.name}
+                          </span>
+                        </div>
+                        <span class="badge" style="background: ${isChecked ? '#dcfce7' : '#f1f5f9'}; color: ${isChecked ? '#15803d' : '#64748b'}; font-weight: 700; font-size: 11.5px;">
+                          ${cQCount} câu
+                        </span>
+                      </label>
+                    `;
+                  }).join('')}
+                `}
+              </div>
+            </div>
+
+          </div>
+
+          <!-- CỘT PHẢI: STICKY SUMMARY CARD & NÚT BẮT ĐẦU -->
+          <div style="position: sticky; top: 20px;">
+            <div style="background: var(--surface); border: 2px solid var(--brand-primary); border-radius: var(--radius-md); padding: 22px; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
+              
+              <div style="border-bottom: 1px solid var(--border); padding-bottom: 14px; margin-bottom: 14px;">
+                <span class="badge badge-blue" style="font-weight: 800; margin-bottom: 6px; display: inline-block;">
+                  ${subject.code || 'DTHU-QUIZ'}
+                </span>
+                <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0 0 4px 0; line-height: 1.3;">
+                  ${subject.name}
+                </h3>
+                <div style="font-size: 12.5px; color: var(--text-secondary);">
+                  Tổng ngân hàng: <strong>${allQuestions.length} câu hỏi</strong>
+                </div>
+              </div>
+
+              <!-- Tóm tắt cấu hình -->
+              <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-tertiary);">Chế độ:</span>
+                  <strong style="color: ${state.mode === 'practice' ? '#15803d' : '#1d4ed8'};">
+                    ${state.mode === 'practice' ? '🟢 Ôn Tập Có Lời Giải' : '⏱️ Thi Thử Tính Giờ'}
+                  </strong>
+                </div>
+
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-tertiary);">Số câu sẽ làm:</span>
+                  <strong style="color: var(--brand-primary); font-size: 14px;">
+                    ${targetQuestionCount} câu
+                  </strong>
+                </div>
+
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-tertiary);">Thời gian thi:</span>
+                  <strong>${timeDisplayText}</strong>
+                </div>
+
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-tertiary);">Xáo trộn đề:</span>
+                  <span>${state.shuffleQuestions ? '✓ Xáo câu' : '✗ Giữ câu'} · ${state.shuffleOptions ? '✓ Xáo đáp án' : '✗ Giữ đáp án'}</span>
+                </div>
+
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-tertiary);">Phạm vi:</span>
+                  <span>${isAllChapters ? 'Tất cả các chương' : `${state.selectedChapters.length} chương đã chọn`}</span>
+                </div>
+              </div>
+
+              <!-- Nút Bắt Đầu Lớn -->
+              <button 
+                class="btn btn-primary" 
+                style="width: 100%; padding: 14px; font-size: 15px; font-weight: 800; letter-spacing: 0.02em; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 10px rgba(37,99,235,0.25);" 
+                onclick="App.launchQuizFromSetup()">
+                🚀 BẮT ĐẦU LÀM BÀI NGAY ➔
+              </button>
+
+              <button 
+                class="btn" 
+                style="width: 100%; margin-top: 10px; font-size: 13px;" 
+                onclick="App.navigateTo('home')">
+                ← Quay lại danh sách môn
+              </button>
+
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    `;
+  },
+
+  setQuizSetupMode(mode) {
+    if (!this.quizSetupState) return;
+    this.quizSetupState.mode = mode;
+    this.renderQuizSetupView(document.getElementById("mainContent"), this.quizSetupSubjectId);
+  },
+
+  setQuizSetupPracticeOption(key, checked) {
+    if (!this.quizSetupState) return;
+    this.quizSetupState[key] = Boolean(checked);
+    this.renderQuizSetupView(document.getElementById("mainContent"), this.quizSetupSubjectId);
+  },
+
+  setQuizSetupExamOption(key, checked) {
+    if (!this.quizSetupState) return;
+    this.quizSetupState[key] = Boolean(checked);
+    this.renderQuizSetupView(document.getElementById("mainContent"), this.quizSetupSubjectId);
+  },
+
+  setQuizSetupTimePreset(preset) {
+    if (!this.quizSetupState) return;
+    this.quizSetupState.timePreset = preset;
+    this.renderQuizSetupView(document.getElementById("mainContent"), this.quizSetupSubjectId);
+  },
+
+  setQuizSetupCustomTime(val) {
+    if (!this.quizSetupState) return;
+    this.quizSetupState.customTimeMinutes = val;
+  },
+
+  setQuizSetupQuestionCount(count) {
+    if (!this.quizSetupState) return;
+    this.quizSetupState.questionCount = count;
+    this.renderQuizSetupView(document.getElementById("mainContent"), this.quizSetupSubjectId);
+  },
+
+  setQuizSetupCustomQuestionCount(val) {
+    if (!this.quizSetupState) return;
+    this.quizSetupState.customQuestionCount = val;
+  },
+
+  toggleQuizSetupShuffle(key) {
+    if (!this.quizSetupState) return;
+    this.quizSetupState[key] = !this.quizSetupState[key];
+    this.renderQuizSetupView(document.getElementById("mainContent"), this.quizSetupSubjectId);
+  },
+
+  toggleQuizSetupChapter(chapterId) {
+    if (!this.quizSetupState) return;
+    let list = this.quizSetupState.selectedChapters.filter(c => c !== "all");
+    if (list.includes(chapterId)) {
+      list = list.filter(c => c !== chapterId);
+    } else {
+      list.push(chapterId);
+    }
+    if (list.length === 0) list = ["all"];
+    this.quizSetupState.selectedChapters = list;
+    this.renderQuizSetupView(document.getElementById("mainContent"), this.quizSetupSubjectId);
+  },
+
+  toggleQuizSetupAllChapters() {
+    if (!this.quizSetupState) return;
+    this.quizSetupState.selectedChapters = ["all"];
+    this.renderQuizSetupView(document.getElementById("mainContent"), this.quizSetupSubjectId);
+  },
+
+  launchQuizFromSetup() {
+    const subject = StorageService.getSubjectById(this.quizSetupSubjectId);
+    if (!subject) {
+      this.showToast("⚠️ Không tìm thấy môn học!", "danger");
+      return;
+    }
+
+    const state = this.quizSetupState || {};
+    const questionCount = (state.questionCount === "custom") ? (parseInt(state.customQuestionCount, 10) || "all") : state.questionCount;
+    const customTimeMinutes = (state.timePreset === "custom") ? (parseInt(state.customTimeMinutes, 10) || 45) : ((state.timePreset !== "auto") ? parseInt(state.timePreset, 10) : null);
+
+    const session = QuizEngine.createQuizSession(subject, {
+      mode: state.mode || "practice",
+      chapterIds: state.selectedChapters,
+      questionCount: questionCount || "all",
+      shuffleQuestions: state.shuffleQuestions !== false,
+      shuffleOptions: state.shuffleOptions !== false,
+      customTimeMinutes: customTimeMinutes,
+      instantFeedback: state.instantFeedback !== false,
+      autoExpandNotes: state.autoExpandNotes !== false,
+      repeatMistakes: state.repeatMistakes === true,
+      warnTime: state.warnTime !== false,
+      autoSubmitOnTimeout: state.autoSubmitOnTimeout !== false
     });
 
     if (session.questions.length === 0) {
@@ -2620,14 +3068,12 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       return;
     }
 
-    session.flags = {}; // Quản lý danh sách câu đã đặt cờ 🚩
     this.activeSession = session;
     this.currentPage = 0;
-    this.closeModal();
     this.navigateTo("quiz");
 
     // Khởi động đồng hồ nếu thi thử
-    if (mode === "exam") {
+    if (session.mode === "exam") {
       this.startExamTimer();
     }
   },
@@ -3033,7 +3479,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       let stateNote = "";
 
       if (isAnswered) {
-        if (isPractice) {
+        if (isPractice && this.activeSession.instantFeedback !== false) {
           optClass += " disabled";
           if (oi === q.answerIndex) {
             optClass += " state-correct";
@@ -3046,7 +3492,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
             stateNote = `<strong>Ghi chú:</strong> ${SmartParserService.formatRichText(opt.note || '')}`;
           }
         } else {
-          // Exam mode
+          // Exam mode hoặc Ôn tập không hiện đáp án ngay
           if (oi === userAns) optClass += " selected-exam";
         }
       }
@@ -3057,7 +3503,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
             <div class="opt-letter">${this.letters[oi]}</div>
             <div class="opt-text">${SmartParserService.formatRichText(opt.text)}</div>
           </div>
-          ${(isPractice && isAnswered && opt.note) ? `<div class="opt-explanation">${stateNote}</div>` : ''}
+          ${(isPractice && this.activeSession.instantFeedback !== false && isAnswered && opt.note) ? `<div class="opt-explanation">${stateNote}</div>` : ''}
         </div>
       `;
     });
@@ -3084,12 +3530,13 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
 
   selectQuizOption(questionId, optionIndex) {
     if (!this.activeSession) return;
-    if (this.activeSession.mode === "practice" && this.activeSession.answers[questionId] !== undefined) {
-      return; // Khóa trong chế độ ôn tập
+    if (this.activeSession.mode === "practice" && this.activeSession.instantFeedback !== false && this.activeSession.answers[questionId] !== undefined) {
+      return; // Khóa trong chế độ ôn tập khi bật hiện đáp án ngay
     }
 
     this.activeSession.answers[questionId] = optionIndex;
     this.renderQuizQuestions();
+    this.renderQuizSidebarGrid();
   },
 
   renderQuizPagination() {
