@@ -8453,11 +8453,11 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
             <div class="form-group" style="margin: 0;">
               <label style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; display: block;">Mã số sinh viên (MSSV):</label>
-              <input type="text" id="loginStudentId" class="form-control" placeholder="Ví dụ: 0024418475">
+              <input type="text" id="loginStudentId" class="form-control" placeholder="Ví dụ: 0024xxxxxx">
             </div>
             <div class="form-group" style="margin: 0;">
               <label style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; display: block;">Mã PIN bảo mật:</label>
-              <input type="password" id="loginPinCode" class="form-control" placeholder="Mã PIN (Mặc định: 123456)">
+              <input type="password" id="loginPinCode" class="form-control" placeholder="Ví dụ: 000000">
             </div>
           </div>
           <button class="btn btn-primary" style="width: 100%; font-weight: 700; padding: 11px;" onclick="App.loginWithCredentials()">
@@ -9071,7 +9071,7 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
           </div>
           <div class="form-group" style="margin: 0;">
             <label class="form-label">Mã số sinh viên (MSSV):</label>
-            <input type="text" id="contactSenderMssv" class="form-control" placeholder="Ví dụ: 0024418475" value="${isUserLoggedIn ? (currentProfile.studentId || '') : (prefill.studentId || '')}">
+            <input type="text" id="contactSenderMssv" class="form-control" placeholder="Ví dụ: 0024xxxxxx" value="${isUserLoggedIn ? (currentProfile.studentId || '') : (prefill.studentId || '')}">
           </div>
         </div>
 
