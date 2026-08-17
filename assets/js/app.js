@@ -233,9 +233,10 @@ const App = {
   logoutUser() {
     StorageService.logout();
     this.closeUserDrawer();
+    this.closeModal();
     this.renderHeader();
     this.showToast("👋 Đã đăng xuất về chế độ Khách!", "info", 2500);
-    this.navigateTo("home");
+    this.navigateTo("home", {}, true);
   },
 
   renderDrawerLevel(level) {
@@ -1110,8 +1111,51 @@ const App = {
     return { view, data };
   },
 
-  // Router Điều hướng màn hình (Hỗ trợ Browser History Back/Forward)
+  // ── ROUTE GUARD: KIỂM TRA QUYỀN TRUY CẬP TRANG (BẢO VỆ PHÂN QUYỀN KHÁCH / SINH VIÊN / EDITOR / ADMIN) ──
+  checkRoutePermission(view) {
+    const isLogged = StorageService.isLoggedIn();
+    const profile = StorageService.getUserProfile();
+    const isAdmin = isLogged && (profile.role === "admin" || (profile.permissions && profile.permissions.canManageUsers));
+    const isEditor = isLogged && (isAdmin || profile.role === "editor" || (profile.permissions && (profile.permissions.canEditSubjects || profile.permissions.canApproveDrafts)));
+
+    // 1. Nhóm trang Quản Trị Hệ Thống (Chỉ Admin)
+    if (["leaderboard-admin", "users-management"].includes(view)) {
+      if (!isLogged) return { allowed: false, message: "🔒 Vui lòng đăng nhập tài khoản Quản trị viên!" };
+      if (!isAdmin) return { allowed: false, message: "⛔ Bạn không có quyền truy cập trang Quản trị này!" };
+    }
+
+    // 2. Nhóm trang Quản Lý & Phê Duyệt Đề (Chỉ Editor & Admin)
+    if (["manage", "moderation", "draft-review"].includes(view)) {
+      if (!isLogged) return { allowed: false, message: "🔒 Vui lòng đăng nhập để truy cập tính năng Quản lý đề thi!" };
+      if (!isEditor) return { allowed: false, message: "⛔ Tài khoản của bạn chưa được cấp quyền Quản lý hoặc Phê duyệt đề thi!" };
+    }
+
+    // 3. Nhóm trang Soạn Thảo & Nhập Đề (Parser) (Chỉ Sinh viên đăng nhập / Editor)
+    if (view === "parser") {
+      if (!isLogged) return { allowed: false, message: "🔒 Vui lòng đăng nhập tài khoản sinh viên để sử dụng công cụ Nhập & Đóng góp đề thi!" };
+    }
+
+    // 4. Nhóm trang Dành Riêng Cho Sinh Viên Đã Đăng Nhập
+    if (["notifications", "history", "mistakes", "materials", "leaderboard"].includes(view)) {
+      if (!isLogged) return { allowed: false, message: "🔒 Vui lòng đăng nhập tài khoản sinh viên để xem nội dung này!" };
+    }
+
+    return { allowed: true };
+  },
+
+  // Router Điều hướng màn hình (Hỗ trợ Browser History Back/Forward & Route Guard)
   navigateTo(view, data = {}, pushHistory = true) {
+    // 🛡️ BẢO VỆ ROUTE: Kiểm tra quyền truy cập của người dùng
+    const perm = this.checkRoutePermission(view);
+    if (!perm.allowed) {
+      this.showToast(perm.message || "🔒 Yêu cầu đăng nhập!", "warning", 3000);
+      if (!StorageService.isLoggedIn()) {
+        this.openAccountSwitcherModal();
+      }
+      view = "home";
+      data = {};
+    }
+
     if (this.currentView && this.currentView !== view) {
       this.previousView = this.currentView;
       this.previousViewData = this.currentViewData || {};
@@ -1438,6 +1482,10 @@ const App = {
     const startIndex = filtered.length > 0 ? (currentPage * PAGE_SIZE + 1) : 0;
     const endIndex = Math.min((currentPage + 1) * PAGE_SIZE, filtered.length);
 
+    const isLogged = StorageService.isLoggedIn();
+    const profile = StorageService.getUserProfile();
+    const isEditor = isLogged && (profile.role === "admin" || profile.role === "editor" || (profile.permissions && profile.permissions.canEditSubjects));
+
     // Tên chương đang lọc để hiển thị trên nút phễu
     let activeFilterName = "Tất cả chương";
     if (activeFilter !== "all") {
@@ -1450,19 +1498,21 @@ const App = {
         
         <!-- Back Navigation & Top Actions Bar -->
         <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 14px;">
-          <button class="btn btn-sm" onclick="App.navigateTo('manage')">
-            ← Quay lại danh sách môn
+          <button class="btn btn-sm" onclick="App.navigateTo('${isEditor ? 'manage' : 'home'}')">
+            ${isEditor ? '← Quay lại danh sách môn' : '🏠 Về Trang Chủ'}
           </button>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
             <button class="btn btn-sm btn-primary" onclick="App.openQuizConfigModal('${sub.id}')">
-              🚀 Vào Ôn Thi Ngay
+              🚀 Vào Làm Bài Ngay
             </button>
-            <button class="btn btn-sm" onclick="App.navigateTo('parser', { subjectId: '${sub.id}' })">
-              📝 Nhập câu (Parser)
-            </button>
-            <button class="btn btn-sm" onclick="App.shuffleSubjectQuestions('${sub.id}')">
-              🔄 Xáo trộn đề
-            </button>
+            ${isEditor ? `
+              <button class="btn btn-sm" onclick="App.navigateTo('parser', { subjectId: '${sub.id}' })">
+                📝 Nhập câu (Parser)
+              </button>
+              <button class="btn btn-sm" onclick="App.shuffleSubjectQuestions('${sub.id}')">
+                🔄 Xáo trộn đề
+              </button>
+            ` : ''}
             <button class="btn btn-sm" onclick="ImportExportService.exportSubject('${sub.id}')">
               📥 Xuất JSON
             </button>
@@ -2847,6 +2897,12 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
       };
     }
 
+    // Nếu là tài khoản Khách, cưỡng chế chỉ được Thi thử và luôn bật đảo đáp án
+    if (!isLogged) {
+      this.quizSetupState.mode = "exam";
+      this.quizSetupState.shuffleOptions = true;
+    }
+
     const state = this.quizSetupState;
     const allQuestions = subject.questions || [];
     const chapters = subject.chapters || [];
@@ -2921,15 +2977,18 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
                 <!-- Tab Ôn Tập -->
                 <div 
                   onclick="App.setQuizSetupMode('practice')" 
-                  style="border: 2px solid ${state.mode === 'practice' ? 'var(--brand-primary)' : 'var(--border)'}; background: ${state.mode === 'practice' ? '#f0fdf4' : 'var(--surface)'}; padding: 16px; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s ease; position: relative;">
+                  style="border: 2px solid ${state.mode === 'practice' ? 'var(--brand-primary)' : 'var(--border)'}; background: ${state.mode === 'practice' ? '#f0fdf4' : 'var(--surface)'}; padding: 16px; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s ease; position: relative; ${!isLogged ? 'opacity: 0.65; background: #f8fafc;' : ''}">
                   <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                    <strong style="font-size: 15px; color: ${state.mode === 'practice' ? '#15803d' : 'var(--text-primary)'};">
-                      🟢 Chế Độ Ôn Tập
-                    </strong>
-                    <input type="radio" name="setupModeRadio" ${state.mode === 'practice' ? 'checked' : ''} style="cursor: pointer;">
+                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                      <strong style="font-size: 15px; color: ${state.mode === 'practice' ? '#15803d' : 'var(--text-primary)'};">
+                        🟢 Chế Độ Ôn Tập
+                      </strong>
+                      ${!isLogged ? `<span class="badge" style="background: #fef3c7; color: #92400e; font-size: 10.5px; font-weight: 700;">🔒 Cần Đăng nhập</span>` : ''}
+                    </div>
+                    <input type="radio" name="setupModeRadio" ${state.mode === 'practice' ? 'checked' : ''} ${!isLogged ? 'disabled' : ''} style="cursor: pointer;">
                   </div>
                   <p style="font-size: 12.5px; color: var(--text-secondary); margin: 0; line-height: 1.5;">
-                    Tự do củng cố kiến thức, học tới đâu xem đáp án & giải thích tới đó, không áp lực thời gian.
+                    ${!isLogged ? 'Tính năng xem đáp án và giải thích chi tiết từng câu chỉ dành cho sinh viên đã đăng nhập tài khoản DThu.' : 'Tự do củng cố kiến thức, học tới đâu xem đáp án & giải thích tới đó, không áp lực thời gian.'}
                   </p>
                 </div>
 
@@ -3117,10 +3176,13 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
 
                 <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 13.5px; color: var(--text-primary); padding: 8px 12px; background: #f8fafc; border-radius: var(--radius-sm);">
                   <div>
-                    <strong>🔤 Xáo trộn thứ tự các đáp án A - B - C - D:</strong>
+                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                      <strong>🔤 Xáo trộn thứ tự các đáp án A - B - C - D:</strong>
+                      ${!isLogged ? `<span class="badge" style="background: #fef3c7; color: #92400e; font-size: 10.5px; font-weight: 700;">🔒 Khóa với Khách (Luôn bật)</span>` : ''}
+                    </div>
                     <div style="font-size: 12px; color: var(--text-secondary);">Tránh việc học vẹt vị trí chữ cái, rèn luyện tư duy thực chất</div>
                   </div>
-                  <input type="checkbox" ${state.shuffleOptions ? 'checked' : ''} onchange="App.toggleQuizSetupShuffle('shuffleOptions')" style="width: 18px; height: 18px; cursor: pointer;">
+                  <input type="checkbox" ${state.shuffleOptions ? 'checked' : ''} ${!isLogged ? 'disabled' : ''} onchange="App.toggleQuizSetupShuffle('shuffleOptions')" style="width: 18px; height: 18px; cursor: pointer;">
                 </label>
               </div>
 
@@ -3250,6 +3312,12 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
 
   setQuizSetupMode(mode) {
     if (!this.quizSetupState) return;
+    const isLogged = StorageService.isLoggedIn();
+    if (mode === "practice" && !isLogged) {
+      this.showToast("🔒 Chế độ Ôn tập có đáp án & lời giải chi tiết yêu cầu Đăng nhập tài khoản sinh viên!", "warning", 3000);
+      this.openAccountSwitcherModal();
+      return;
+    }
     this.quizSetupState.mode = mode;
     this.renderQuizSetupView(document.getElementById("mainContent"), this.quizSetupSubjectId);
   },
@@ -3290,6 +3358,11 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
 
   toggleQuizSetupShuffle(key) {
     if (!this.quizSetupState) return;
+    const isLogged = StorageService.isLoggedIn();
+    if (key === "shuffleOptions" && !isLogged) {
+      this.showToast("🔒 Tài khoản Khách bắt buộc đảo thứ tự đáp án A-B-C-D để chống học vẹt!", "warning", 2500);
+      return;
+    }
     this.quizSetupState[key] = !this.quizSetupState[key];
     this.renderQuizSetupView(document.getElementById("mainContent"), this.quizSetupSubjectId);
   },
@@ -3320,16 +3393,26 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
       return;
     }
 
+    const isLogged = StorageService.isLoggedIn();
     const state = this.quizSetupState || {};
+    let selectedMode = state.mode || "exam";
+    let shuffleOpts = state.shuffleOptions !== false;
+
+    if (!isLogged) {
+      // Khách tuyệt đối chỉ được thi thử và bắt buộc xáo trộn đáp án
+      selectedMode = "exam";
+      shuffleOpts = true;
+    }
+
     const questionCount = (state.questionCount === "custom") ? (parseInt(state.customQuestionCount, 10) || "all") : state.questionCount;
     const customTimeMinutes = (state.timePreset === "custom") ? (parseInt(state.customTimeMinutes, 10) || 45) : ((state.timePreset !== "auto") ? parseInt(state.timePreset, 10) : null);
 
     const session = QuizEngine.createQuizSession(subject, {
-      mode: state.mode || "practice",
+      mode: selectedMode,
       chapterIds: state.selectedChapters,
       questionCount: questionCount || "all",
       shuffleQuestions: state.shuffleQuestions !== false,
-      shuffleOptions: state.shuffleOptions !== false,
+      shuffleOptions: shuffleOpts,
       customTimeMinutes: customTimeMinutes,
       instantFeedback: state.instantFeedback !== false,
       autoExpandNotes: state.autoExpandNotes !== false,
