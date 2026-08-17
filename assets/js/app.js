@@ -194,7 +194,7 @@ const App = {
                   </div>
                   <div style="display: flex; gap: 10px; margin-top: 8px; font-size: 12px;">
                     <span style="color: #b45309; font-weight: 800;">⚡ ${profile.totalExp} EXP</span>
-                    <span style="color: #0369a1; font-weight: 700;">📝 ${history.length} bài</span>
+                    <span style="color: #0369a1; font-weight: 700;">📝 ${profile.quizzesCompleted !== undefined ? profile.quizzesCompleted : history.length} bài</span>
                   </div>
                 </div>
               </div>
@@ -958,6 +958,12 @@ const App = {
     if (this.regWatcherInterval && view !== "register") {
       clearInterval(this.regWatcherInterval);
       this.regWatcherInterval = null;
+    }
+
+    // Hủy admin live poll nếu rời khỏi trang quản trị người dùng
+    if (this.adminLivePollInterval && view !== "users-management") {
+      clearInterval(this.adminLivePollInterval);
+      this.adminLivePollInterval = null;
     }
 
     const mainContainer = document.getElementById("mainContent");
@@ -3155,6 +3161,27 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       await StorageService.syncWithCloud();
     }
 
+    // Thiết lập auto-polling mỗi 2.5 giây khi Admin đang ở trang Quản trị người dùng để nhận diện hồ sơ đăng ký mới ngay lập tức
+    if (!this.adminLivePollInterval) {
+      this.adminLivePollInterval = setInterval(async () => {
+        if (App.currentView === "users-management") {
+          const prevPending = StorageService.getPendingUsers().length;
+          await StorageService.syncWithCloud();
+          const newPending = StorageService.getPendingUsers().length;
+          if (newPending !== prevPending) {
+            App.renderHeader();
+            App.renderUsersManagementView(document.getElementById("mainContent"));
+            if (newPending > prevPending) {
+              App.showToast(`🔔 Có ${newPending - prevPending} yêu cầu đăng ký mới vừa gửi từ sinh viên!`, "info", 4000);
+            }
+          }
+        } else {
+          clearInterval(App.adminLivePollInterval);
+          App.adminLivePollInterval = null;
+        }
+      }, 2500);
+    }
+
     const allUsers = StorageService.getAllUsers();
     const activeUsers = StorageService.getActiveUsers();
     const pendingUsers = StorageService.getPendingUsers();
@@ -4770,7 +4797,7 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
     if (hidden) hidden.value = avatar;
   },
 
-  submitRegistration() {
+  async submitRegistration() {
     const fullName = document.getElementById("regFullName")?.value.trim();
     const studentId = document.getElementById("regStudentId")?.value.trim();
     const email = document.getElementById("regEmail")?.value.trim();
@@ -4806,8 +4833,10 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
       return;
     }
 
+    this.showToast("⏳ Đang gửi hồ sơ lên CSDL Đám Mây Supabase...", "info", 1500);
+
     try {
-      const newUser = StorageService.registerUser({
+      const newUser = await StorageService.registerUser({
         fullName,
         studentId,
         email,

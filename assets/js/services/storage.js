@@ -391,20 +391,26 @@ const StorageService = {
     return newUser;
   },
 
-  registerUser(userData) {
+  async registerUser(userData) {
     const list = this.getAllUsers();
     if (!userData.studentId) throw new Error("Mã số sinh viên không được để trống!");
     if (!userData.fullName) throw new Error("Họ và tên không được để trống!");
 
+    // Kiểm tra trùng lặp trên Supabase Cloud trực tiếp
+    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+      try {
+        const cloudExisting = await SupabaseClient.getUserByStudentId(userData.studentId);
+        if (cloudExisting && cloudExisting.status !== "rejected") {
+          throw new Error(`Mã số sinh viên ${userData.studentId} đã tồn tại trong hệ thống!`);
+        }
+      } catch (e) {
+        if (e.message && e.message.includes("tồn tại")) throw e;
+      }
+    }
+
     const existingId = this.getUserByStudentId(userData.studentId);
     if (existingId) {
       throw new Error(`Mã số sinh viên ${userData.studentId} đã tồn tại trong hệ thống!`);
-    }
-    if (userData.email) {
-      const existingEmail = this.getUserByEmail(userData.email);
-      if (existingEmail) {
-        throw new Error(`Địa chỉ email ${userData.email} đã được đăng ký!`);
-      }
     }
 
     const newUser = {
@@ -435,9 +441,13 @@ const StorageService = {
     list.push(newUser);
     this.saveAllUsers(list);
 
-    // Bắn dữ liệu lên Supabase Cloud
+    // Bắn dữ liệu lên Supabase Cloud và chờ xác nhận
     if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
-      SupabaseClient.createUser(newUser).catch(e => console.warn("Supabase createUser error:", e));
+      try {
+        await SupabaseClient.createUser(newUser);
+      } catch (e) {
+        console.warn("Supabase createUser error:", e);
+      }
     }
 
     return newUser;
@@ -768,6 +778,12 @@ const StorageService = {
     const profile = this.getUserProfile();
     profile.totalExp = (profile.totalExp || 0) + points;
     this.saveUserProfile(profile);
+
+    // Đồng bộ EXP lên Supabase Cloud
+    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+      SupabaseClient.updateUser(profile.id, { totalExp: profile.totalExp }).catch(() => {});
+    }
+
     return profile.totalExp;
   },
 
@@ -813,6 +829,15 @@ const StorageService = {
     history.unshift(attempt);
     if (history.length > 50) history.pop();
     localStorage.setItem(this.KEYS.HISTORY, JSON.stringify(history));
+
+    const profile = this.getUserProfile();
+    if (profile && profile.role !== "guest") {
+      profile.quizzesCompleted = (profile.quizzesCompleted || 0) + 1;
+      this.saveUserProfile(profile);
+      if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+        SupabaseClient.updateUser(profile.id, { quizzesCompleted: profile.quizzesCompleted }).catch(() => {});
+      }
+    }
 
     // Thưởng EXP cho bài thi
     if (attempt.score10 >= 8.0) {
