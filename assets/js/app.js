@@ -4534,7 +4534,9 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       return;
     }
 
-    if (!this.adminLeaderboardTab) this.adminLeaderboardTab = "seasons";
+    if (!this.adminLeaderboardTab || this.adminLeaderboardTab === "settings" || this.adminLeaderboardTab === "archives" || this.adminLeaderboardTab === "new_season") {
+      this.adminLeaderboardTab = "seasons";
+    }
     if (!this.adminMemberDept) this.adminMemberDept = "all";
     if (!this.adminMemberStatus) this.adminMemberStatus = "all";
     if (this.adminMemberSearch === undefined) this.adminMemberSearch = "";
@@ -4542,7 +4544,6 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
 
     const seasons = StorageService.getSeasons();
     const settings = StorageService.getLeaderboardSettings();
-    const archives = StorageService.getLeaderboardArchives();
     const auditLogs = StorageService.getAuditLogs();
     const allUsers = StorageService.getAllUsers();
     const departments = Array.from(new Set(allUsers.map(u => u.department).filter(Boolean)));
@@ -4582,7 +4583,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
               <span>👑</span> <span>TRUNG TÂM QUẢN TRỊ ADMIN TOÀN DIỆN</span>
             </div>
             <h2 style="font-size: 24px; font-weight: 800; color: var(--text-primary); margin: 0;">Quản Trị Bảng Xếp Hạng & Vòng Đời Mùa Giải</h2>
-            <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Toàn quyền tạo mùa, sửa mùa, reset điểm, đóng băng, phân quyền, kiểm toán và quản trị thành viên.</div>
+            <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Toàn quyền tạo mùa, sửa thể lệ, reset điểm, đóng băng, phân quyền, kiểm toán và quản trị thành viên.</div>
           </div>
           <div style="display: flex; gap: 8px;">
             <button class="btn btn-sm" onclick="App.navigateTo('leaderboard')">
@@ -4591,19 +4592,13 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
           </div>
         </div>
 
-        <!-- 5 Tab Chức Năng Quản Trị Chuyên Sâu -->
+        <!-- 3 Tab Chức Năng Quản Trị Chuyên Sâu Tinh Gọn -->
         <div class="hub-tabs" style="margin-bottom: 24px; flex-wrap: wrap;">
           <button class="hub-tab-btn ${this.adminLeaderboardTab === 'seasons' ? 'active' : ''}" onclick="App.adminLeaderboardTab = 'seasons'; App.renderLeaderboardAdminView(document.getElementById('mainContent'));">
             🏆 Quản Lý Mùa Giải (${seasons.length})
           </button>
-          <button class="hub-tab-btn ${this.adminLeaderboardTab === 'settings' ? 'active' : ''}" onclick="App.adminLeaderboardTab = 'settings'; App.renderLeaderboardAdminView(document.getElementById('mainContent'));">
-            ⚙️ Cài Đặt Thể Lệ & BXH
-          </button>
           <button class="hub-tab-btn ${this.adminLeaderboardTab === 'members' ? 'active' : ''}" onclick="App.adminLeaderboardTab = 'members'; App.renderLeaderboardAdminView(document.getElementById('mainContent'));">
             👥 Quản Trị Thành Viên (${allUsers.length})
-          </button>
-          <button class="hub-tab-btn ${this.adminLeaderboardTab === 'archives' ? 'active' : ''}" onclick="App.adminLeaderboardTab = 'archives'; App.renderLeaderboardAdminView(document.getElementById('mainContent'));">
-            📜 Bảng Vàng Archives (${archives.length})
           </button>
           <button class="hub-tab-btn ${this.adminLeaderboardTab === 'audit_logs' ? 'active' : ''}" onclick="App.adminLeaderboardTab = 'audit_logs'; App.renderLeaderboardAdminView(document.getElementById('mainContent'));">
             📋 Nhật Ký Kiểm Toán (${auditLogs.length})
@@ -4613,14 +4608,39 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
         <!-- NỘI DUNG CHI TIẾT TỪNG TAB -->
         <div class="admin-tab-content">
           ${this.adminLeaderboardTab === 'seasons' ? `
-            <!-- TAB 1: QUẢN LÝ VÒNG ĐỜI MÙA GIẢI (SEASONS LIFECYCLE) -->
+            <!-- TAB 1: QUẢN LÝ VÒNG ĐỜI MÙA GIẢI & CÀI ĐẶT THỂ LỆ TÍCH HỢP -->
             <div>
+              <!-- Thanh Cấu Hình Công Khai & Giới Hạn Hiển Thị BXH Nhanh -->
+              <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                  <label style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; color: var(--text-primary); cursor: pointer;">
+                    <input type="checkbox" id="adminLeaderboardIsPublicCheckbox" ${settings.isPublic !== false ? 'checked' : ''} style="width: 17px; height: 17px;">
+                    <span>🌐 Cho phép sinh viên xem BXH công khai</span>
+                  </label>
+
+                  <div style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+                    <span style="font-weight: 600; color: var(--text-secondary);">Giới hạn hiển thị:</span>
+                    <select id="adminMaxDisplaySelect" class="form-control" style="width: auto; padding: 4px 10px; font-size: 12.5px; font-weight: 600;">
+                      <option value="all" ${settings.maxDisplayCount === 'all' ? 'selected' : ''}>Toàn bộ sinh viên</option>
+                      <option value="100" ${settings.maxDisplayCount === '100' ? 'selected' : ''}>Top 100 sinh viên</option>
+                      <option value="50" ${settings.maxDisplayCount === '50' ? 'selected' : ''}>Top 50 sinh viên</option>
+                      <option value="20" ${settings.maxDisplayCount === '20' ? 'selected' : ''}>Top 20 sinh viên</option>
+                      <option value="10" ${settings.maxDisplayCount === '10' ? 'selected' : ''}>Top 10 sinh viên</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button class="btn btn-sm btn-primary" onclick="App.saveAdminLeaderboardDisplaySettingsAction()">
+                  💾 Lưu Thiết Lập Hiển Thị
+                </button>
+              </div>
+
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px;">
                 <div>
                   <h3 style="font-size: 17px; font-weight: 800; margin: 0; color: var(--text-primary);">
-                    Danh Sách Mùa Giải Thi Đua
+                    Danh Sách Mùa Giải & Thể Lệ Thi Đua
                   </h3>
-                  <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">Quản lý toàn bộ các mùa giải: Đang diễn ra, Sắp tới và Đã đóng băng.</div>
+                  <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">Tích hợp đầy đủ tạo mùa, chỉnh sửa thể lệ, hệ số EXP, podium, đóng băng và xem bảng vàng.</div>
                 </div>
                 <button class="btn btn-primary btn-sm" onclick="App.openCreateSeasonModal()" style="display: inline-flex; align-items: center; gap: 6px;">
                   <span>➕</span> <span>Tạo Mùa Giải Mới</span>
@@ -4674,8 +4694,8 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                               ♻️ Mở Lại Mùa
                             </button>
                           `}
-                          <button class="btn btn-sm" onclick="App.openEditSeasonModal('${s.id}')" title="Chỉnh sửa thông số mùa giải">
-                            ✏️ Sửa
+                          <button class="btn btn-sm" onclick="App.openEditSeasonModal('${s.id}')" title="Chỉnh sửa thông số & thể lệ mùa giải">
+                            ✏️ Sửa Thể Lệ
                           </button>
                           <button class="btn btn-sm" style="background:#15803d; color:#fff; font-weight:700;" onclick="App.exportSeasonCSV('${s.id}')" title="Xuất báo cáo bảng điểm CSV">
                             📥 CSV
@@ -4688,92 +4708,18 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                         </div>
                       </div>
 
-                      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; background: var(--surface-subtle); padding: 10px 14px; border-radius: var(--radius-sm); font-size: 12.5px; border: 1px solid var(--border);">
+                      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; background: var(--surface-subtle); padding: 10px 14px; border-radius: var(--radius-sm); font-size: 12.5px; border: 1px solid var(--border);">
                         <div>📅 <strong>Thời gian:</strong> ${sStartDate} ➔ ${sEndDate}</div>
                         <div>⚡ <strong>Hệ số EXP:</strong> <span class="badge" style="background:#e0f2fe; color:#0369a1; font-weight:800;">${(s.expMultiplier || 1.0).toFixed(1)}x</span></div>
-                        <div>👤 <strong>Khởi tạo bởi:</strong> ${s.createdBy || 'Admin'}</div>
+                        <div>🥇 <strong>Podium:</strong> ${s.top1Title || 'Top 1'} · ${s.top2Title || 'Top 2'} · ${s.top3Title || 'Top 3'}</div>
                       </div>
                     </div>
                   `;
                 }).join('')}
               </div>
             </div>
-          ` : this.adminLeaderboardTab === 'settings' ? `
-            <!-- TAB 2: CÀI ĐẶT THỂ LỆ & GIAO DIỆN BẢNG XẾP HẠNG -->
-            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px; max-width: 720px;">
-              <h3 style="font-size: 17px; font-weight: 800; margin-bottom: 16px; color: var(--text-primary);">
-                ⚙️ Cấu Hình Thể Lệ & Hiển Thị Bảng Xếp Hạng
-              </h3>
-
-              <!-- Cấu hình Công Khai / Tạm Ẩn BXH -->
-              <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 20px;">
-                <label style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; color: var(--text-primary); cursor: pointer;">
-                  <input type="checkbox" id="adminLeaderboardIsPublicCheckbox" ${settings.isPublic !== false ? 'checked' : ''} style="width: 18px; height: 18px;">
-                  <span>Cho phép sinh viên xem Bảng Xếp Hạng công khai</span>
-                </label>
-                <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 4px; margin-left: 28px;">
-                  Nếu bỏ chọn, chỉ Quản trị viên mới xem được BXH. Sinh viên truy cập sẽ thấy thông báo tạm đóng để kiểm toán/bảo trì điểm.
-                </div>
-              </div>
-
-              <!-- Cấu hình Giới Hạn Hiển Thị & Hệ Số EXP -->
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px;">
-                <div class="form-group" style="margin: 0;">
-                  <label class="form-label" style="font-weight: 700;">Giới Hạn Hiển Thị Công Khai (*):</label>
-                  <select id="adminMaxDisplaySelect" class="form-control" style="font-weight: 600;">
-                    <option value="all" ${settings.maxDisplayCount === 'all' ? 'selected' : ''}>Toàn bộ sinh viên</option>
-                    <option value="100" ${settings.maxDisplayCount === '100' ? 'selected' : ''}>Top 100 sinh viên</option>
-                    <option value="50" ${settings.maxDisplayCount === '50' ? 'selected' : ''}>Top 50 sinh viên</option>
-                    <option value="20" ${settings.maxDisplayCount === '20' ? 'selected' : ''}>Top 20 sinh viên</option>
-                    <option value="10" ${settings.maxDisplayCount === '10' ? 'selected' : ''}>Top 10 sinh viên</option>
-                  </select>
-                </div>
-
-                <div class="form-group" style="margin: 0;">
-                  <label class="form-label" style="font-weight: 700;">Hệ Số Thưởng EXP Mùa Thi (*):</label>
-                  <select id="adminExpMultiplierSelect" class="form-control" style="font-weight: 600;">
-                    <option value="1.0" ${(settings.expMultiplier || 1.0) == 1.0 ? 'selected' : ''}>1.0x (Tiêu chuẩn)</option>
-                    <option value="1.25" ${(settings.expMultiplier || 1.0) == 1.25 ? 'selected' : ''}>1.25x (Khích lệ ôn tập)</option>
-                    <option value="1.5" ${(settings.expMultiplier || 1.0) == 1.5 ? 'selected' : ''}>1.5x (Mùa thi cao điểm)</option>
-                    <option value="2.0" ${(settings.expMultiplier || 1.0) == 2.0 ? 'selected' : ''}>2.0x (Sự kiện đặc biệt)</option>
-                  </select>
-                </div>
-              </div>
-
-              <!-- Cấu hình Tên Mùa & Danh Xưng Podium -->
-              <div class="form-group" style="margin-bottom: 16px;">
-                <label class="form-label" style="font-weight: 700;">Tên Mùa Giải / Học Kỳ Đang Hoạt Động (*):</label>
-                <input type="text" id="adminSeasonNameInput" class="form-control" value="${settings.seasonName || ''}" placeholder="Ví dụ: Học Kỳ 1 (2026 - 2027)">
-              </div>
-
-              <div style="border-top: 1px dashed var(--border); padding-top: 16px; margin-top: 16px;">
-                <label class="form-label" style="font-size: 13.5px; font-weight: 700; margin-bottom: 12px; display: block;">
-                  Tùy Biến Danh Xưng Hiển Thị Trên Podium Top 3:
-                </label>
-                <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
-                  <div class="form-group" style="margin: 0;">
-                    <label class="form-label" style="font-size: 12.5px;">🥇 Danh hiệu Hạng 1 (Top 1):</label>
-                    <input type="text" id="adminTop1Input" class="form-control" value="${settings.top1Title || '🥇 Hạng 1 (Top 1)'}">
-                  </div>
-                  <div class="form-group" style="margin: 0;">
-                    <label class="form-label" style="font-size: 12.5px;">🥈 Danh hiệu Hạng 2 (Top 2):</label>
-                    <input type="text" id="adminTop2Input" class="form-control" value="${settings.top2Title || '🥈 Hạng 2 (Top 2)'}">
-                  </div>
-                  <div class="form-group" style="margin: 0;">
-                    <label class="form-label" style="font-size: 12.5px;">🥉 Danh hiệu Hạng 3 (Top 3):</label>
-                    <input type="text" id="adminTop3Input" class="form-control" value="${settings.top3Title || '🥉 Hạng 3 (Top 3)'}">
-                  </div>
-                </div>
-              </div>
-
-              <div style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px; display: flex; justify-content: flex-end;">
-                <button class="btn btn-primary" onclick="App.saveAdminLeaderboardSettingsAction()">
-                  💾 Lưu Cấu Hình Thể Lệ & BXH
-                </button>
-              </div>
-            </div>
           ` : this.adminLeaderboardTab === 'members' ? `
-            <!-- TAB 3: QUẢN TRỊ THÀNH VIÊN, LỌC TRẠNG THÁI NHÓM & THAO TÁC CAO CẤP -->
+            <!-- TAB 2: QUẢN TRỊ THÀNH VIÊN, LỌC TRẠNG THÁI NHÓM & THAO TÁC CAO CẤP -->
             <div>
               <!-- Toolbar Lọc Trạng Thái Nhóm, Tìm Kiếm & Xuất CSV -->
               <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 18px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
@@ -4897,11 +4843,6 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                 </table>
               </div>
             </div>
-          ` : this.adminLeaderboardTab === 'archives' ? `
-            <!-- TAB 4: KHO LƯU TRỮ MÙA GIẢI CŨ -->
-            <div>
-              <div style="margin-bottom: 16px; color: var(--text-secondary); font-size: 13.5px;">
-                Danh sách các mùa giải thi đua đã đóng băng và lưu trữ an toàn trong lịch sử hệ thống:
               </div>
 
               ${archives.length === 0 ? `
@@ -5020,44 +4961,16 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     `;
   },
 
-  saveAdminLeaderboardSettingsAction() {
-    const sName = document.getElementById("adminSeasonNameInput")?.value.trim();
-    const t1 = document.getElementById("adminTop1Input")?.value.trim();
-    const t2 = document.getElementById("adminTop2Input")?.value.trim();
-    const t3 = document.getElementById("adminTop3Input")?.value.trim();
+  saveAdminLeaderboardDisplaySettingsAction() {
     const isPublic = document.getElementById("adminLeaderboardIsPublicCheckbox")?.checked ?? true;
     const maxDisplay = document.getElementById("adminMaxDisplaySelect")?.value || "all";
-    const multiplier = parseFloat(document.getElementById("adminExpMultiplierSelect")?.value) || 1.0;
-
-    if (!sName) {
-      this.showToast("⚠️ Tên mùa giải không được để trống!", "warning");
-      return;
-    }
 
     const current = StorageService.getLeaderboardSettings();
-    current.seasonName = sName;
-    current.top1Title = t1 || "🥇 Hạng 1 (Top 1)";
-    current.top2Title = t2 || "🥈 Hạng 2 (Top 2)";
-    current.top3Title = t3 || "🥉 Hạng 3 (Top 3)";
     current.isPublic = isPublic;
     current.maxDisplayCount = maxDisplay;
-    current.expMultiplier = multiplier;
 
     StorageService.saveLeaderboardSettings(current);
-
-    // Cập nhật hệ số vào active season nếu có
-    const activeSeason = StorageService.getActiveSeason();
-    if (activeSeason) {
-      StorageService.updateSeason(activeSeason.id, {
-        name: sName,
-        top1Title: current.top1Title,
-        top2Title: current.top2Title,
-        top3Title: current.top3Title,
-        expMultiplier: multiplier
-      });
-    }
-
-    this.showToast("✅ Đã lưu cấu hình Thể lệ & Bảng Xếp Hạng thành công!", "success", 3000);
+    this.showToast("✅ Đã lưu thiết lập hiển thị Bảng Xếp Hạng thành công!", "success", 2500);
     this.renderLeaderboardAdminView(document.getElementById("mainContent"));
   },
 
