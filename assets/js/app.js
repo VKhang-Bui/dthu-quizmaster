@@ -59,7 +59,13 @@ const App = {
       if (typeof StorageService !== "undefined" && typeof StorageService.recordVisit === "function") {
         StorageService.recordVisit();
         this.updateTrafficStatsUI();
-        setInterval(() => this.updateTrafficStatsUI(), 30000);
+        setInterval(() => {
+          const tabId = (typeof sessionStorage !== "undefined") ? sessionStorage.getItem("dthu_quiz_tab_id") : null;
+          if (tabId && typeof StorageService.updateActiveOnlineHeartbeat === "function") {
+            StorageService.updateActiveOnlineHeartbeat(tabId);
+          }
+          this.updateTrafficStatsUI();
+        }, 15000);
       }
 
       // Tự động đồng bộ CSDL đám mây Supabase Cloud (chạy nền)

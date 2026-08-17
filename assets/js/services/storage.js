@@ -2438,10 +2438,10 @@ const StorageService = {
     return true;
   },
 
-  // ── 10. THỐNG KÊ LƯU LƯỢNG & TRUY CẬP TRỰC TUYẾN (TRAFFIC ANALYTICS) ──
+  // ── 10. THỐNG KÊ LƯU LƯỢNG & TRUY CẬP THỰC TẾ (REAL TRAFFIC ANALYTICS) ──
   recordVisit() {
     try {
-      const KEY = "dthu_quiz_traffic_stats_v1";
+      const KEY = "dthu_quiz_traffic_stats_v2";
       let stats = {};
       try {
         stats = JSON.parse(localStorage.getItem(KEY)) || {};
@@ -2449,25 +2449,48 @@ const StorageService = {
         stats = {};
       }
 
+      // Khởi tạo lượt xem thực tế ban đầu (bắt đầu từ 1 nếu chưa có)
+      let totalVisits = typeof stats.totalVisits === "number" ? stats.totalVisits : 1;
+      let todayVisits = typeof stats.todayVisits === "number" ? stats.todayVisits : 1;
       const todayStr = new Date().toISOString().split("T")[0];
-      const BASE_VISITS = 28650;
-      const BASE_TODAY = 480;
 
-      let total = stats.totalVisits || BASE_VISITS;
-      let todayVisits = (stats.lastDate === todayStr) ? (stats.todayVisits || BASE_TODAY) : BASE_TODAY;
-
-      // Tăng lượt truy cập nếu là phiên duyệt mới
-      const SESSION_KEY = "dthu_quiz_visited_session";
-      if (typeof sessionStorage !== "undefined" && !sessionStorage.getItem(SESSION_KEY)) {
-        sessionStorage.setItem(SESSION_KEY, "1");
-        total += 1;
-        todayVisits += 1;
+      if (stats.lastDate !== todayStr) {
+        todayVisits = 0;
+        stats.lastDate = todayStr;
       }
 
-      stats.totalVisits = total;
+      // CHỐNG SPAM F5 RELOAD:
+      // 1. Kiểm tra sessionStorage (cùng tab duyệt web)
+      // 2. Kiểm tra khoảng cách thời gian (chỉ tính 1 lượt xem cho cùng 1 phiên 30 phút)
+      const SESSION_KEY = "dthu_quiz_session_active";
+      const now = Date.now();
+      const lastVisitTime = stats.lastVisitTime || 0;
+      const isNewSession = (typeof sessionStorage !== "undefined") && !sessionStorage.getItem(SESSION_KEY);
+      const isPastTimeout = (now - lastVisitTime) > (30 * 60 * 1000); // 30 phút
+
+      if (isNewSession || isPastTimeout) {
+        if (typeof sessionStorage !== "undefined") {
+          sessionStorage.setItem(SESSION_KEY, now.toString());
+        }
+        totalVisits += 1;
+        todayVisits += 1;
+        stats.lastVisitTime = now;
+      }
+
+      // Ghi nhận Heartbeat Online của tab/phiên duyệt hiện tại (để đếm chính xác số người/tab online thật)
+      const TAB_ID_KEY = "dthu_quiz_tab_id";
+      let tabId = (typeof sessionStorage !== "undefined") ? sessionStorage.getItem(TAB_ID_KEY) : null;
+      if (!tabId && typeof sessionStorage !== "undefined") {
+        tabId = "TAB-" + Math.random().toString(36).substring(2, 9) + "-" + Date.now();
+        sessionStorage.setItem(TAB_ID_KEY, tabId);
+      }
+
+      this.updateActiveOnlineHeartbeat(tabId);
+
+      stats.totalVisits = totalVisits;
       stats.todayVisits = todayVisits;
       stats.lastDate = todayStr;
-      stats.lastUpdated = Date.now();
+      stats.lastUpdated = now;
 
       localStorage.setItem(KEY, JSON.stringify(stats));
       return this.getTrafficStats();
@@ -2477,9 +2500,40 @@ const StorageService = {
     }
   },
 
+  updateActiveOnlineHeartbeat(tabId) {
+    try {
+      const HEARTBEAT_KEY = "dthu_quiz_active_heartbeats";
+      let heartbeats = {};
+      try {
+        heartbeats = JSON.parse(localStorage.getItem(HEARTBEAT_KEY)) || {};
+      } catch (e) {
+        heartbeats = {};
+      }
+
+      const now = Date.now();
+      if (tabId) {
+        heartbeats[tabId] = now;
+      }
+
+      // Lọc bỏ các session/tab không gửi tín hiệu trong 45 giây qua
+      const activeWindow = 45 * 1000;
+      const cleaned = {};
+      for (const [id, time] of Object.entries(heartbeats)) {
+        if (now - time < activeWindow) {
+          cleaned[id] = time;
+        }
+      }
+
+      localStorage.setItem(HEARTBEAT_KEY, JSON.stringify(cleaned));
+      return Math.max(1, Object.keys(cleaned).length);
+    } catch (e) {
+      return 1;
+    }
+  },
+
   getTrafficStats() {
     try {
-      const KEY = "dthu_quiz_traffic_stats_v1";
+      const KEY = "dthu_quiz_traffic_stats_v2";
       let stats = {};
       try {
         stats = JSON.parse(localStorage.getItem(KEY)) || {};
@@ -2487,56 +2541,43 @@ const StorageService = {
         stats = {};
       }
 
-      const BASE_VISITS = 28650;
-      const BASE_TODAY = 480;
-      const todayStr = new Date().toISOString().split("T")[0];
+      const totalVisits = stats.totalVisits || 1;
+      const todayVisits = stats.todayVisits || 1;
 
-      const totalVisits = stats.totalVisits || BASE_VISITS;
-      const todayVisits = (stats.lastDate === todayStr) ? (stats.todayVisits || BASE_TODAY) : BASE_TODAY;
+      // Đếm số người online THỰC TẾ từ danh sách heartbeat còn hoạt động
+      const tabId = (typeof sessionStorage !== "undefined") ? sessionStorage.getItem("dthu_quiz_tab_id") : null;
+      const realOnlineCount = this.updateActiveOnlineHeartbeat(tabId);
 
-      // Tính số người online sinh động theo khung giờ học tập của sinh viên DThu
-      const now = new Date();
-      const hour = now.getHours();
-      const minute = now.getMinutes();
-      let baseOnline = 35;
+      // Đếm lượt thi thực tế 100% từ lịch sử làm bài
+      const history = this.getHistory ? this.getHistory() : [];
+      const totalAttempts = history.length;
 
-      if (hour >= 0 && hour < 6) {
-        baseOnline = 12 + (hour * 2);
-      } else if (hour >= 6 && hour < 12) {
-        baseOnline = 38 + ((hour - 6) * 4);
-      } else if (hour >= 12 && hour < 18) {
-        baseOnline = 45 + ((hour - 12) * 3);
-      } else {
-        baseOnline = 65 + ((hour - 18) * 5);
-      }
-
-      // Micro dao động tự nhiên theo phút
-      const variance = (minute % 7) - 3;
-      const onlineNow = Math.max(8, baseOnline + variance);
-
-      // Tổng câu hỏi và lượt thi
-      const subjects = this.getSubjects();
+      // Đếm tổng câu hỏi thực tế từ các môn học
+      const subjects = this.getSubjects ? this.getSubjects() : [];
       const totalQuestions = subjects.reduce((sum, s) => sum + (s.questions ? s.questions.length : 0), 0);
-      const totalAttempts = (this.getHistory ? this.getHistory().length : 0) + 4280;
 
       return {
         totalVisits,
         totalVisitsFormatted: Number(totalVisits).toLocaleString("vi-VN"),
         todayVisits,
         todayVisitsFormatted: Number(todayVisits).toLocaleString("vi-VN"),
-        onlineNow,
+        onlineNow: realOnlineCount,
+        totalAttempts,
         totalAttemptsFormatted: Number(totalAttempts).toLocaleString("vi-VN"),
+        totalQuestions,
         totalQuestionsFormatted: Number(totalQuestions).toLocaleString("vi-VN")
       };
     } catch (e) {
       return {
-        totalVisits: 28650,
-        totalVisitsFormatted: "28.650",
-        todayVisits: 480,
-        todayVisitsFormatted: "480",
-        onlineNow: 42,
-        totalAttemptsFormatted: "4.280",
-        totalQuestionsFormatted: "1.850"
+        totalVisits: 1,
+        totalVisitsFormatted: "1",
+        todayVisits: 1,
+        todayVisitsFormatted: "1",
+        onlineNow: 1,
+        totalAttempts: 0,
+        totalAttemptsFormatted: "0",
+        totalQuestions: 0,
+        totalQuestionsFormatted: "0"
       };
     }
   }
