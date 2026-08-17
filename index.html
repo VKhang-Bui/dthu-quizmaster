@@ -28,9 +28,11 @@
   <!-- Main Dynamic View Container -->
   <main id="mainContent" class="app-main"></main>
 
-  <!-- Floating Bottom Guide Button -->
-  <button class="floating-guide-btn" onclick="App.navigateTo('guide')" title="Xem hướng dẫn sử dụng & cẩm nang soạn đề">
-    💡 Hướng dẫn
+  <!-- Floating Draggable Guide Button (Nút Nổi Kéo Thả Hút Cạnh) -->
+  <button class="floating-guide-btn" id="floatingGuideBtn" title="💡 Nhấp để xem Hướng dẫn · Nhấn giữ để kéo thả">
+    <span class="guide-btn-icon">💡</span>
+    <span class="guide-btn-text">Hướng dẫn</span>
+    <span class="guide-btn-drag-handle" title="Kéo thả">⠿</span>
   </button>
 
   <!-- User Side Drawer (Thanh Trượt Bên Phải) -->

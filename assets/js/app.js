@@ -53,6 +53,7 @@ const App = {
 
       this.navigateTo(startView, startData, false);
       this.bindGlobalEvents();
+      this.initDraggableGuideButton();
 
       // Tự động đồng bộ CSDL đám mây Supabase Cloud (chạy nền)
       if (typeof StorageService !== "undefined" && typeof StorageService.syncWithCloud === "function") {
@@ -142,18 +143,13 @@ const App = {
     }
 
     headerEl.innerHTML = `
-      <div class="header-brand" onclick="App.navigateTo('home')">
+      <div class="header-brand" onclick="App.navigateTo('home')" title="Nhấp để quay về Trang Chủ">
         <div class="brand-icon">📚</div>
         <div class="brand-title-group">
           <h1>DThu QuizMaster</h1>
           <div class="brand-author">Bùi Văn Khang · CNSH DThu</div>
         </div>
       </div>
-
-      <nav class="app-nav">
-        <button class="nav-link ${this.currentView === 'home' ? 'active' : ''}" id="navHome" onclick="App.navigateTo('home')">🏠 Trang chủ</button>
-        <button class="nav-link ${this.currentView === 'guide' ? 'active' : ''}" id="navGuide" onclick="App.navigateTo('guide')">💡 Hướng dẫn</button>
-      </nav>
 
       <!-- Khối Người Dùng (Bấm vào để mở Thanh trượt bên phải) -->
       <div class="header-user-widget" onclick="App.openUserDrawer('main')" title="${isLogged ? 'Xem menu cá nhân & tiện ích' : 'Nhấp để đăng nhập'}">
@@ -1069,6 +1065,12 @@ const App = {
       if (window.location.hash !== targetHash) {
         window.history.pushState({ view, data }, "", targetHash);
       }
+    }
+
+    // Ẩn nút hướng dẫn nổi khi vào phòng thi (quiz), hiển thị ở các màn hình khác
+    const floatingGuideBtn = document.getElementById("floatingGuideBtn");
+    if (floatingGuideBtn) {
+      floatingGuideBtn.style.display = (view === "quiz") ? "none" : "flex";
     }
 
     // Hủy timer nếu rời khỏi phòng thi
@@ -7464,6 +7466,196 @@ Câu 2: Nội dung câu hỏi số 2 ở đây?
           }).catch(() => {});
         }
       }
+    });
+  },
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // NÚT HƯỚNG DẪN NỔI KÉO THẢ THÔNG MINH & TỰ ĐỘNG HÚT CẠNH (SNAP-TO-EDGE)
+  // ═════════════════════════════════════════════════════════════════════════
+  initDraggableGuideButton() {
+    const btn = document.getElementById("floatingGuideBtn");
+    if (!btn) return;
+
+    // Đọc vị trí đã lưu từ LocalStorage nếu có
+    let savedPos = null;
+    try {
+      const stored = localStorage.getItem("dthu_guide_btn_pos");
+      if (stored) savedPos = JSON.parse(stored);
+    } catch (e) {}
+
+    const clampAndSetPosition = (left, top, animate = false) => {
+      const btnRect = btn.getBoundingClientRect();
+      const btnW = btnRect.width || 120;
+      const btnH = btnRect.height || 40;
+
+      const minLeft = 14;
+      const maxLeft = Math.max(minLeft, window.innerWidth - btnW - 14);
+      const minTop = 64; // Dưới Header
+      const maxTop = Math.max(minTop, window.innerHeight - btnH - 24); // Trên đáy
+
+      let clampedLeft = Math.max(minLeft, Math.min(left, maxLeft));
+      let clampedTop = Math.max(minTop, Math.min(top, maxTop));
+
+      if (animate) {
+        btn.style.transition = "left 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.25s ease";
+      } else {
+        btn.style.transition = "none";
+      }
+
+      btn.style.left = `${clampedLeft}px`;
+      btn.style.top = `${clampedTop}px`;
+      btn.style.right = "auto";
+      btn.style.bottom = "auto";
+
+      return { left: clampedLeft, top: clampedTop };
+    };
+
+    // Khởi tạo vị trí ban đầu
+    const initBtnPos = () => {
+      const btnW = btn.offsetWidth || 120;
+      const btnH = btn.offsetHeight || 40;
+      if (savedPos && typeof savedPos.left === "number" && typeof savedPos.top === "number") {
+        clampAndSetPosition(savedPos.left, savedPos.top, false);
+      } else {
+        // Mặc định: Góc dưới bên phải
+        const defaultLeft = window.innerWidth - btnW - 20;
+        const defaultTop = window.innerHeight - btnH - 30;
+        clampAndSetPosition(defaultLeft, defaultTop, false);
+      }
+    };
+
+    // Chờ một nhịp nhỏ để DOM render kích thước thật của button
+    setTimeout(initBtnPos, 50);
+
+    // Trạng thái kéo thả
+    let isPointerDown = false;
+    let isDragging = false;
+    let startPointerX = 0;
+    let startPointerY = 0;
+    let startBtnLeft = 0;
+    let startBtnTop = 0;
+
+    const onPointerStart = (clientX, clientY) => {
+      const rect = btn.getBoundingClientRect();
+      startPointerX = clientX;
+      startPointerY = clientY;
+      startBtnLeft = rect.left;
+      startBtnTop = rect.top;
+      isPointerDown = true;
+      isDragging = false;
+    };
+
+    const onPointerMove = (clientX, clientY, e) => {
+      if (!isPointerDown) return;
+
+      const dx = clientX - startPointerX;
+      const dy = clientY - startPointerY;
+
+      if (!isDragging && Math.hypot(dx, dy) > 6) {
+        isDragging = true;
+        btn.classList.add("is-dragging");
+      }
+
+      if (isDragging) {
+        if (e && e.cancelable) e.preventDefault();
+
+        const btnRect = btn.getBoundingClientRect();
+        const minLeft = 10;
+        const maxLeft = Math.max(minLeft, window.innerWidth - btnRect.width - 10);
+        const minTop = 60;
+        const maxTop = Math.max(minTop, window.innerHeight - btnRect.height - 18);
+
+        const currentLeft = Math.max(minLeft, Math.min(startBtnLeft + dx, maxLeft));
+        const currentTop = Math.max(minTop, Math.min(startBtnTop + dy, maxTop));
+
+        btn.style.left = `${currentLeft}px`;
+        btn.style.top = `${currentTop}px`;
+        btn.style.right = "auto";
+        btn.style.bottom = "auto";
+      }
+    };
+
+    const onPointerEnd = () => {
+      if (!isPointerDown) return;
+      isPointerDown = false;
+      btn.classList.remove("is-dragging");
+
+      if (!isDragging) {
+        // Thao tác Click -> Điều hướng đến màn hình Hướng dẫn
+        App.navigateTo("guide");
+        return;
+      }
+
+      // Thao tác Kéo thả xong -> Kích hoạt Hút Sát Cạnh Gần Nhất (Snap-to-Edge Magnetism)
+      const rect = btn.getBoundingClientRect();
+      const btnW = rect.width || 120;
+      const btnH = rect.height || 40;
+      const centerX = rect.left + btnW / 2;
+
+      // Khoảng cách tới cạnh trái vs cạnh phải
+      let targetLeft = 16;
+      if (centerX >= window.innerWidth / 2) {
+        targetLeft = window.innerWidth - btnW - 16;
+      }
+
+      const minTop = 64;
+      const maxTop = Math.max(minTop, window.innerHeight - btnH - 24);
+      const targetTop = Math.max(minTop, Math.min(rect.top, maxTop));
+
+      const finalPos = clampAndSetPosition(targetLeft, targetTop, true);
+
+      // Lưu lại vị trí để khi F5 / mở lại web vẫn ở đúng vị trí
+      try {
+        localStorage.setItem("dthu_guide_btn_pos", JSON.stringify(finalPos));
+      } catch (e) {}
+    };
+
+    // Sự kiện Chuột (Mouse)
+    btn.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return; // Chỉ nhận chuột trái
+      onPointerStart(e.clientX, e.clientY);
+
+      const onMouseMove = (moveEv) => onPointerMove(moveEv.clientX, moveEv.clientY, moveEv);
+      const onMouseUp = () => {
+        window.removeEventListener("mousemove", onMouseMove);
+        window.removeEventListener("mouseup", onMouseUp);
+        onPointerEnd();
+      };
+
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    });
+
+    // Sự kiện Cảm Ứng Điện Thoại (Touch)
+    btn.addEventListener("touchstart", (e) => {
+      if (!e.touches || e.touches.length === 0) return;
+      const t = e.touches[0];
+      onPointerStart(t.clientX, t.clientY);
+    }, { passive: true });
+
+    btn.addEventListener("touchmove", (e) => {
+      if (!e.touches || e.touches.length === 0) return;
+      const t = e.touches[0];
+      onPointerMove(t.clientX, t.clientY, e);
+    }, { passive: false });
+
+    btn.addEventListener("touchend", () => {
+      onPointerEnd();
+    }, { passive: true });
+
+    btn.addEventListener("touchcancel", () => {
+      onPointerEnd();
+    }, { passive: true });
+
+    // Tự động canh chỉnh khi Resize màn hình hoặc xoay ngang/dọc điện thoại
+    window.addEventListener("resize", () => {
+      const rect = btn.getBoundingClientRect();
+      const centerX = rect.left + (rect.width || 120) / 2;
+      let targetLeft = 16;
+      if (centerX >= window.innerWidth / 2) {
+        targetLeft = window.innerWidth - (rect.width || 120) - 16;
+      }
+      clampAndSetPosition(targetLeft, rect.top, false);
     });
   }
 };
