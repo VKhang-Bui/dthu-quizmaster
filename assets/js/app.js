@@ -1622,24 +1622,34 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
     }
 
     const subId = document.getElementById("parserSubjectSelect")?.value;
+    const chapterId = document.getElementById("parserChapterSelect")?.value || "c1";
     const sub = StorageService.getSubjectById(subId);
     const profile = StorageService.getUserProfile();
 
+    const mappedQuestions = this.currentParsedQuestions.map((q, idx) => ({
+      ...q,
+      id: q.id || `q-${Date.now()}-${idx}`,
+      chapterId: chapterId
+    }));
+
     const draftData = {
+      targetSubjectId: sub ? sub.id : null,
+      targetChapterId: chapterId,
       code: sub ? sub.code : "GEN101",
       name: sub ? sub.name : "Bộ đề mới",
       department: sub ? sub.department : profile.department,
       author: profile.fullName + ` (MSSV: ${profile.studentId || 'DThu'})`,
       authorEmail: profile.email || "",
-      description: `Bộ đề gồm ${this.currentParsedQuestions.length} câu hỏi, nhập qua Parser ngày ${new Date().toLocaleDateString('vi-VN')}.`,
+      description: `Bộ đề gồm ${mappedQuestions.length} câu hỏi môn ${sub ? sub.name : ''} (Chương: ${chapterId}), nhập qua Parser ngày ${new Date().toLocaleDateString('vi-VN')}.`,
       icon: sub ? (sub.icon || "📝") : "📝",
-      questions: this.currentParsedQuestions
+      chapters: sub && sub.chapters ? sub.chapters : [{ id: "c1", name: "Chương 1: Mở đầu" }],
+      questions: mappedQuestions
     };
 
     StorageService.addDraftSubject(draftData);
     StorageService.addExp(30, "Nhập bộ đề mới vào hệ thống (+30 EXP)");
 
-    this.showToast(`🎉 Đã lưu ${this.currentParsedQuestions.length} câu hỏi vào danh sách Chờ Phê Duyệt!`, "success", 4000);
+    this.showToast(`🎉 Đã lưu ${mappedQuestions.length} câu hỏi vào danh sách Chờ Phê Duyệt!`, "success", 4000);
     this.renderHeader();
 
     // Tự động chuyển sang trang Quản Lý Bộ Đề, tab "Chờ duyệt"
@@ -4954,6 +4964,17 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
     this.activeReviewDraftId = draftId;
     const questions = draft.questions || [];
     const editIdx = this.draftEditingQuestionIndex;
+    const allOfficialSubjects = StorageService.getSubjects();
+    const targetSubId = draft.targetSubjectId || "";
+    const targetChapterId = draft.targetChapterId || "c1";
+
+    let targetSubObj = null;
+    if (targetSubId && targetSubId !== "NEW") {
+      targetSubObj = allOfficialSubjects.find(s => s.id === targetSubId);
+    }
+    const targetChapters = (targetSubObj && targetSubObj.chapters && targetSubObj.chapters.length > 0)
+      ? targetSubObj.chapters
+      : [{ id: "c1", name: "Chương 1: Mở đầu & Tổng hợp" }];
 
     container.innerHTML = `
       <div style="padding: 28px 24px; max-width: 1050px; margin: 0 auto; width: 100%;">
@@ -4987,13 +5008,35 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
           </div>
         </div>
 
-        <!-- Khối Thông Tin Cơ Bản Bộ Đề (Editable) -->
+        <!-- Khối Thông Tin Cơ Bản & Đích Đến (Editable) -->
         <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px 24px; margin-bottom: 24px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
             <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">
-              📋 Thông Tin Tổng Quan Bộ Đề
+              📋 Thông Tin Tổng Quan & Môn Học Đích
             </h3>
             <span style="font-size: 12px; color: var(--text-tertiary);">Chỉnh sửa trực tiếp và bấm "Lưu Thay Đổi"</span>
+          </div>
+
+          <!-- Môn học đích khi duyệt -->
+          <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 16px;">
+            <div style="font-weight: 700; font-size: 13.5px; color: #166534; margin-bottom: 8px;">
+              🎯 Đích Đến Khi Phê Duyệt (Gộp vào Môn học chính thức)
+            </div>
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="font-size: 12.5px; color: #166534; font-weight: 600;">Gán vào môn học (*):</label>
+                <select id="reviewDraftTargetSubject" class="form-control" onchange="App.onReviewTargetSubjectChange('${draft.id}')">
+                  <option value="NEW" ${(!targetSubId || targetSubId === 'NEW') ? 'selected' : ''}>➕ Tạo thành môn học mới</option>
+                  ${allOfficialSubjects.map(s => `<option value="${s.id}" ${(targetSubId === s.id || draft.code === s.code) ? 'selected' : ''}>📚 ${s.name} (${s.code || s.id})</option>`).join('')}
+                </select>
+              </div>
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="font-size: 12.5px; color: #166534; font-weight: 600;">Gán vào chương:</label>
+                <select id="reviewDraftTargetChapter" class="form-control">
+                  ${targetChapters.map(c => `<option value="${c.id}" ${targetChapterId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                </select>
+              </div>
+            </div>
           </div>
 
           <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 12px;">
@@ -5169,6 +5212,24 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
     `;
   },
 
+  onReviewTargetSubjectChange(draftId) {
+    const subSelect = document.getElementById("reviewDraftTargetSubject");
+    const chapSelect = document.getElementById("reviewDraftTargetChapter");
+    if (!subSelect || !chapSelect) return;
+
+    const subId = subSelect.value;
+    if (subId === "NEW") {
+      chapSelect.innerHTML = '<option value="c1">Chương 1: Mở đầu & Tổng hợp</option>';
+    } else {
+      const sub = StorageService.getSubjectById(subId);
+      if (sub && sub.chapters && sub.chapters.length > 0) {
+        chapSelect.innerHTML = sub.chapters.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      } else {
+        chapSelect.innerHTML = '<option value="c1">Chương 1: Mở đầu</option>';
+      }
+    }
+  },
+
   toggleEditDraftQuestion(draftId, qIndex) {
     this.draftEditingQuestionIndex = qIndex;
     const main = document.getElementById("mainContent");
@@ -5247,7 +5308,7 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
 
     const newQ = {
       id: `q-${Date.now()}-${draft.questions.length + 1}`,
-      chapterId: "c1",
+      chapterId: draft.targetChapterId || "c1",
       question: "Nội dung câu hỏi mới...",
       options: [
         { text: "Phương án A", isCorrect: true, note: "Giải thích đáp án A (chính xác)." },
@@ -5276,12 +5337,23 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
     const deptVal = document.getElementById("reviewDraftDept")?.value.trim();
     const authorVal = document.getElementById("reviewDraftAuthor")?.value.trim();
     const descVal = document.getElementById("reviewDraftDesc")?.value.trim();
+    const targetSubVal = document.getElementById("reviewDraftTargetSubject")?.value;
+    const targetChapVal = document.getElementById("reviewDraftTargetChapter")?.value;
 
     if (nameVal) draft.name = nameVal;
     if (codeVal) draft.code = codeVal;
     if (deptVal) draft.department = deptVal;
     if (authorVal) draft.author = authorVal;
     if (descVal !== undefined) draft.description = descVal;
+    if (targetSubVal) draft.targetSubjectId = targetSubVal;
+    if (targetChapVal) {
+      draft.targetChapterId = targetChapVal;
+      if (draft.questions) {
+        draft.questions.forEach(q => {
+          if (!q.chapterId) q.chapterId = targetChapVal;
+        });
+      }
+    }
 
     StorageService.saveDraftSubject(draft);
     this.showToast("💾 Đã lưu toàn bộ thông tin bộ đề vào Cloud & Local thành công!", "success", 3000);
@@ -5301,18 +5373,29 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
     const deptVal = document.getElementById("reviewDraftDept")?.value.trim();
     const authorVal = document.getElementById("reviewDraftAuthor")?.value.trim();
     const descVal = document.getElementById("reviewDraftDesc")?.value.trim();
+    const targetSubVal = document.getElementById("reviewDraftTargetSubject")?.value;
+    const targetChapVal = document.getElementById("reviewDraftTargetChapter")?.value;
 
     if (nameVal) draft.name = nameVal;
     if (codeVal) draft.code = codeVal;
     if (deptVal) draft.department = deptVal;
     if (authorVal) draft.author = authorVal;
     if (descVal !== undefined) draft.description = descVal;
+    if (targetSubVal) draft.targetSubjectId = targetSubVal;
+    if (targetChapVal) {
+      draft.targetChapterId = targetChapVal;
+      if (draft.questions) {
+        draft.questions.forEach(q => {
+          if (!q.chapterId) q.chapterId = targetChapVal;
+        });
+      }
+    }
 
     StorageService.saveDraftSubject(draft);
 
     const res = StorageService.approveDraft(draftId);
     if (res) {
-      this.showToast(`🎉 Đã duyệt bộ đề "${res.name}" sang Ngân hàng Chính thức! (+50 EXP)`, "success", 4500);
+      this.showToast(`🎉 Đã duyệt bộ đề và gộp vào môn "${res.name}" thành công! (+50 EXP)`, "success", 4500);
       this.renderHeader();
       this.adminSubjectTab = "official";
       this.navigateTo("manage");

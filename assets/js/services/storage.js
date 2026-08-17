@@ -144,6 +144,8 @@ const StorageService = {
     const drafts = this.getDraftSubjects();
     const newDraft = {
       id: "draft-" + Date.now(),
+      targetSubjectId: draftData.targetSubjectId || null,
+      targetChapterId: draftData.targetChapterId || "c1",
       name: draftData.name || "Bộ đề đóng góp mới",
       code: draftData.code || "CONTRIB-" + Math.floor(100 + Math.random() * 900),
       department: draftData.department || "Khoa Nông nghiệp - Sinh học",
@@ -154,6 +156,7 @@ const StorageService = {
       submissionDate: new Date().toLocaleDateString("vi-VN"),
       isDraft: true,
       status: "pending",
+      chapters: draftData.chapters || [{ id: "c1", name: "Chương 1: Tổng hợp" }],
       questions: draftData.questions || []
     };
 
@@ -174,29 +177,75 @@ const StorageService = {
     if (idx === -1) return null;
 
     const draft = drafts[idx];
-    const officialSubject = {
-      id: "subj-" + Date.now(),
-      name: draft.name,
-      code: draft.code,
-      department: draft.department,
-      description: draft.description,
-      icon: draft.icon || "🧪",
-      credits: 2,
-      durationMinutes: 45,
-      passScore: 5.0,
-      chapters: [
-        { id: "c1", name: "Toàn bộ câu hỏi đóng góp", questionCount: draft.questions ? draft.questions.length : 0 }
-      ],
-      questions: (draft.questions || []).map((q, qIdx) => ({
-        id: `q-${Date.now()}-${qIdx}`,
-        chapterId: "c1",
+    const targetSubId = draft.targetSubjectId || draft.subjectId;
+    const existingSubjects = this.getSubjects();
+
+    // 1. Tìm xem môn học đích đã tồn tại trong danh sách môn học chưa
+    let targetSub = null;
+    if (targetSubId && targetSubId !== "NEW") {
+      targetSub = existingSubjects.find(s => s.id === targetSubId);
+    }
+    if (!targetSub && draft.code) {
+      targetSub = existingSubjects.find(s => s.code === draft.code);
+    }
+
+    let finalSubject = null;
+
+    if (targetSub) {
+      // 🟢 TRƯỜNG HỢP 1: MÔN HỌC ĐÃ TỒN TẠI → GỘP CÂU HỎI VÀO MÔN ĐÓ
+      if (!targetSub.questions) targetSub.questions = [];
+
+      const newQuestions = (draft.questions || []).map((q, qIdx) => ({
+        id: `q-${Date.now()}-${qIdx}-${Math.floor(Math.random() * 1000)}`,
+        chapterId: q.chapterId || draft.targetChapterId || "c1",
         question: q.question,
         options: q.options,
-        answerIndex: q.answerIndex
-      }))
-    };
+        answerIndex: (typeof q.answerIndex === "number") ? q.answerIndex : 0
+      }));
 
-    this.saveSubject(officialSubject);
+      targetSub.questions.push(...newQuestions);
+
+      // Nếu draft có chapters mới chưa có trong môn học, gộp thêm vào
+      if (draft.chapters && Array.isArray(draft.chapters)) {
+        if (!targetSub.chapters) targetSub.chapters = [];
+        draft.chapters.forEach(dChap => {
+          if (!targetSub.chapters.some(c => c.id === dChap.id)) {
+            targetSub.chapters.push(dChap);
+          }
+        });
+      }
+
+      this.saveSubject(targetSub);
+      finalSubject = targetSub;
+    } else {
+      // 🟡 TRƯỜNG HỢP 2: MÔN HỌC MỚI HOÀN TOÀN → TẠO THÀNH MÔN MỚI
+      const newOfficial = {
+        id: (targetSubId && targetSubId !== "NEW") ? targetSubId : ("SUB_" + Date.now()),
+        name: draft.name,
+        code: draft.code || "GEN101",
+        department: draft.department || "Khoa Kỹ thuật - Công nghệ",
+        description: draft.description || "Bộ đề thi chính thức.",
+        icon: draft.icon || "📚",
+        credits: 2,
+        durationMinutes: 45,
+        passScore: 5.0,
+        chapters: (draft.chapters && draft.chapters.length > 0) ? draft.chapters : [
+          { id: "c1", name: "Chương 1: Mở đầu & Tổng hợp", questionCount: draft.questions ? draft.questions.length : 0 }
+        ],
+        questions: (draft.questions || []).map((q, qIdx) => ({
+          id: `q-${Date.now()}-${qIdx}`,
+          chapterId: q.chapterId || draft.targetChapterId || "c1",
+          question: q.question,
+          options: q.options,
+          answerIndex: (typeof q.answerIndex === "number") ? q.answerIndex : 0
+        }))
+      };
+
+      this.saveSubject(newOfficial);
+      finalSubject = newOfficial;
+    }
+
+    // Xóa draft sau khi duyệt
     drafts.splice(idx, 1);
     this.saveDraftSubjects(drafts);
 
@@ -204,8 +253,8 @@ const StorageService = {
       SupabaseClient.deleteDraftSubject(draftId).catch(e => console.warn("Supabase deleteDraftSubject error:", e));
     }
 
-    this.addExp(50, `Phê duyệt bộ đề: ${draft.name}`);
-    return officialSubject;
+    this.addExp(50, `Phê duyệt đóng góp vào môn: ${finalSubject.name}`);
+    return finalSubject;
   },
 
   rejectDraft(draftId) {
