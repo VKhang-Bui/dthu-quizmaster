@@ -118,6 +118,28 @@ const StorageService = {
     localStorage.setItem(this.KEYS.DRAFTS, JSON.stringify(drafts));
   },
 
+  getDraftById(id) {
+    const drafts = this.getDraftSubjects();
+    return drafts.find(d => d.id === id) || null;
+  },
+
+  saveDraftSubject(draft) {
+    const drafts = this.getDraftSubjects();
+    const idx = drafts.findIndex(d => d.id === draft.id);
+    if (idx !== -1) {
+      drafts[idx] = draft;
+    } else {
+      drafts.unshift(draft);
+    }
+    this.saveDraftSubjects(drafts);
+
+    // Đồng bộ lên Supabase Cloud
+    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+      SupabaseClient.updateDraftSubject(draft.id, draft).catch(e => console.warn("Supabase updateDraftSubject error:", e));
+    }
+    return draft;
+  },
+
   addDraftSubject(draftData) {
     const drafts = this.getDraftSubjects();
     const newDraft = {

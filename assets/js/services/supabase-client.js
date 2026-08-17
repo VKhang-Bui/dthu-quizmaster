@@ -178,6 +178,22 @@ const SupabaseClient = {
     });
   },
 
+  async updateDraftSubject(draftId, updates) {
+    const payload = {
+      name: updates.name,
+      department: updates.department || "Khoa Kỹ thuật - Công nghệ",
+      author: updates.author || "Sinh viên đóng góp",
+      chapters: updates.chapters || [],
+      questions: updates.questions || [],
+      description: updates.description || "",
+      icon: updates.icon || "📝"
+    };
+    return await this.request(`draft_subjects?id=eq.${encodeURIComponent(draftId)}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload)
+    });
+  },
+
   async deleteDraftSubject(draftId) {
     return await this.request(`draft_subjects?id=eq.${encodeURIComponent(draftId)}`, {
       method: "DELETE"
