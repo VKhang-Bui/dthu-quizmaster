@@ -15,7 +15,9 @@ const StorageService = {
     SUPPRESSED_WARNINGS: "dthu_quiz_suppressed_warnings_v2",
     SETTINGS: "dthu_quiz_app_settings_v2",
     RESET_REQUESTS: "dthu_quiz_reset_requests_v2",
-    EMAIL_OTPS: "dthu_quiz_email_otps_v2"
+    EMAIL_OTPS: "dthu_quiz_email_otps_v2",
+    NOTIFICATIONS: "dthu_quiz_notifications_v2",
+    CONTRIBUTION_PROGRESS: "dthu_quiz_contrib_progress_v2"
   },
 
   // Danh mục tất cả các loại cảnh báo hệ thống hỗ trợ ẩn/bật
@@ -256,7 +258,24 @@ const StorageService = {
       SupabaseClient.deleteDraftSubject(draftId).catch(e => console.warn("Supabase deleteDraftSubject error:", e));
     }
 
-    this.addExp(50, `Phê duyệt đóng góp vào môn: ${finalSubject.name}`);
+    const qCount = (draft.questions || []).length;
+
+    // 1. Ghi nhận cống hiến số lượng câu hỏi thực tế cho Tác giả
+    let authorUser = null;
+    if (draft.authorEmail) authorUser = this.getUserByEmail(draft.authorEmail);
+    if (!authorUser && draft.author) {
+      authorUser = this.getAllUsers().find(u => draft.author.includes(u.studentId || u.fullName));
+    }
+    if (authorUser) {
+      this.recordQuestionContribution(authorUser.id, qCount, finalSubject.name);
+    }
+
+    // 2. Ghi nhận cống hiến kiểm duyệt cho Người duyệt (Reviewer)
+    const reviewerProfile = this.getUserProfile();
+    if (reviewerProfile && reviewerProfile.id !== "guest") {
+      this.recordReviewContribution(reviewerProfile.id, qCount, finalSubject.name);
+    }
+
     return finalSubject;
   },
 
@@ -292,6 +311,10 @@ const StorageService = {
         canManageUsers: true
       },
       totalExp: 1000,
+      contributionPoints: 150,
+      cumulativeQuestions: 150,
+      cumulativeChars: 12000,
+      cumulativeReviewed: 80,
       streakDays: 14,
       quizzesCompleted: 35,
       status: "active", // 'active' | 'pending_approval' | 'suspended'
@@ -534,6 +557,10 @@ const StorageService = {
         canManageUsers: false
       },
       totalExp: 50, // Thưởng 50 EXP chào mừng tân sinh viên
+      contributionPoints: 0,
+      cumulativeQuestions: 0,
+      cumulativeChars: 0,
+      cumulativeReviewed: 0,
       streakDays: 1,
       quizzesCompleted: 0,
       status: "pending_approval", // ⏳ Chờ Admin hoặc người quản lý duyệt
@@ -809,6 +836,10 @@ const StorageService = {
       if (data) {
         const parsed = JSON.parse(data);
         if (parsed && parsed.role !== "guest" && parsed.status !== "pending_approval") {
+          if (typeof parsed.contributionPoints !== "number") parsed.contributionPoints = 0;
+          if (typeof parsed.cumulativeQuestions !== "number") parsed.cumulativeQuestions = 0;
+          if (typeof parsed.cumulativeChars !== "number") parsed.cumulativeChars = 0;
+          if (typeof parsed.cumulativeReviewed !== "number") parsed.cumulativeReviewed = 0;
           return parsed;
         }
       }
@@ -824,6 +855,10 @@ const StorageService = {
       role: "guest",
       avatar: "👤",
       totalExp: 0,
+      contributionPoints: 0,
+      cumulativeQuestions: 0,
+      cumulativeChars: 0,
+      cumulativeReviewed: 0,
       quizzesCompleted: 0,
       permissions: {
         canApproveDrafts: false,
@@ -876,11 +911,23 @@ const StorageService = {
     return false;
   },
 
-  addExp(points, reason = "") {
+  // ── 3.2. Quản lý Thang Điểm Học Tập (EXP) & Điểm Cống Hiến (CP) ──
+  addExp(points, reason = "", source = "study", silent = false) {
     if (!this.isLoggedIn()) return 0; // Khách không tích lũy EXP
     const profile = this.getUserProfile();
-    profile.totalExp = (profile.totalExp || 0) + points;
+    profile.totalExp = Math.max(0, (profile.totalExp || 0) + points);
     this.saveUserProfile(profile);
+
+    // Tự động gửi Thông Báo nếu không phải chế độ im lặng
+    if (!silent && points !== 0) {
+      this.addNotification(profile.id, {
+        type: points > 0 ? "exp_reward" : "admin_adjust",
+        title: points > 0 ? `⚡ Nhận được +${points} EXP Học Tập` : `⚡ Bị khấu trừ ${Math.abs(points)} EXP`,
+        message: reason || "Rèn luyện và tích cực học tập trên hệ thống.",
+        pointsDelta: points,
+        pointType: "EXP"
+      });
+    }
 
     // Đồng bộ EXP lên Supabase Cloud
     if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
@@ -888,6 +935,256 @@ const StorageService = {
     }
 
     return profile.totalExp;
+  },
+
+  addContributionPoints(points, reason = "", silent = false) {
+    if (!this.isLoggedIn()) return 0;
+    const profile = this.getUserProfile();
+    profile.contributionPoints = Math.max(0, (profile.contributionPoints || 0) + points);
+    this.saveUserProfile(profile);
+
+    if (!silent && points !== 0) {
+      this.addNotification(profile.id, {
+        type: "cp_reward",
+        title: points > 0 ? `🌟 Thưởng +${points} Điểm Cống Hiến (CP)` : `🌟 Khấu trừ ${Math.abs(points)} Điểm Cống Hiến`,
+        message: reason || "Đóng góp dữ liệu đề thi & tài liệu học tập cho trường Đại học Đồng Tháp.",
+        pointsDelta: points,
+        pointType: "CP"
+      });
+    }
+
+    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+      SupabaseClient.updateUser(profile.id, { contributionPoints: profile.contributionPoints }).catch(() => {});
+    }
+
+    return profile.contributionPoints;
+  },
+
+  // ── 3.3. Tích Lũy Sản Lượng Đóng Góp & Cộng Dồn Ngưỡng (Cumulative Volume) ──
+  recordQuestionContribution(userId, questionCount, subjectName = "") {
+    if (!userId || userId === "guest" || questionCount <= 0) return 0;
+    const user = this.getUserById(userId);
+    if (!user) return 0;
+
+    const oldTotal = user.cumulativeQuestions || 0;
+    const newTotal = oldTotal + questionCount;
+    user.cumulativeQuestions = newTotal;
+
+    // Ngưỡng thưởng: Cứ mỗi 50 câu hỏi đạt chuẩn -> Thưởng +5 CP
+    const THRESHOLD = 50;
+    const POINTS_PER_TIER = 5;
+    const oldTier = Math.floor(oldTotal / THRESHOLD);
+    const newTier = Math.floor(newTotal / THRESHOLD);
+    const tiersGained = newTier - oldTier;
+
+    let pointsAwarded = 0;
+    if (tiersGained > 0) {
+      pointsAwarded = tiersGained * POINTS_PER_TIER;
+      user.contributionPoints = (user.contributionPoints || 0) + pointsAwarded;
+      this.addNotification(user.id, {
+        type: "cp_reward",
+        title: `🎉 Đạt mốc ${newTier * THRESHOLD} câu hỏi cống hiến (+${pointsAwarded} CP)`,
+        message: `Bộ đề môn "${subjectName}" với ${questionCount} câu hỏi đã được Ban biên tập phê duyệt chính thức! (Tổng tích lũy: ${newTotal} câu).`,
+        pointsDelta: pointsAwarded,
+        pointType: "CP"
+      });
+    } else {
+      this.addNotification(user.id, {
+        type: "draft_approved",
+        title: `✅ Bộ đề môn "${subjectName}" đã được phê duyệt!`,
+        message: `Đã cộng thêm ${questionCount} câu vào tiến độ tích lũy (Hiện có ${newTotal % THRESHOLD}/${THRESHOLD} câu để nhận mốc +5 CP tiếp theo).`,
+        pointsDelta: null,
+        pointType: null
+      });
+    }
+
+    this.updateUser(user.id, {
+      cumulativeQuestions: user.cumulativeQuestions,
+      contributionPoints: user.contributionPoints
+    });
+
+    return pointsAwarded;
+  },
+
+  recordMaterialContribution(userId, charCount, materialTitle = "") {
+    if (!userId || userId === "guest" || charCount <= 0) return 0;
+    const user = this.getUserById(userId);
+    if (!user) return 0;
+
+    const oldTotal = user.cumulativeChars || 0;
+    const newTotal = oldTotal + charCount;
+    user.cumulativeChars = newTotal;
+
+    // Ngưỡng: Cứ mỗi 5.000 ký tự tài liệu đạt chuẩn -> Thưởng +5 CP
+    const THRESHOLD = 5000;
+    const POINTS_PER_TIER = 5;
+    const oldTier = Math.floor(oldTotal / THRESHOLD);
+    const newTier = Math.floor(newTotal / THRESHOLD);
+    const tiersGained = newTier - oldTier;
+
+    let pointsAwarded = 0;
+    if (tiersGained > 0) {
+      pointsAwarded = tiersGained * POINTS_PER_TIER;
+      user.contributionPoints = (user.contributionPoints || 0) + pointsAwarded;
+      this.addNotification(user.id, {
+        type: "cp_reward",
+        title: `📚 Đạt mốc ${newTier * THRESHOLD} ký tự tài liệu cống hiến (+${pointsAwarded} CP)`,
+        message: `Tài liệu "${materialTitle}" (${charCount.toLocaleString()} ký tự) đã được đăng tải và chia sẻ thành công! (Tổng tích lũy: ${newTotal.toLocaleString()} ký tự).`,
+        pointsDelta: pointsAwarded,
+        pointType: "CP"
+      });
+    } else {
+      this.addNotification(user.id, {
+        type: "system",
+        title: `📚 Đã chia sẻ tài liệu "${materialTitle}"!`,
+        message: `Đã cộng thêm ${charCount.toLocaleString()} ký tự vào tiến độ tích lũy (Hiện có ${(newTotal % THRESHOLD).toLocaleString()}/${THRESHOLD.toLocaleString()} ký tự để nhận mốc +5 CP tiếp theo).`,
+        pointsDelta: null,
+        pointType: null
+      });
+    }
+
+    this.updateUser(user.id, {
+      cumulativeChars: user.cumulativeChars,
+      contributionPoints: user.contributionPoints
+    });
+
+    return pointsAwarded;
+  },
+
+  recordReviewContribution(userId, questionCount, subjectName = "") {
+    if (!userId || userId === "guest" || questionCount <= 0) return 0;
+    const user = this.getUserById(userId);
+    if (!user) return 0;
+
+    const oldTotal = user.cumulativeReviewed || 0;
+    const newTotal = oldTotal + questionCount;
+    user.cumulativeReviewed = newTotal;
+
+    // Ngưỡng duyệt: Cứ mỗi 50 câu kiểm duyệt -> Thưởng +3 CP
+    const THRESHOLD = 50;
+    const POINTS_PER_TIER = 3;
+    const oldTier = Math.floor(oldTotal / THRESHOLD);
+    const newTier = Math.floor(newTotal / THRESHOLD);
+    const tiersGained = newTier - oldTier;
+
+    let pointsAwarded = 0;
+    if (tiersGained > 0) {
+      pointsAwarded = tiersGained * POINTS_PER_TIER;
+      user.contributionPoints = (user.contributionPoints || 0) + pointsAwarded;
+      this.addNotification(user.id, {
+        type: "cp_reward",
+        title: `🛡️ Đạt mốc ${newTier * THRESHOLD} câu hỏi kiểm duyệt (+${pointsAwarded} CP)`,
+        message: `Ban biên tập đã hoàn tất kiểm duyệt môn "${subjectName}" (${questionCount} câu)!`,
+        pointsDelta: pointsAwarded,
+        pointType: "CP"
+      });
+    }
+
+    this.updateUser(user.id, {
+      cumulativeReviewed: user.cumulativeReviewed,
+      contributionPoints: user.contributionPoints
+    });
+
+    return pointsAwarded;
+  },
+
+  adminAdjustUserPoints(userId, pointType, amount, reason, adminName = "Quản trị viên") {
+    const user = this.getUserById(userId);
+    if (!user) throw new Error("Không tìm thấy người dùng này!");
+    if (!amount || amount === 0) throw new Error("Số điểm điều chỉnh phải khác 0!");
+    if (!reason || !reason.trim()) throw new Error("Vui lòng nhập lý do điều chỉnh điểm!");
+
+    const cleanReason = reason.trim();
+    if (pointType === "EXP") {
+      user.totalExp = Math.max(0, (user.totalExp || 0) + amount);
+    } else {
+      user.contributionPoints = Math.max(0, (user.contributionPoints || 0) + amount);
+    }
+
+    this.updateUser(user.id, {
+      totalExp: user.totalExp,
+      contributionPoints: user.contributionPoints
+    });
+
+    // Tạo thông báo gửi cho User
+    this.addNotification(user.id, {
+      type: "admin_adjust",
+      title: amount > 0 ? `🛡️ ${adminName} đã cộng +${amount} ${pointType}` : `🛡️ ${adminName} đã khấu trừ ${Math.abs(amount)} ${pointType}`,
+      message: `Lý do: "${cleanReason}" (Thực hiện bởi: ${adminName}).`,
+      pointsDelta: amount,
+      pointType: pointType
+    });
+
+    return user;
+  },
+
+  // ── 3.4. Quản Lý Thông Báo Cá Nhân (Notification Center) ──
+  getNotifications(userId) {
+    if (!userId || userId === "guest") return [];
+    try {
+      const data = localStorage.getItem(this.KEYS.NOTIFICATIONS);
+      const allNotifs = data ? JSON.parse(data) : {};
+      return Array.isArray(allNotifs[userId]) ? allNotifs[userId] : [];
+    } catch (e) {
+      return [];
+    }
+  },
+
+  saveNotifications(userId, list) {
+    if (!userId || userId === "guest") return;
+    try {
+      const data = localStorage.getItem(this.KEYS.NOTIFICATIONS);
+      const allNotifs = data ? JSON.parse(data) : {};
+      allNotifs[userId] = list;
+      localStorage.setItem(this.KEYS.NOTIFICATIONS, JSON.stringify(allNotifs));
+    } catch (e) {}
+  },
+
+  addNotification(userId, notif) {
+    if (!userId || userId === "guest") return null;
+    const list = this.getNotifications(userId);
+    const newNotif = {
+      id: "NTF-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
+      userId: userId,
+      type: notif.type || "system", // 'exp_reward' | 'cp_reward' | 'admin_adjust' | 'draft_approved' | 'system'
+      title: notif.title || "Thông báo mới",
+      message: notif.message || "",
+      pointsDelta: typeof notif.pointsDelta === "number" ? notif.pointsDelta : null,
+      pointType: notif.pointType || null, // 'EXP' | 'CP'
+      read: false,
+      createdAt: new Date().toISOString()
+    };
+    list.unshift(newNotif);
+    if (list.length > 50) list.pop();
+    this.saveNotifications(userId, list);
+    return newNotif;
+  },
+
+  markNotificationAsRead(userId, notifId) {
+    const list = this.getNotifications(userId);
+    const item = list.find(n => n.id === notifId);
+    if (item) {
+      item.read = true;
+      this.saveNotifications(userId, list);
+    }
+  },
+
+  markAllNotificationsAsRead(userId) {
+    const list = this.getNotifications(userId);
+    list.forEach(n => { n.read = true; });
+    this.saveNotifications(userId, list);
+  },
+
+  deleteNotification(userId, notifId) {
+    let list = this.getNotifications(userId);
+    list = list.filter(n => n.id !== notifId);
+    this.saveNotifications(userId, list);
+  },
+
+  getUnreadNotificationCount(userId) {
+    if (!userId || userId === "guest") return 0;
+    const list = this.getNotifications(userId);
+    return list.filter(n => !n.read).length;
   },
 
   switchActiveUser(userId) {
@@ -975,13 +1272,30 @@ const StorageService = {
       }
     }
 
-    // Thưởng EXP cho bài thi thử
-    if (attempt.score10 >= 8.0) {
-      this.addExp(20, "Hoàn thành xuất sắc bài thi thử (+20 EXP)");
-    } else if (attempt.score10 >= 5.0) {
-      this.addExp(10, "Hoàn thành bài thi thử đạt yêu cầu (+10 EXP)");
-    } else {
-      this.addExp(5, "Chăm chỉ rèn luyện thi thử (+5 EXP)");
+    // Thưởng EXP cho bài thi thử (Tính chặt chẽ & Công bằng theo số câu và điểm số)
+    const totalQ = attempt.totalQuestions || 0;
+    const score = (typeof attempt.score10 === "number") ? attempt.score10 : 0;
+    const subName = attempt.subjectName || "Môn học";
+
+    if (totalQ >= 5) {
+      let expGained = 1;
+      let expLabel = `Rèn luyện thi thử môn ${subName} (${score}/10)`;
+
+      if (score >= 9.0) {
+        expGained = 15;
+        expLabel = `Xuất sắc đạt ${score}/10 môn ${subName}`;
+      } else if (score >= 8.0) {
+        expGained = 10;
+        expLabel = `Giỏi đạt ${score}/10 môn ${subName}`;
+      } else if (score >= 6.5) {
+        expGained = 6;
+        expLabel = `Khá đạt ${score}/10 môn ${subName}`;
+      } else if (score >= 5.0) {
+        expGained = 3;
+        expLabel = `Đạt yêu cầu ${score}/10 môn ${subName}`;
+      }
+
+      this.addExp(expGained, expLabel, "quiz");
     }
 
     // Đồng bộ lên Supabase Cloud
@@ -1010,16 +1324,55 @@ const StorageService = {
     return match ? match : null;
   },
 
-  getLeaderboardData() {
+  getLeaderboardData(type = "exp") {
     const profile = this.getUserProfile();
-    // Bảng xếp hạng mô phỏng kết hợp điểm thực tế của người dùng
-    return [
-      { rank: 1, name: "Nguyễn Thị Mai Lan", department: "Khoa Sư phạm KHTN", exp: 580, quizzes: 28, badge: "🥇 Thủ Khoa" },
-      { rank: 2, name: profile.fullName + " (Bạn)", department: profile.department, exp: profile.totalExp, quizzes: this.getHistory().length + 12, badge: "🥈 Á Khoa", isCurrentUser: true },
-      { rank: 3, name: "Trần Minh Đức", department: "Khoa Lý luận Chính trị", exp: 210, quizzes: 15, badge: "🥉 Top 3" },
-      { rank: 4, name: "Lê Hoàng Phúc", department: "Khoa Sư phạm Toán - Tin", exp: 195, quizzes: 11, badge: "⭐ Chăm chỉ" },
-      { rank: 5, name: "Phạm Ngọc Hân", department: "Khoa Ngoại ngữ", exp: 160, quizzes: 9, badge: "⭐ Tích cực" }
-    ].sort((a, b) => b.exp - a.exp).map((item, index) => ({ ...item, rank: index + 1 }));
+    const allUsers = this.getAllUsers().filter(u => u.status === "active");
+
+    if (type === "cp") {
+      // Bảng xếp hạng Điểm Cống Hiến (Contribution Points - CP)
+      const list = allUsers.map(u => ({
+        id: u.id,
+        name: (profile.id === u.id) ? `${u.fullName} (Bạn)` : u.fullName,
+        department: u.department || "ĐH Đồng Tháp",
+        cp: u.contributionPoints || 0,
+        questions: u.cumulativeQuestions || 0,
+        chars: u.cumulativeChars || 0,
+        isCurrentUser: (profile.id === u.id)
+      }));
+
+      // Bổ sung mock nếu ít user
+      if (list.length < 3) {
+        list.push({ id: "mock-1", name: "Nguyễn Thị Mai Lan", department: "Khoa Sư phạm KHTN", cp: 120, questions: 1200, chars: 45000, isCurrentUser: false });
+        list.push({ id: "mock-2", name: "Trần Minh Đức", department: "Khoa Lý luận Chính trị", cp: 85, questions: 850, chars: 25000, isCurrentUser: false });
+      }
+
+      return list.sort((a, b) => b.cp - a.cp).map((item, index) => ({
+        ...item,
+        rank: index + 1,
+        badge: index === 0 ? "🥇 Đại Sứ" : (index === 1 ? "🥈 Tích Cực" : (index === 2 ? "🥉 Tiên Phong" : "🌟 Đóng Góp"))
+      }));
+    }
+
+    // Mặc định: Bảng xếp hạng Điểm Học Tập (EXP)
+    const list = allUsers.map(u => ({
+      id: u.id,
+      name: (profile.id === u.id) ? `${u.fullName} (Bạn)` : u.fullName,
+      department: u.department || "ĐH Đồng Tháp",
+      exp: u.totalExp || 0,
+      quizzes: u.quizzesCompleted || 0,
+      isCurrentUser: (profile.id === u.id)
+    }));
+
+    if (list.length < 3) {
+      list.push({ id: "mock-1", name: "Nguyễn Thị Mai Lan", department: "Khoa Sư phạm KHTN", exp: 580, quizzes: 28, isCurrentUser: false });
+      list.push({ id: "mock-2", name: "Trần Minh Đức", department: "Khoa Lý luận Chính trị", exp: 210, quizzes: 15, isCurrentUser: false });
+    }
+
+    return list.sort((a, b) => b.exp - a.exp).map((item, index) => ({
+      ...item,
+      rank: index + 1,
+      badge: index === 0 ? "🥇 Thủ Khoa" : (index === 1 ? "🥈 Á Khoa" : (index === 2 ? "🥉 Top 3" : "⭐ Chăm Chỉ"))
+    }));
   },
 
   // ── 6. Ngân hàng Câu Sai (Mistake Vault) ────────────────────

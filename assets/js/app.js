@@ -134,6 +134,7 @@ const App = {
 
     const isLogged = StorageService.isLoggedIn();
     const profile = StorageService.getUserProfile();
+    const unreadNotifs = isLogged ? StorageService.getUnreadNotificationCount(profile.id) : 0;
 
     let roleBadge = `<span class="user-role-badge" style="font-size: 10px; padding: 1px 6px; background:#f1f5f9; color:#64748b;">Khách</span>`;
     if (isLogged) {
@@ -151,19 +152,31 @@ const App = {
         </div>
       </div>
 
-      <!-- Khối Người Dùng (Bấm vào để mở Thanh trượt bên phải) -->
-      <div class="header-user-widget" onclick="App.openUserDrawer('main')" title="${isLogged ? 'Xem menu cá nhân & tiện ích' : 'Nhấp để đăng nhập'}">
-        <div style="font-size: 20px;">${isLogged ? (profile.avatar || '👨‍🎓') : '👤'}</div>
-        <div style="display: flex; flex-direction: column; text-align: left;">
-          <span style="font-size: 13px; font-weight: 700; color: var(--text-primary); line-height: 1.2;">
-            ${isLogged ? profile.fullName : 'Khách (Chưa đăng nhập)'}
-          </span>
-          <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
-            ${isLogged ? `<span class="user-exp-chip" style="font-size: 11.5px;">⚡ ${profile.totalExp} EXP</span>` : ''}
-            ${roleBadge}
+      <div style="display: flex; align-items: center; gap: 8px;">
+        ${isLogged ? `
+          <button class="notif-bell-btn" onclick="App.navigateTo('notifications')" title="Trung tâm thông báo & Biến động điểm">
+            <span style="font-size: 18px;">🔔</span>
+            ${unreadNotifs > 0 ? `<span class="notif-badge">${unreadNotifs > 99 ? '99+' : unreadNotifs}</span>` : ''}
+          </button>
+        ` : ''}
+
+        <!-- Khối Người Dùng (Bấm vào để mở Thanh trượt bên phải) -->
+        <div class="header-user-widget" onclick="App.openUserDrawer('main')" title="${isLogged ? 'Xem menu cá nhân & tiện ích' : 'Nhấp để đăng nhập'}">
+          <div style="font-size: 20px;">${isLogged ? (profile.avatar || '👨‍🎓') : '👤'}</div>
+          <div style="display: flex; flex-direction: column; text-align: left;">
+            <span style="font-size: 13px; font-weight: 700; color: var(--text-primary); line-height: 1.2;">
+              ${isLogged ? profile.fullName : 'Khách (Chưa đăng nhập)'}
+            </span>
+            <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+              ${isLogged ? `
+                <span class="user-exp-chip" style="font-size: 11px; padding: 1px 6px;" title="Điểm EXP Học Tập">⚡ ${profile.totalExp || 0}</span>
+                <span class="user-exp-chip" style="font-size: 11px; padding: 1px 6px; background:#fef3c7; color:#b45309; border-color:#fde68a;" title="Điểm Cống Hiến Dữ Liệu">🌟 ${profile.contributionPoints || 0} CP</span>
+              ` : ''}
+              ${roleBadge}
+            </div>
           </div>
+          <div style="font-size: 12px; color: var(--text-tertiary); margin-left: 2px;">▸</div>
         </div>
-        <div style="font-size: 12px; color: var(--text-tertiary); margin-left: 2px;">▸</div>
       </div>
     `;
   },
@@ -204,6 +217,7 @@ const App = {
     const drafts = StorageService.getDraftSubjects();
     const history = StorageService.getHistory();
     const settings = StorageService.getAppSettings();
+    const unreadNotifs = isLogged ? StorageService.getUnreadNotificationCount(profile.id) : 0;
 
     let headerHtml = "";
     let bodyHtml = "";
@@ -256,8 +270,9 @@ const App = {
                   <div style="font-size: 11.5px; color: var(--text-tertiary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                     📧 <code>${profile.email || (profile.studentId ? profile.studentId + '@dthu.edu.vn' : '')}</code>
                   </div>
-                  <div style="display: flex; gap: 10px; margin-top: 8px; font-size: 12px;">
-                    <span style="color: #b45309; font-weight: 800;">⚡ ${profile.totalExp} EXP</span>
+                  <div style="display: flex; gap: 10px; margin-top: 8px; font-size: 12px; flex-wrap: wrap;">
+                    <span style="color: #b45309; font-weight: 800;">⚡ ${profile.totalExp || 0} EXP</span>
+                    <span style="color: #15803d; font-weight: 800;">🌟 ${profile.contributionPoints || 0} CP</span>
                     <span style="color: #0369a1; font-weight: 700;">📝 ${profile.quizzesCompleted !== undefined ? profile.quizzesCompleted : history.length} bài</span>
                   </div>
                 </div>
@@ -269,9 +284,15 @@ const App = {
                   Tiện ích & Quản lý
                 </div>
                 <div class="drawer-nav-list">
+                  <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('notifications');">
+                    <span class="drawer-icon">🔔</span>
+                    <span class="drawer-label">Trung Tâm Thông Báo</span>
+                    ${unreadNotifs > 0 ? `<span class="badge" style="background:#ef4444; color:#fff; font-weight:800; font-size:11px; padding:2px 7px;">${unreadNotifs} mới</span>` : `<span class="drawer-arrow">➔</span>`}
+                  </button>
+
                   <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('leaderboard');">
                     <span class="drawer-icon">🏆</span>
-                    <span class="drawer-label">Bảng Xếp Hạng</span>
+                    <span class="drawer-label">Bảng Xếp Hạng DThu</span>
                     <span class="drawer-arrow">➔</span>
                   </button>
 
@@ -1105,6 +1126,9 @@ const App = {
     switch (view) {
       case "home":
         this.renderHomeView(mainContainer);
+        break;
+      case "notifications":
+        this.renderNotificationsView(mainContainer, data);
         break;
       case "leaderboard":
         this.renderLeaderboardView(mainContainer);
@@ -2495,9 +2519,8 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
     };
 
     StorageService.addDraftSubject(draftData);
-    StorageService.addExp(30, "Nhập bộ đề mới vào hệ thống (+30 EXP)");
 
-    this.showToast(`🎉 Đã lưu ${mappedQuestions.length} câu hỏi vào danh sách Chờ Phê Duyệt!`, "success", 4000);
+    this.showToast(`🎉 Đã lưu ${mappedQuestions.length} câu hỏi vào danh sách Chờ Phê Duyệt! (Điểm Cống Hiến CP sẽ được trao khi Ban biên tập phê duyệt đề).`, "success", 4500);
     this.renderHeader();
 
     // Tự động chuyển sang trang Quản Lý Bộ Đề, tab "Chờ duyệt"
@@ -4224,19 +4247,31 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
   },
 
   // ═════════════════════════════════════════════════════════════════════════
-  // 7. LEADERBOARD VIEW (BẢNG XẾP HẠNG)
+  // 7. LEADERBOARD VIEW (BẢNG XẾP HẠNG ĐA CHIỀU EXP & CP)
   // ═════════════════════════════════════════════════════════════════════════
   renderLeaderboardView(container) {
-    const leaderboard = StorageService.getLeaderboardData();
+    const activeTab = this.leaderboardTab || "exp";
+    const leaderboard = StorageService.getLeaderboardData(activeTab);
     const top1 = leaderboard[0];
     const top2 = leaderboard[1];
     const top3 = leaderboard[2];
+    const isCp = (activeTab === "cp");
 
     container.innerHTML = `
       <div class="view-leaderboard">
-        <div style="margin-bottom: 28px; text-align: center;">
+        <div style="margin-bottom: 24px; text-align: center;">
           <h2 style="font-size: 24px; font-weight: 800; color: var(--text-primary);">🏆 Bảng Xếp Hạng Sinh Viên DThu</h2>
-          <p style="color: var(--text-secondary); margin-top: 4px;">Tuyên dương những sinh viên có thành tích học tập và điểm tích lũy (EXP) cao nhất toàn trường.</p>
+          <p style="color: var(--text-secondary); margin-top: 4px;">Tuyên dương những sinh viên có thành tích học tập và đóng góp xây dựng ngân hàng đề thi xuất sắc nhất toàn trường.</p>
+        </div>
+
+        <!-- Tab Selector: EXP Học Tập vs CP Cống Hiến -->
+        <div class="hub-tabs" style="max-width: 500px; margin: 0 auto 28px auto;">
+          <button class="hub-tab-btn ${activeTab === 'exp' ? 'active' : ''}" onclick="App.leaderboardTab = 'exp'; App.renderLeaderboardView(document.getElementById('mainContent'));">
+            ⚡ Top Học Tập (EXP)
+          </button>
+          <button class="hub-tab-btn ${activeTab === 'cp' ? 'active' : ''}" onclick="App.leaderboardTab = 'cp'; App.renderLeaderboardView(document.getElementById('mainContent'));">
+            🌟 Top Cống Hiến (CP)
+          </button>
         </div>
 
         <!-- Podium Top 3 -->
@@ -4244,28 +4279,36 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
           <!-- Rank 2 -->
           <div class="podium-card podium-rank-2">
             <div style="font-size: 13px; font-weight: 800; color: #64748b; margin-bottom: 6px;">🥈 HẠNG 2</div>
-            <div class="podium-avatar">${top2 ? '👨‍🎓' : '👤'}</div>
+            <div class="podium-avatar">${top2 ? (top2.isCurrentUser ? '👨‍🎓' : '🥈') : '👤'}</div>
             <div class="podium-name">${top2 ? top2.name : 'Đang cập nhật'}</div>
             <div style="font-size: 12px; color: var(--text-secondary);">${top2 ? top2.department : ''}</div>
-            <div class="podium-exp">⚡ ${top2 ? top2.exp : 0} EXP</div>
+            <div class="podium-exp" style="${isCp ? 'background:#fef3c7; color:#b45309;' : ''}">
+              ${isCp ? `🌟 ${top2 ? top2.cp : 0} CP` : `⚡ ${top2 ? top2.exp : 0} EXP`}
+            </div>
           </div>
 
-          <!-- Rank 1 (Thủ khoa) -->
+          <!-- Rank 1 (Thủ khoa / Đại sứ) -->
           <div class="podium-card podium-rank-1">
-            <div style="font-size: 13px; font-weight: 800; color: #d97706; margin-bottom: 6px;">👑 THỦ KHOA (HẠNG 1)</div>
+            <div style="font-size: 13px; font-weight: 800; color: #d97706; margin-bottom: 6px;">
+              ${isCp ? '👑 ĐẠI SỨ CỐNG HIẾN' : '👑 THỦ KHOA (HẠNG 1)'}
+            </div>
             <div class="podium-avatar">${top1 ? '🥇' : '👤'}</div>
             <div class="podium-name" style="font-size: 18px;">${top1 ? top1.name : 'Đang cập nhật'}</div>
             <div style="font-size: 12.5px; color: var(--text-secondary);">${top1 ? top1.department : ''}</div>
-            <div class="podium-exp" style="font-size: 16px;">⚡ ${top1 ? top1.exp : 0} EXP</div>
+            <div class="podium-exp" style="font-size: 16px; ${isCp ? 'background:#fef3c7; color:#b45309;' : ''}">
+              ${isCp ? `🌟 ${top1 ? top1.cp : 0} CP` : `⚡ ${top1 ? top1.exp : 0} EXP`}
+            </div>
           </div>
 
           <!-- Rank 3 -->
           <div class="podium-card podium-rank-3">
             <div style="font-size: 13px; font-weight: 800; color: #c2410c; margin-bottom: 6px;">🥉 HẠNG 3</div>
-            <div class="podium-avatar">${top3 ? '👨‍🎓' : '👤'}</div>
+            <div class="podium-avatar">${top3 ? (top3.isCurrentUser ? '👨‍🎓' : '🥉') : '👤'}</div>
             <div class="podium-name">${top3 ? top3.name : 'Đang cập nhật'}</div>
             <div style="font-size: 12px; color: var(--text-secondary);">${top3 ? top3.department : ''}</div>
-            <div class="podium-exp">⚡ ${top3 ? top3.exp : 0} EXP</div>
+            <div class="podium-exp" style="${isCp ? 'background:#fef3c7; color:#b45309;' : ''}">
+              ${isCp ? `🌟 ${top3 ? top3.cp : 0} CP` : `⚡ ${top3 ? top3.exp : 0} EXP`}
+            </div>
           </div>
         </div>
 
@@ -4277,8 +4320,8 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                 <th style="width: 70px; text-align: center;">Hạng</th>
                 <th>Sinh viên</th>
                 <th>Khoa / Ngành</th>
-                <th style="text-align: center;">Số bài thi</th>
-                <th style="text-align: right;">Điểm EXP</th>
+                <th style="text-align: center;">${isCp ? 'Sản lượng đóng góp' : 'Số bài thi'}</th>
+                <th style="text-align: right;">${isCp ? 'Điểm Cống Hiến' : 'Điểm EXP'}</th>
                 <th style="width: 140px; text-align: center;">Huy hiệu</th>
               </tr>
             </thead>
@@ -4292,10 +4335,14 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                     <strong>${item.name}</strong>
                   </td>
                   <td style="color: var(--text-secondary); font-size: 13px;">${item.department}</td>
-                  <td style="text-align: center;">${item.quizzes}</td>
-                  <td style="text-align: right; font-weight: 800; color: #b45309;">⚡ ${item.exp}</td>
+                  <td style="text-align: center; font-size: 13px;">
+                    ${isCp ? `<strong>${(item.questions || 0).toLocaleString()}</strong> câu · <strong>${(item.chars || 0).toLocaleString()}</strong> chữ` : `${item.quizzes || 0} bài`}
+                  </td>
+                  <td style="text-align: right; font-weight: 800; color: ${isCp ? '#15803d' : '#b45309'};">
+                    ${isCp ? `🌟 ${item.cp || 0} CP` : `⚡ ${item.exp || 0} EXP`}
+                  </td>
                   <td style="text-align: center;">
-                    <span class="badge badge-blue">${item.badge}</span>
+                    <span class="badge ${isCp ? 'badge-success' : 'badge-blue'}">${item.badge}</span>
                   </td>
                 </tr>
               `).join('')}
@@ -4473,9 +4520,17 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     materials.unshift(newMat);
     StorageService.saveMaterials(materials);
 
-    StorageService.addExp(20, "Đóng góp tài liệu học tập mới (+20 EXP)");
+    // Ghi nhận tích lũy ký tự đóng góp tài liệu
+    const profile = StorageService.getUserProfile();
+    const cpGained = StorageService.recordMaterialContribution(profile.id, content.length, title);
+
     this.closeModal();
-    this.showToast(`🎉 Đã lưu tài liệu "${title}" thành công! (+20 EXP)`, "success", 3500);
+    if (cpGained > 0) {
+      this.showToast(`🎉 Đã lưu tài liệu "${title}" và đạt mốc thưởng +${cpGained} CP!`, "success", 4000);
+    } else {
+      this.showToast(`🎉 Đã lưu tài liệu "${title}" và cộng ${content.length.toLocaleString()} ký tự vào tiến độ tích lũy CP!`, "success", 4000);
+    }
+    this.renderHeader();
     this.renderMaterialsView(document.getElementById("mainContent"), newMat.id);
   },
 
@@ -4489,7 +4544,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
   approveDraft(draftId) {
     const res = StorageService.approveDraft(draftId);
     if (res) {
-      this.showToast(`🎉 Đã duyệt bộ đề "${res.name}" sang Ngân hàng Chính thức! (+50 EXP)`, "success", 4500);
+      this.showToast(`🎉 Đã duyệt bộ đề và gộp vào môn "${res.name}" (${res.code || res.id}) thành công! (Điểm Cống Hiến CP đã được trao theo sản lượng)`, "success", 4500);
       this.renderHeader();
       this.renderManageView(document.getElementById("mainContent"));
     }
@@ -4506,6 +4561,244 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
         StorageService.rejectDraft(draftId);
         this.renderHeader();
         this.renderManageView(document.getElementById("mainContent"));
+      }
+    });
+  },
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // 9.1. NOTIFICATION CENTER & SYSTEM CHANGELOG (TRUNG TÂM THÔNG BÁO & CẬP NHẬT)
+  // ═════════════════════════════════════════════════════════════════════════
+  renderNotificationsView(container, data = {}) {
+    const isLogged = StorageService.isLoggedIn();
+    if (!isLogged) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 70px 20px; max-width: 550px; margin: 0 auto;">
+          <div style="font-size: 54px; margin-bottom: 14px;">🔔</div>
+          <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary);">Trung Tâm Thông Báo</h3>
+          <p style="color: var(--text-secondary); margin-top: 8px; line-height: 1.6;">
+            Vui lòng đăng nhập tài khoản sinh viên DThu để nhận các thông báo về biến động điểm thưởng EXP, Điểm cống hiến (CP), kết quả duyệt đề thi và thông báo từ Ban quản trị.
+          </p>
+          <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+            <button class="btn btn-primary" onclick="App.openAccountSwitcherModal()">🔑 Đăng Nhập Ngay</button>
+            <button class="btn" onclick="App.navigateTo('home')">🏠 Về Trang Chủ</button>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    const profile = StorageService.getUserProfile();
+    const activeTab = this.notifTab || "personal";
+    const activeFilter = this.notifFilter || "all";
+    const allNotifs = StorageService.getNotifications(profile.id);
+    const unreadCount = StorageService.getUnreadNotificationCount(profile.id);
+
+    // Lọc thông báo theo tiêu chí
+    let filteredNotifs = allNotifs;
+    if (activeFilter === "unread") {
+      filteredNotifs = allNotifs.filter(n => !n.read);
+    } else if (activeFilter === "points") {
+      filteredNotifs = allNotifs.filter(n => n.pointsDelta !== null);
+    } else if (activeFilter === "admin") {
+      filteredNotifs = allNotifs.filter(n => n.type === "admin_adjust");
+    }
+
+    container.innerHTML = `
+      <div style="padding: 28px 20px; max-width: 950px; margin: 0 auto; width: 100%;">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid var(--border); padding-bottom: 16px;">
+          <div>
+            <h2 style="font-size: 22px; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+              <span>🔔</span>
+              <span>Trung Tâm Thông Báo & Cập Nhật</span>
+              ${unreadCount > 0 ? `<span class="badge" style="background:#ef4444; color:#fff; font-size:12px; font-weight:800;">${unreadCount} chưa đọc</span>` : ''}
+            </h2>
+            <p style="color: var(--text-secondary); margin-top: 4px; font-size: 13.5px;">
+              Xem lịch sử biến động điểm EXP/CP, thông báo từ Admin và bản tin cập nhật tính năng mới.
+            </p>
+          </div>
+
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn btn-sm" onclick="StorageService.markAllNotificationsAsRead('${profile.id}'); App.renderHeader(); App.renderNotificationsView(document.getElementById('mainContent'));">
+              ✔️ Đánh dấu đã đọc tất cả
+            </button>
+            <button class="btn btn-sm btn-danger" onclick="App.clearAllNotificationsConfirm('${profile.id}')">
+              🗑️ Xóa thông báo
+            </button>
+          </div>
+        </div>
+
+        <!-- Tabs: Thông Báo Cá Nhân vs Bản Tin Cập Nhật -->
+        <div class="hub-tabs" style="margin-bottom: 24px;">
+          <button class="hub-tab-btn ${activeTab === 'personal' ? 'active' : ''}" onclick="App.notifTab = 'personal'; App.renderNotificationsView(document.getElementById('mainContent'));">
+            🔔 Thông Báo Cá Nhân <span class="badge-tab-count">${allNotifs.length}</span>
+          </button>
+          <button class="hub-tab-btn ${activeTab === 'changelog' ? 'active' : ''}" onclick="App.notifTab = 'changelog'; App.renderNotificationsView(document.getElementById('mainContent'));">
+            📢 Bản Tin Cập Nhật Hệ Thống <span class="badge-tab-count">v2.2</span>
+          </button>
+        </div>
+
+        ${activeTab === 'personal' ? `
+          <!-- Bộ lọc thông báo cá nhân -->
+          <div style="display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 13px; font-weight: 700; color: var(--text-secondary);">Lọc theo:</span>
+            <button class="btn btn-sm ${activeFilter === 'all' ? 'btn-primary' : ''}" onclick="App.notifFilter = 'all'; App.renderNotificationsView(document.getElementById('mainContent'));">
+              Tất cả (${allNotifs.length})
+            </button>
+            <button class="btn btn-sm ${activeFilter === 'unread' ? 'btn-primary' : ''}" onclick="App.notifFilter = 'unread'; App.renderNotificationsView(document.getElementById('mainContent'));">
+              Chưa đọc (${unreadCount})
+            </button>
+            <button class="btn btn-sm ${activeFilter === 'points' ? 'btn-primary' : ''}" onclick="App.notifFilter = 'points'; App.renderNotificationsView(document.getElementById('mainContent'));">
+              ⚡/🌟 Biến động điểm (${allNotifs.filter(n => n.pointsDelta !== null).length})
+            </button>
+            <button class="btn btn-sm ${activeFilter === 'admin' ? 'btn-primary' : ''}" onclick="App.notifFilter = 'admin'; App.renderNotificationsView(document.getElementById('mainContent'));">
+              🛡️ Từ Quản trị viên (${allNotifs.filter(n => n.type === 'admin_adjust').length})
+            </button>
+          </div>
+
+          <!-- Danh sách thông báo cá nhân -->
+          ${filteredNotifs.length === 0 ? `
+            <div style="text-align: center; padding: 56px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);">
+              <div style="font-size: 42px; margin-bottom: 10px;">📭</div>
+              <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">Không có thông báo nào trong mục này</h3>
+              <p style="color: var(--text-secondary); margin-top: 4px; font-size: 13px;">Hãy làm bài thi thử hoặc đóng góp tài liệu để nhận thông báo thưởng điểm nhé!</p>
+            </div>
+          ` : `
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              ${filteredNotifs.map(n => {
+                let icon = "🔔";
+                let badgeClass = "badge-gray";
+                let pointBadge = "";
+
+                if (n.type === "exp_reward") {
+                  icon = "⚡";
+                  badgeClass = "badge-blue";
+                } else if (n.type === "cp_reward") {
+                  icon = "🌟";
+                  badgeClass = "badge-success";
+                } else if (n.type === "admin_adjust") {
+                  icon = "🛡️";
+                  badgeClass = "badge-purple";
+                } else if (n.type === "draft_approved") {
+                  icon = "🎉";
+                  badgeClass = "badge-success";
+                }
+
+                if (typeof n.pointsDelta === "number") {
+                  const isPos = n.pointsDelta > 0;
+                  const color = isPos ? (n.pointType === 'CP' ? '#15803d' : '#b45309') : '#dc2626';
+                  const bg = isPos ? (n.pointType === 'CP' ? '#dcfce7' : '#fef3c7') : '#fee2e2';
+                  pointBadge = `<span class="badge" style="background:${bg}; color:${color}; font-weight:800; font-size:12px;">${isPos ? '+' : ''}${n.pointsDelta} ${n.pointType || 'EXP'}</span>`;
+                }
+
+                const timeAgo = this.formatRelativeTime(n.createdAt);
+
+                return `
+                  <div class="notif-card ${!n.read ? 'unread' : ''}" onclick="StorageService.markNotificationAsRead('${profile.id}', '${n.id}'); App.renderHeader(); this.classList.remove('unread');" style="cursor: pointer;">
+                    <div class="notif-card-icon">${icon}</div>
+                    <div style="flex: 1; min-width: 0;">
+                      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 4px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                          <strong style="font-size: 14.5px; color: var(--text-primary);">${n.title}</strong>
+                          ${pointBadge}
+                          ${!n.read ? '<span style="width:7px; height:7px; background:#16a34a; border-radius:50%; display:inline-block;" title="Chưa đọc"></span>' : ''}
+                        </div>
+                        <span style="font-size: 12px; color: var(--text-tertiary);">${timeAgo}</span>
+                      </div>
+                      <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+                        ${n.message}
+                      </p>
+                    </div>
+                    <button class="btn btn-sm" style="padding: 4px 8px; font-size: 11px; opacity: 0.7;" onclick="event.stopPropagation(); StorageService.deleteNotification('${profile.id}', '${n.id}'); App.renderHeader(); App.renderNotificationsView(document.getElementById('mainContent'));" title="Xóa thông báo này">
+                      ✕
+                    </button>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `}
+        ` : `
+          <!-- Tab Bản Tin Cập Nhật Hệ Thống (Release Notes & Changelog) -->
+          <div style="display: flex; flex-direction: column; gap: 18px;">
+            <!-- Phiên bản 2.2 -->
+            <div class="changelog-card">
+              <div class="changelog-card-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span class="changelog-tag">Phiên bản 2.2 · Mới nhất</span>
+                  <strong style="font-size: 16.5px; color: var(--text-primary);">Hệ Thống Điểm Cống Hiến Sản Lượng & Trung Tâm Thông Báo</strong>
+                </div>
+                <span style="font-size: 12.5px; color: var(--text-tertiary);">Tháng 8/2026</span>
+              </div>
+              <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.7;">
+                <li><strong>🌟 Thang Điểm Cống Hiến (CP) Theo Sản Lượng</strong>: Tính điểm công bằng và cộng dồn lũy tiến (cứ 50 câu hỏi trắc nghiệm được duyệt $\rightarrow$ +5 CP; cứ 5.000 ký tự tài liệu chia sẻ $\rightarrow$ +5 CP). Chống spam và không buff điểm tràn lan.</li>
+                <li><strong>⚡ Thang Điểm EXP Học Tập Nghiêm Ngặt</strong>: Tính điểm thi thử dựa trên kết quả thực tế, yêu cầu làm từ 5 câu trở lên và thời gian làm bài hợp lý.</li>
+                <li><strong>🔔 Trung Tâm Thông Báo & Chuông Header</strong>: Hiển thị minh bạch mọi biến động điểm, đề thi được duyệt và thông báo điều chỉnh từ Quản trị viên.</li>
+                <li><strong>🏆 Bảng Xếp Hạng Đa Chiều</strong>: Hỗ trợ chuyển đổi linh hoạt giữa Top 10 Học Tập (EXP) và Top 10 Đại Sứ Cống Hiến (CP).</li>
+              </ul>
+            </div>
+
+            <!-- Phiên bản 2.1 -->
+            <div class="changelog-card">
+              <div class="changelog-card-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span class="changelog-tag" style="background:#f1f5f9; color:#475569;">Phiên bản 2.1</span>
+                  <strong style="font-size: 16.5px; color: var(--text-primary);">Header Tinh Gọn & Nút Hướng Dẫn Hút Cạnh Thông Minh</strong>
+                </div>
+                <span style="font-size: 12.5px; color: var(--text-tertiary);">Tháng 8/2026</span>
+              </div>
+              <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.7;">
+                <li><strong>🎯 Tinh Gọn Header</strong>: Loại bỏ các nút điều hướng thừa trên cùng, quay về trang chủ nhanh bằng cách nhấp Logo.</li>
+                <li><strong>💡 Nút Hướng Dẫn Kéo Thả Tự Hút Cạnh (Snap-to-Edge Magnetism)</strong>: Kéo di chuyển tự do bằng chuột/cảm ứng, tự động hút sát vào mép màn hình gần nhất và ghi nhớ vị trí trên thiết bị.</li>
+                <li><strong>🚪 Chế Độ Tập Trung Làm Bài & Cảnh Báo An Toàn</strong>: Tự động chặn thoát trang dở dang khi đang thi thử.</li>
+              </ul>
+            </div>
+
+            <!-- Phiên bản 2.0 -->
+            <div class="changelog-card">
+              <div class="changelog-card-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span class="changelog-tag" style="background:#f1f5f9; color:#475569;">Phiên bản 2.0</span>
+                  <strong style="font-size: 16.5px; color: var(--text-primary);">Trang Cấu Hình Bài Thi Đa Dạng & Router Hash History</strong>
+                </div>
+                <span style="font-size: 12.5px; color: var(--text-tertiary);">Tháng 8/2026</span>
+              </div>
+              <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.7;">
+                <li><strong>📝 Trang Cấu Hình Bài Thi Độc Lập</strong>: Tùy chọn Chế độ Ôn tập (hiện đáp án ngay) vs Thi thử tính giờ, chọn số lượng câu hỏi, xáo trộn câu và xáo đáp án A-B-C-D.</li>
+                <li><strong>🔙 Hỗ Trợ Nút Back Trình Duyệt</strong>: Điều hướng mượt mà, lưu lịch sử duyệt trang và hỗ trợ URL hash trực tiếp.</li>
+              </ul>
+            </div>
+          </div>
+        `}
+      </div>
+    `;
+  },
+
+  formatRelativeTime(isoString) {
+    if (!isoString) return "Vừa xong";
+    try {
+      const past = new Date(isoString).getTime();
+      const diff = Math.floor((Date.now() - past) / 1000);
+      if (diff < 60) return "Vừa xong";
+      if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`;
+      return new Date(isoString).toLocaleDateString("vi-VN");
+    } catch (e) {
+      return "Gần đây";
+    }
+  },
+
+  clearAllNotificationsConfirm(userId) {
+    this.showConfirmDialog({
+      title: "Xác nhận xóa toàn bộ thông báo",
+      message: "Bạn có chắc chắn muốn xóa toàn bộ danh sách thông báo cá nhân không?",
+      icon: "🗑️",
+      confirmText: "Xóa toàn bộ",
+      isDanger: true,
+      onConfirm: () => {
+        StorageService.saveNotifications(userId, []);
+        App.renderHeader();
+        App.showToast("🗑️ Đã xóa sạch thông báo!", "info", 2500);
+        App.renderNotificationsView(document.getElementById("mainContent"));
       }
     });
   },
@@ -4915,8 +5208,9 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
             </div>
           </td>
           <td>
-            <div style="font-weight: 800; color: #b45309;">⚡ ${u.totalExp || 0} EXP</div>
-            <div style="font-size: 11.5px; color: var(--text-tertiary);">${u.quizzesCompleted || 0} bài thi</div>
+            <div style="font-weight: 800; color: #b45309; font-size: 13px;">⚡ ${u.totalExp || 0} EXP</div>
+            <div style="font-weight: 800; color: #15803d; font-size: 12px; margin-top: 1px;">🌟 ${u.contributionPoints || 0} CP</div>
+            <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px;">${u.quizzesCompleted || 0} bài thi</div>
           </td>
           <td>
             <span class="${u.status === 'suspended' ? 'status-badge-suspended' : 'status-badge-active'}">
@@ -4924,7 +5218,10 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
             </span>
           </td>
           <td style="text-align: right;">
-            <div style="display: inline-flex; gap: 6px;">
+            <div style="display: inline-flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end;">
+              <button class="btn btn-sm" style="background:#fef3c7; color:#b45309; border-color:#fde68a; font-weight:700;" title="Điều chỉnh điểm EXP / CP" onclick="App.openAdminAdjustPointsModal('${u.id}')">
+                ⚡ Điểm
+              </button>
               <button class="btn btn-sm" title="Chỉnh sửa quyền & thông tin" onclick="App.openEditUserModal('${u.id}')">
                 ✏️ Sửa
               </button>
@@ -4944,6 +5241,85 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
         </tr>
       `;
     }).join('');
+  },
+
+  openAdminAdjustPointsModal(userId) {
+    const user = StorageService.getUserById(userId);
+    if (!user) return;
+
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = `⚡/🌟 Điều Chỉnh Điểm: ${user.fullName}`;
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 16px; font-size: 13px;">
+          <div>👤 Sinh viên: <strong>${user.fullName}</strong> (MSSV: <code>${user.studentId}</code>)</div>
+          <div style="display: flex; gap: 16px; margin-top: 6px; font-weight: 700;">
+            <span style="color: #b45309;">⚡ EXP hiện tại: ${user.totalExp || 0}</span>
+            <span style="color: #15803d;">🌟 CP hiện tại: ${user.contributionPoints || 0}</span>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight: 700;">Loại Điểm (*):</label>
+            <select id="adjustPointType" class="form-control" style="font-weight: 600;">
+              <option value="EXP">⚡ Điểm EXP Học Tập</option>
+              <option value="CP">🌟 Điểm Cống Hiến (CP)</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight: 700;">Số điểm (+ Cộng / - Trừ) (*):</label>
+            <input type="number" id="adjustPointAmount" class="form-control" placeholder="VD: 50 hoặc -20" style="font-weight: 700;">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-weight: 700;">Lý do điều chỉnh (Bắt buộc để gửi thông báo minh bạch) (*):</label>
+          <textarea id="adjustPointReason" class="form-control" style="min-height: 80px;" placeholder="Nhập lý do cụ thể (VD: Thưởng thành tích top 1 thi thử tuần 3, hoặc Hiệu chỉnh do lỗi câu hỏi)..."></textarea>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Hủy</button>
+      <button class="btn btn-primary" onclick="App.saveAdminAdjustPoints('${user.id}')">💾 Xác Nhận & Gửi Thông Báo</button>
+    `;
+
+    this.openModal();
+  },
+
+  saveAdminAdjustPoints(userId) {
+    const type = document.getElementById("adjustPointType")?.value || "EXP";
+    const amountVal = document.getElementById("adjustPointAmount")?.value.trim();
+    const reasonVal = document.getElementById("adjustPointReason")?.value.trim();
+
+    const amount = parseInt(amountVal, 10);
+    if (isNaN(amount) || amount === 0) {
+      this.showToast("⚠️ Vui lòng nhập số điểm điều chỉnh hợp lệ (khác 0)!", "warning");
+      return;
+    }
+
+    if (!reasonVal) {
+      this.showToast("⚠️ Vui lòng nhập lý do điều chỉnh để gửi thông báo minh bạch cho sinh viên!", "warning");
+      return;
+    }
+
+    const adminProfile = StorageService.getUserProfile();
+    const adminName = adminProfile.fullName || "Quản trị viên";
+
+    try {
+      StorageService.adminAdjustUserPoints(userId, type, amount, reasonVal, adminName);
+      this.closeModal();
+      this.showToast(`✅ Đã điều chỉnh ${amount > 0 ? '+' : ''}${amount} ${type} cho sinh viên thành công!`, "success", 4000);
+      this.renderUsersManagementView(document.getElementById("mainContent"));
+    } catch (e) {
+      this.showToast("❌ " + e.message, "danger", 3500);
+    }
   },
 
   onSearchUsers() {
@@ -5188,7 +5564,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
           <div class="form-group" style="margin: 0;">
             <label class="form-label">Vai trò (*):</label>
             <select id="editUsrRole" class="form-control">
@@ -5198,8 +5574,12 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
             </select>
           </div>
           <div class="form-group" style="margin: 0;">
-            <label class="form-label">Điểm EXP tích lũy:</label>
+            <label class="form-label">Điểm EXP:</label>
             <input type="number" id="editUsrExp" class="form-control" value="${user.totalExp || 0}">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Điểm CP:</label>
+            <input type="number" id="editUsrCp" class="form-control" value="${user.contributionPoints || 0}">
           </div>
         </div>
 
@@ -5261,6 +5641,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     const dept = document.getElementById("editUsrDept")?.value.trim();
     const role = document.getElementById("editUsrRole")?.value || "student";
     const exp = parseInt(document.getElementById("editUsrExp")?.value, 10) || 0;
+    const cp = parseInt(document.getElementById("editUsrCp")?.value, 10) || 0;
 
     if (!name) {
       this.showToast("⚠️ Họ và tên không được để trống!", "warning");
@@ -5283,6 +5664,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       department: dept,
       role: role,
       totalExp: exp,
+      contributionPoints: cp,
       permissions: {
         canApproveDrafts: document.getElementById("editPermApproveDrafts")?.checked || false,
         canEditSubjects: document.getElementById("editPermEditSubjects")?.checked || false,
