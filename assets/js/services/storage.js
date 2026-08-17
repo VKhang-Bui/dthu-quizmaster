@@ -303,7 +303,7 @@ const StorageService = {
       email: "vkhg.bui@gmail.com",
       phone: "0354616301",
       department: "Khoa Kỹ thuật - Công nghệ",
-      role: "admin", // 'admin' | 'editor' | 'student'
+      role: "admin",
       avatar: "👨‍🎓",
       pinCode: "123456",
       permissions: {
@@ -319,8 +319,118 @@ const StorageService = {
       cumulativeReviewed: 80,
       streakDays: 14,
       quizzesCompleted: 35,
-      status: "active", // 'active' | 'pending_approval' | 'suspended'
+      status: "active",
       createdAt: "2026-01-01T08:00:00.000Z"
+    },
+    {
+      id: "USR-02",
+      fullName: "Nguyễn Thị Mai Lan",
+      studentId: "0024418102",
+      className: "ĐHSPHOA24A",
+      email: "0024418102@dthu.edu.vn",
+      phone: "0912345601",
+      department: "Khoa Sư phạm KHTN",
+      role: "student",
+      avatar: "👩‍🎓",
+      pinCode: "123456",
+      permissions: { canApproveDrafts: false, canEditSubjects: false, canManageMaterials: false, canManageUsers: false },
+      totalExp: 580,
+      contributionPoints: 120,
+      cumulativeQuestions: 1200,
+      cumulativeChars: 45000,
+      cumulativeReviewed: 0,
+      streakDays: 10,
+      quizzesCompleted: 28,
+      status: "active",
+      createdAt: "2026-01-05T08:00:00.000Z"
+    },
+    {
+      id: "USR-03",
+      fullName: "Trần Minh Đức",
+      studentId: "0024418205",
+      className: "ĐHLLCT24B",
+      email: "0024418205@dthu.edu.vn",
+      phone: "0912345602",
+      department: "Khoa Lý luận Chính trị",
+      role: "student",
+      avatar: "👨‍🎓",
+      pinCode: "123456",
+      permissions: { canApproveDrafts: false, canEditSubjects: false, canManageMaterials: false, canManageUsers: false },
+      totalExp: 420,
+      contributionPoints: 85,
+      cumulativeQuestions: 850,
+      cumulativeChars: 25000,
+      cumulativeReviewed: 0,
+      streakDays: 7,
+      quizzesCompleted: 22,
+      status: "active",
+      createdAt: "2026-01-10T08:00:00.000Z"
+    },
+    {
+      id: "USR-04",
+      fullName: "Lê Hoàng Phúc",
+      studentId: "0024418318",
+      className: "ĐHTOAN24A",
+      email: "0024418318@dthu.edu.vn",
+      phone: "0912345603",
+      department: "Khoa Sư phạm Toán - Tin",
+      role: "student",
+      avatar: "👨‍💻",
+      pinCode: "123456",
+      permissions: { canApproveDrafts: false, canEditSubjects: false, canManageMaterials: false, canManageUsers: false },
+      totalExp: 350,
+      contributionPoints: 60,
+      cumulativeQuestions: 600,
+      cumulativeChars: 18000,
+      cumulativeReviewed: 0,
+      streakDays: 5,
+      quizzesCompleted: 18,
+      status: "active",
+      createdAt: "2026-01-15T08:00:00.000Z"
+    },
+    {
+      id: "USR-05",
+      fullName: "Phạm Ngọc Hân",
+      studentId: "0024418420",
+      className: "ĐHNN24C",
+      email: "0024418420@dthu.edu.vn",
+      phone: "0912345604",
+      department: "Khoa Ngoại ngữ",
+      role: "student",
+      avatar: "👩‍💼",
+      pinCode: "123456",
+      permissions: { canApproveDrafts: false, canEditSubjects: false, canManageMaterials: false, canManageUsers: false },
+      totalExp: 290,
+      contributionPoints: 45,
+      cumulativeQuestions: 450,
+      cumulativeChars: 12000,
+      cumulativeReviewed: 0,
+      streakDays: 4,
+      quizzesCompleted: 14,
+      status: "active",
+      createdAt: "2026-01-20T08:00:00.000Z"
+    },
+    {
+      id: "USR-06",
+      fullName: "Đặng Gia Huy",
+      studentId: "0024418531",
+      className: "ĐHNONG24A",
+      email: "0024418531@dthu.edu.vn",
+      phone: "0912345605",
+      department: "Khoa Nông nghiệp - Sinh học",
+      role: "student",
+      avatar: "👨‍🌾",
+      pinCode: "123456",
+      permissions: { canApproveDrafts: false, canEditSubjects: false, canManageMaterials: false, canManageUsers: false },
+      totalExp: 210,
+      contributionPoints: 30,
+      cumulativeQuestions: 300,
+      cumulativeChars: 8000,
+      cumulativeReviewed: 0,
+      streakDays: 3,
+      quizzesCompleted: 11,
+      status: "active",
+      createdAt: "2026-01-25T08:00:00.000Z"
     }
   ],
 
@@ -328,16 +438,25 @@ const StorageService = {
     try {
       const data = localStorage.getItem(this.KEYS.USERS_LIST);
       if (data) {
-        const list = JSON.parse(data);
+        let list = JSON.parse(data);
         if (Array.isArray(list) && list.length > 0) {
           // Lọc bỏ triệt để các tài khoản đã bị từ chối / xóa (status === 'rejected')
-          const validList = list.filter(u => u && u.status !== "rejected");
+          let validList = list.filter(u => u && u.status !== "rejected");
+
           // Tự động đồng bộ hồ sơ Admin USR-01 nếu phát hiện thông tin cũ
           const adminIdx = validList.findIndex(u => u.id === "USR-01" || u.role === "admin");
           if (adminIdx !== -1 && validList[adminIdx].studentId !== "0024418475") {
             validList[adminIdx] = Object.assign({}, validList[adminIdx], this.DEFAULT_USERS[0]);
-            this.saveAllUsers(validList);
           }
+
+          // Bổ sung các user mặc định nếu chưa có
+          this.DEFAULT_USERS.forEach(defU => {
+            if (!validList.some(u => u.id === defU.id || u.studentId === defU.studentId)) {
+              validList.push(defU);
+            }
+          });
+
+          this.saveAllUsers(validList);
           return validList;
         }
       }
@@ -1337,9 +1456,9 @@ const StorageService = {
     return {
       seasonName: "Học Kỳ 1 (2026 - 2027)",
       isPublic: true,
-      top1Title: "👑 Thủ Khoa",
-      top2Title: "🥈 Á Khoa",
-      top3Title: "🥉 Top 3",
+      top1Title: "🥇 Hạng 1 (Top 1)",
+      top2Title: "🥈 Hạng 2 (Top 2)",
+      top3Title: "🥉 Hạng 3 (Top 3)",
       hiddenUserIds: [],
       customBadges: {},
       seasonStartDate: new Date().toISOString()
@@ -1494,14 +1613,8 @@ const StorageService = {
         isCurrentUser: (profile.id === u.id)
       }));
 
-      // Bổ sung mock nếu ít user và không có search filter
-      if (list.length < 3 && filterDept === "all" && !searchQuery) {
-        list.push({ id: "mock-1", name: "Nguyễn Thị Mai Lan", rawName: "Nguyễn Thị Mai Lan", studentId: "220101001", email: "220101001@dthu.edu.vn", department: "Khoa Sư phạm KHTN", cp: 120, questions: 1200, chars: 45000, isHidden: false, customBadge: null, isCurrentUser: false });
-        list.push({ id: "mock-2", name: "Trần Minh Đức", rawName: "Trần Minh Đức", studentId: "220101002", email: "220101002@dthu.edu.vn", department: "Khoa Lý luận Chính trị", cp: 85, questions: 850, chars: 25000, isHidden: false, customBadge: null, isCurrentUser: false });
-      }
-
       return list.sort((a, b) => b.cp - a.cp).map((item, index) => {
-        let badge = customBadges[item.id] || (index === 0 ? (settings.top1Title || "🥇 Đại Sứ") : (index === 1 ? (settings.top2Title || "🥈 Tích Cực") : (index === 2 ? (settings.top3Title || "🥉 Tiên Phong") : "🌟 Đóng Góp")));
+        let badge = customBadges[item.id] || (index === 0 ? (settings.top1Title || "🥇 Hạng 1") : (index === 1 ? (settings.top2Title || "🥈 Hạng 2") : (index === 2 ? (settings.top3Title || "🥉 Hạng 3") : "🌟 Đóng Góp")));
         return {
           ...item,
           rank: index + 1,
@@ -1525,13 +1638,8 @@ const StorageService = {
       isCurrentUser: (profile.id === u.id)
     }));
 
-    if (list.length < 3 && filterDept === "all" && !searchQuery) {
-      list.push({ id: "mock-1", name: "Nguyễn Thị Mai Lan", rawName: "Nguyễn Thị Mai Lan", studentId: "220101001", email: "220101001@dthu.edu.vn", department: "Khoa Sư phạm KHTN", exp: 580, quizzes: 28, isHidden: false, customBadge: null, isCurrentUser: false });
-      list.push({ id: "mock-2", name: "Trần Minh Đức", rawName: "Trần Minh Đức", studentId: "220101002", email: "220101002@dthu.edu.vn", department: "Khoa Lý luận Chính trị", exp: 210, quizzes: 15, isHidden: false, customBadge: null, isCurrentUser: false });
-    }
-
     return list.sort((a, b) => b.exp - a.exp).map((item, index) => {
-      let badge = customBadges[item.id] || (index === 0 ? (settings.top1Title || "🥇 Thủ Khoa") : (index === 1 ? (settings.top2Title || "🥈 Á Khoa") : (index === 2 ? (settings.top3Title || "🥉 Top 3") : "⭐ Chăm Chỉ")));
+      let badge = customBadges[item.id] || (index === 0 ? (settings.top1Title || "🥇 Hạng 1") : (index === 1 ? (settings.top2Title || "🥈 Hạng 2") : (index === 2 ? (settings.top3Title || "🥉 Hạng 3") : "⭐ Chăm Chỉ")));
       return {
         ...item,
         rank: index + 1,
