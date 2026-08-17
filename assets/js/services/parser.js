@@ -99,6 +99,7 @@ const SmartParserService = {
     const questionSplits = text.split(/(?=(?:(?:\n|\A)\s*(?:\*{0,2}(?:Câu|Bài|Question)\s*\d+[\s\.:\*\-\]]+|\b\d+\s*[\.)]\s+|\[(?:Câu\s*)?\d+\])))/i);
 
     const questions = [];
+    const warnings = [];
     const errors = [];
     let currentChapter = defaultChapterId;
 
@@ -149,7 +150,15 @@ const SmartParserService = {
             parsedQ.data.options.forEach((opt, oi) => {
               opt.isCorrect = (oi === keyIdx);
             });
+            // Xóa cảnh báo missing_answer vì đã tìm thấy trong bảng đáp án tổng hợp
+            if (parsedQ.data.warning && parsedQ.data.warning.type === "missing_answer") {
+              parsedQ.data.warning = null;
+            }
           }
+        }
+
+        if (parsedQ.data.warning) {
+          warnings.push(`Câu ${blockIdx + 1}: ${parsedQ.data.warning.message}`);
         }
         questions.push(parsedQ.data);
       } else if (parsedQ.error) {
@@ -162,6 +171,7 @@ const SmartParserService = {
 
     return {
       questions,
+      warnings,
       errors,
       totalParsed: questions.length
     };
@@ -302,19 +312,50 @@ const SmartParserService = {
       });
     });
 
-    // 6. Xác định đáp án đúng cuối cùng
+    const LETTERS = ["A", "B", "C", "D", "E", "F"];
+    const markedIndices = [];
+    options.forEach((opt, idx) => {
+      if (opt.isCorrect) markedIndices.push(idx);
+    });
+
+    let warning = null;
+
+    // 6. Xác định đáp án đúng cuối cùng & Kiểm tra Cảnh báo
     if (answerIndex >= 0 && answerIndex < options.length) {
+      // Có đáp án rõ ràng ở cuối bài (Mẫu 1)
       options.forEach((opt, idx) => {
         opt.isCorrect = (idx === answerIndex);
       });
+      // Nếu trong bài có phương án đánh dấu khác với đáp án ở cuối
+      if (markedIndices.length > 0 && !markedIndices.includes(answerIndex)) {
+        warning = {
+          type: "multiple_answers",
+          message: `Phương án [${LETTERS[markedIndices[0]] || markedIndices[0] + 1}] có đánh dấu nhưng phần cuối ghi "Đáp án: ${LETTERS[answerIndex]}". Hệ thống đã ưu tiên [${LETTERS[answerIndex]}].`
+        };
+      }
     } else {
-      const foundIdx = options.findIndex(o => o.isCorrect);
-      if (foundIdx >= 0) {
-        answerIndex = foundIdx;
-      } else {
-        // Mặc định A nếu đề không đánh dấu
+      if (markedIndices.length === 0) {
+        // CẢNH BÁO 1: Không có đáp án đúng
         answerIndex = 0;
         options[0].isCorrect = true;
+        warning = {
+          type: "missing_answer",
+          message: `Chưa có đáp án đúng (tạm chọn ${LETTERS[0]}). Vui lòng thêm '> Đúng', '*' hoặc 'Đáp án: ${LETTERS[0]}' để hoàn tất.`
+        };
+      } else if (markedIndices.length === 1) {
+        // Chuẩn xác 1 đáp án đúng
+        answerIndex = markedIndices[0];
+      } else {
+        // CẢNH BÁO 2: Phát hiện từ 2 đáp án đúng trở lên
+        answerIndex = markedIndices[markedIndices.length - 1]; // Tạm chọn đáp án cuối
+        options.forEach((opt, idx) => {
+          opt.isCorrect = (idx === answerIndex);
+        });
+        const lettersList = markedIndices.map(i => LETTERS[i] || (i + 1)).join(", ");
+        warning = {
+          type: "multiple_answers",
+          message: `Phát hiện ${markedIndices.length} đáp án đúng (${lettersList}). Hệ thống đã tạm chọn [${LETTERS[answerIndex]}]. Vui lòng kiểm tra lại!`
+        };
       }
     }
 
@@ -328,7 +369,8 @@ const SmartParserService = {
       chapterId: chapterId || "c1",
       question: questionTitle,
       options,
-      answerIndex
+      answerIndex,
+      warning
     };
 
     return { success: true, data: questionObj };

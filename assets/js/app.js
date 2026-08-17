@@ -2642,7 +2642,7 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
     const raw = document.getElementById("rawTextarea")?.value || "";
     const chapterId = document.getElementById("parserChapterSelect")?.value || "c1";
 
-    const { questions, errors, totalParsed } = SmartParserService.parseRawText(raw, chapterId);
+    const { questions, warnings, errors, totalParsed } = SmartParserService.parseRawText(raw, chapterId);
     this.currentParsedQuestions = questions;
 
     const badge = document.getElementById("parserCounterBadge");
@@ -2652,7 +2652,13 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
     const btnCopy = document.getElementById("btnCopyJson");
     const btnContribute = document.getElementById("btnContribute");
 
-    if (badge) badge.textContent = `${totalParsed} câu hỏi hợp lệ`;
+    if (badge) {
+      if (warnings && warnings.length > 0) {
+        badge.innerHTML = `<span style="color: #f59e0b; font-weight: 700;"><i class="fa-solid fa-triangle-exclamation"></i> ${totalParsed} câu (${warnings.length} cần chú ý)</span>`;
+      } else {
+        badge.textContent = `${totalParsed} câu hỏi hợp lệ`;
+      }
+    }
 
     if (totalParsed === 0) {
       if (previewList) {
@@ -2675,23 +2681,60 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
     if (btnContribute) btnContribute.disabled = false;
 
     if (previewList) {
-      previewList.innerHTML = questions.map((q, idx) => `
-        <div class="preview-card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-            <span class="badge badge-gray">Câu ${idx + 1}</span>
-            <span style="font-size: 11.5px; font-weight: 700; color: var(--success);">Đáp án đúng: ${this.letters[q.answerIndex]}</span>
+      let warningBannerHtml = "";
+      if (warnings && warnings.length > 0) {
+        warningBannerHtml = `
+          <div style="margin-bottom: 14px; padding: 12px 14px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 8px; color: #b45309; font-size: 12px;">
+            <div style="font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 12.5px;">
+              <i class="fa-solid fa-triangle-exclamation" style="color: #f59e0b;"></i> Cảnh báo (${warnings.length} câu hỏi cần kiểm tra đáp án):
+            </div>
+            <div style="max-height: 80px; overflow-y: auto; line-height: 1.5; opacity: 0.9;">
+              ${warnings.map(w => `<div>• ${w}</div>`).join('')}
+            </div>
           </div>
-          <div class="preview-card-title">${SmartParserService.formatRichText(q.question)}</div>
-          <div>
-            ${q.options.map((opt, oi) => `
-              <div class="preview-opt-item ${oi === q.answerIndex ? 'is-correct' : ''}">
-                <strong>${this.letters[oi]}.</strong> ${SmartParserService.formatRichText(opt.text)}
-                ${opt.note ? `<div style="font-size: 11.5px; opacity: 0.85; margin-left: 14px; margin-top: 2px;">↳ <em>${SmartParserService.formatRichText(opt.note)}</em></div>` : ''}
+        `;
+      }
+
+      previewList.innerHTML = warningBannerHtml + questions.map((q, idx) => {
+        let warnBoxHtml = "";
+        let cardBorderStyle = "";
+        if (q.warning) {
+          if (q.warning.type === "missing_answer") {
+            cardBorderStyle = "border-color: rgba(245, 158, 11, 0.4);";
+            warnBoxHtml = `
+              <div style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; margin-bottom: 8px; background: rgba(245, 158, 11, 0.12); border-left: 3px solid #f59e0b; border-radius: 4px; color: #b45309; font-size: 11.5px; font-weight: 600;">
+                <i class="fa-solid fa-triangle-exclamation"></i> ${q.warning.message}
               </div>
-            `).join('')}
+            `;
+          } else {
+            cardBorderStyle = "border-color: rgba(239, 68, 68, 0.4);";
+            warnBoxHtml = `
+              <div style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; margin-bottom: 8px; background: rgba(239, 68, 68, 0.12); border-left: 3px solid #ef4444; border-radius: 4px; color: #dc2626; font-size: 11.5px; font-weight: 600;">
+                <i class="fa-solid fa-circle-exclamation"></i> ${q.warning.message}
+              </div>
+            `;
+          }
+        }
+
+        return `
+          <div class="preview-card" style="${cardBorderStyle}">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span class="badge ${q.warning ? 'badge-warning' : 'badge-gray'}">Câu ${idx + 1}</span>
+              <span style="font-size: 11.5px; font-weight: 700; color: ${q.warning ? '#f59e0b' : 'var(--success)'};">Đáp án: ${this.letters[q.answerIndex]}</span>
+            </div>
+            ${warnBoxHtml}
+            <div class="preview-card-title">${SmartParserService.formatRichText(q.question)}</div>
+            <div>
+              ${q.options.map((opt, oi) => `
+                <div class="preview-opt-item ${oi === q.answerIndex ? 'is-correct' : ''}">
+                  <strong>${this.letters[oi]}.</strong> ${SmartParserService.formatRichText(opt.text)}
+                  ${opt.note ? `<div style="font-size: 11.5px; opacity: 0.85; margin-left: 14px; margin-top: 2px;">↳ <em>${SmartParserService.formatRichText(opt.note)}</em></div>` : ''}
+                </div>
+              `).join('')}
+            </div>
           </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
   },
 
