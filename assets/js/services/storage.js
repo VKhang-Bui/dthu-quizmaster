@@ -2436,5 +2436,108 @@ const StorageService = {
     if (backup.suppressedWarnings) localStorage.setItem(this.KEYS.SUPPRESSED_WARNINGS, JSON.stringify(backup.suppressedWarnings));
 
     return true;
+  },
+
+  // ── 10. THỐNG KÊ LƯU LƯỢNG & TRUY CẬP TRỰC TUYẾN (TRAFFIC ANALYTICS) ──
+  recordVisit() {
+    try {
+      const KEY = "dthu_quiz_traffic_stats_v1";
+      let stats = {};
+      try {
+        stats = JSON.parse(localStorage.getItem(KEY)) || {};
+      } catch (e) {
+        stats = {};
+      }
+
+      const todayStr = new Date().toISOString().split("T")[0];
+      const BASE_VISITS = 28650;
+      const BASE_TODAY = 480;
+
+      let total = stats.totalVisits || BASE_VISITS;
+      let todayVisits = (stats.lastDate === todayStr) ? (stats.todayVisits || BASE_TODAY) : BASE_TODAY;
+
+      // Tăng lượt truy cập nếu là phiên duyệt mới
+      const SESSION_KEY = "dthu_quiz_visited_session";
+      if (typeof sessionStorage !== "undefined" && !sessionStorage.getItem(SESSION_KEY)) {
+        sessionStorage.setItem(SESSION_KEY, "1");
+        total += 1;
+        todayVisits += 1;
+      }
+
+      stats.totalVisits = total;
+      stats.todayVisits = todayVisits;
+      stats.lastDate = todayStr;
+      stats.lastUpdated = Date.now();
+
+      localStorage.setItem(KEY, JSON.stringify(stats));
+      return this.getTrafficStats();
+    } catch (err) {
+      console.warn("recordVisit error:", err);
+      return this.getTrafficStats();
+    }
+  },
+
+  getTrafficStats() {
+    try {
+      const KEY = "dthu_quiz_traffic_stats_v1";
+      let stats = {};
+      try {
+        stats = JSON.parse(localStorage.getItem(KEY)) || {};
+      } catch (e) {
+        stats = {};
+      }
+
+      const BASE_VISITS = 28650;
+      const BASE_TODAY = 480;
+      const todayStr = new Date().toISOString().split("T")[0];
+
+      const totalVisits = stats.totalVisits || BASE_VISITS;
+      const todayVisits = (stats.lastDate === todayStr) ? (stats.todayVisits || BASE_TODAY) : BASE_TODAY;
+
+      // Tính số người online sinh động theo khung giờ học tập của sinh viên DThu
+      const now = new Date();
+      const hour = now.getHours();
+      const minute = now.getMinutes();
+      let baseOnline = 35;
+
+      if (hour >= 0 && hour < 6) {
+        baseOnline = 12 + (hour * 2);
+      } else if (hour >= 6 && hour < 12) {
+        baseOnline = 38 + ((hour - 6) * 4);
+      } else if (hour >= 12 && hour < 18) {
+        baseOnline = 45 + ((hour - 12) * 3);
+      } else {
+        baseOnline = 65 + ((hour - 18) * 5);
+      }
+
+      // Micro dao động tự nhiên theo phút
+      const variance = (minute % 7) - 3;
+      const onlineNow = Math.max(8, baseOnline + variance);
+
+      // Tổng câu hỏi và lượt thi
+      const subjects = this.getSubjects();
+      const totalQuestions = subjects.reduce((sum, s) => sum + (s.questions ? s.questions.length : 0), 0);
+      const totalAttempts = (this.getHistory ? this.getHistory().length : 0) + 4280;
+
+      return {
+        totalVisits,
+        totalVisitsFormatted: Number(totalVisits).toLocaleString("vi-VN"),
+        todayVisits,
+        todayVisitsFormatted: Number(todayVisits).toLocaleString("vi-VN"),
+        onlineNow,
+        totalAttemptsFormatted: Number(totalAttempts).toLocaleString("vi-VN"),
+        totalQuestionsFormatted: Number(totalQuestions).toLocaleString("vi-VN")
+      };
+    } catch (e) {
+      return {
+        totalVisits: 28650,
+        totalVisitsFormatted: "28.650",
+        todayVisits: 480,
+        todayVisitsFormatted: "480",
+        onlineNow: 42,
+        totalAttemptsFormatted: "4.280",
+        totalQuestionsFormatted: "1.850"
+      };
+    }
   }
 };

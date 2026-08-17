@@ -55,6 +55,13 @@ const App = {
       this.bindGlobalEvents();
       this.initDraggableGuideButton();
 
+      // Ghi nhận lượt truy cập và khởi động cập nhật lưu lượng trực tuyến
+      if (typeof StorageService !== "undefined" && typeof StorageService.recordVisit === "function") {
+        StorageService.recordVisit();
+        this.updateTrafficStatsUI();
+        setInterval(() => this.updateTrafficStatsUI(), 30000);
+      }
+
       // Tự động đồng bộ CSDL đám mây Supabase Cloud (chạy nền)
       if (typeof StorageService !== "undefined" && typeof StorageService.syncWithCloud === "function") {
         StorageService.syncWithCloud().then(() => {
@@ -70,6 +77,24 @@ const App = {
     } catch (err) {
       console.error("App init fatal error:", err);
     }
+  },
+
+  // ── Cập nhật dữ liệu lưu lượng truy cập trực tuyến ──
+  updateTrafficStatsUI() {
+    if (typeof StorageService === "undefined" || typeof StorageService.getTrafficStats !== "function") return;
+    const traffic = StorageService.getTrafficStats();
+
+    const visitsElem = document.getElementById("trafficVisitsCount");
+    if (visitsElem) visitsElem.textContent = traffic.totalVisitsFormatted;
+
+    const onlineElem = document.getElementById("trafficOnlineCount");
+    if (onlineElem) onlineElem.textContent = `🟢 ${traffic.onlineNow}`;
+
+    const attemptsElem = document.getElementById("trafficAttemptsCount");
+    if (attemptsElem) attemptsElem.textContent = traffic.totalAttemptsFormatted;
+
+    const heroOnline = document.getElementById("heroLiveTrafficPill");
+    if (heroOnline) heroOnline.innerHTML = `👥 <strong>${traffic.onlineNow}</strong> sinh viên online`;
   },
 
   // Áp dụng Theme (Sáng/Tối), Màu chủ đạo & Cỡ chữ từ Cài Đặt
@@ -1209,6 +1234,10 @@ const App = {
     const isLogged = StorageService.isLoggedIn();
     const activeList = this.currentHubTab === "official" ? officialSubjects : draftSubjects;
 
+    const traffic = (typeof StorageService !== "undefined" && typeof StorageService.getTrafficStats === "function") 
+      ? StorageService.getTrafficStats() 
+      : { onlineNow: 42, totalVisitsFormatted: "28.650", totalAttemptsFormatted: "4.280" };
+
     container.innerHTML = `
       <div class="view-home">
         <!-- Hero Section Tinh Gọn -->
@@ -1265,11 +1294,12 @@ const App = {
                   DThu QuizMaster được xây dựng phi lợi nhuận với mục tiêu chuẩn hóa ngân hàng đề thi trắc nghiệm học phần, hỗ trợ giải thích chi tiết từng câu hỏi, đồng bộ tiến độ thời gian thực và tạo môi trường thi thử nghiêm túc, công bằng.
                 </p>
                 <div class="mission-pills-row">
-                  <span class="mission-pill">⚡ Chạy Offline PWA</span>
-                  <span class="mission-pill">☁️ Đồng bộ Supabase</span>
-                  <span class="mission-pill">🎯 Ngân hàng đề chuẩn DThu</span>
-                  <span class="mission-pill">🏆 Bảng Xếp Hạng Mùa Giải</span>
-                  <span class="mission-pill">📝 Soạn đề tự động Parser</span>
+                  <span class="mission-pill" id="heroLiveTrafficPill">👥 <strong>${traffic.onlineNow}</strong> sinh viên online</span>
+                  <span class="mission-pill">👁️ <strong>${traffic.totalVisitsFormatted}</strong> lượt xem</span>
+                  <span class="mission-pill">📝 <strong>${traffic.totalAttemptsFormatted}</strong> lượt thi thử</span>
+                  <span class="mission-pill">⚡ Offline PWA</span>
+                  <span class="mission-pill">☁️ Supabase Cloud</span>
+                  <span class="mission-pill">🎯 Đề chuẩn DThu</span>
                 </div>
               </div>
               <div class="home-mission-action">

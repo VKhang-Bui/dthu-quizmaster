@@ -2181,6 +2181,70 @@ body.is-resizing-quiz {
   50% { opacity: 0.5; transform: scale(0.85); }
 }
 
+/* Traffic Analytics Widget in Footer Col 1 */
+.footer-traffic-box {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  width: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.traffic-box-header {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.traffic-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.traffic-metric-item {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.traffic-metric-item.highlight-live {
+  background: rgba(34, 197, 94, 0.08);
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.traffic-metric-num {
+  font-size: 12.5px;
+  font-weight: 900;
+  color: #f8fafc;
+  font-family: monospace;
+}
+
+.traffic-metric-num.text-green {
+  color: #4ade80;
+}
+
+.traffic-metric-label {
+  font-size: 10px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
 .footer-version-tag {
   font-size: 11.5px;
   color: #64748b;
