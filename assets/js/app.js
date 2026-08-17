@@ -5,8 +5,9 @@
 
 const App = {
   // Application State
-  currentView: "home", // 'home', 'quiz', 'result', 'mistakes', 'manage', 'parser', 'subject-detail', 'guide', 'leaderboard', 'materials', 'moderation'
-  currentHubTab: "official", // 'official' hoặc 'drafts'
+  currentView: "home",
+  currentHubTab: "official",
+  adminSubjectTab: "official", // 'official' hoặc 'drafts' cho trang Quản lý Bộ đề
   activeMaterialId: "mat-cnxhkh",
   activeSubject: null,
   activeSession: null,
@@ -20,17 +21,34 @@ const App = {
 
   // Khởi động ứng dụng
   async init() {
-    this.applyThemeSettings();
-    if (typeof DataLoader !== "undefined") {
-      await DataLoader.init();
+    try {
+      this.applyThemeSettings();
+      if (typeof DataLoader !== "undefined") {
+        try {
+          await DataLoader.init();
+        } catch (e) {
+          console.warn("DataLoader init warning:", e);
+        }
+      }
+      this.renderHeader();
+      this.navigateTo("home");
+      this.bindGlobalEvents();
+
+      // Tự động đồng bộ CSDL đám mây Supabase Cloud (chạy nền)
+      if (typeof StorageService !== "undefined" && typeof StorageService.syncWithCloud === "function") {
+        StorageService.syncWithCloud().then(() => {
+          this.renderHeader();
+          const main = document.getElementById("mainContent");
+          if (this.currentView === "home" && main) {
+            this.renderHomeView(main);
+          } else if (this.currentView === "manage" && main) {
+            this.renderManageView(main);
+          }
+        }).catch(e => console.warn("Supabase background sync:", e));
+      }
+    } catch (err) {
+      console.error("App init fatal error:", err);
     }
-    // Tự động đồng bộ CSDL đám mây Supabase Cloud (chạy nền)
-    if (typeof StorageService !== "undefined" && typeof StorageService.syncWithCloud === "function") {
-      StorageService.syncWithCloud().catch(e => console.warn("Supabase background sync:", e));
-    }
-    this.renderHeader();
-    this.navigateTo("home");
-    this.bindGlobalEvents();
   },
 
   // Áp dụng Theme (Sáng/Tối), Màu chủ đạo & Cỡ chữ từ Cài Đặt
@@ -232,7 +250,7 @@ const App = {
                   <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('manage');">
                     <span class="drawer-icon">⚙️</span>
                     <span class="drawer-label">Quản Lý Bộ Đề</span>
-                    <span class="drawer-arrow">➔</span>
+                    ${(profile.role === 'admin' || StorageService.hasPermission('canApproveDrafts')) && drafts.length > 0 ? `<span class="badge" style="background:#fef3c7; color:#92400e; font-weight:700;">${drafts.length} chờ duyệt</span>` : `<span class="drawer-arrow">➔</span>`}
                   </button>
 
                   <button class="drawer-nav-btn" style="background: var(--surface-subtle); border-color: var(--brand-primary);" onclick="App.renderDrawerLevel('settings')">
@@ -246,14 +264,6 @@ const App = {
                     <span class="drawer-label">Liên Hệ & Góp Ý</span>
                     <span class="drawer-arrow">➔</span>
                   </button>
-
-                  ${(profile.role === 'admin' || StorageService.hasPermission('canApproveDrafts')) ? `
-                    <button class="drawer-nav-btn drawer-nav-btn-admin" onclick="App.closeUserDrawer(); App.navigateTo('moderation');">
-                      <span class="drawer-icon">🛡️</span>
-                      <span class="drawer-label">Duyệt Đề Đóng Góp</span>
-                      ${drafts.length > 0 ? `<span class="badge" style="background:#fef3c7; color:#92400e; font-weight:700;">${drafts.length}</span>` : `<span class="drawer-arrow">➔</span>`}
-                    </button>
-                  ` : ''}
 
                   ${(profile.role === 'admin' || StorageService.hasPermission('canManageUsers')) ? `
                     <button class="drawer-nav-btn" style="border-color: #3b82f6; background: #eff6ff; color: #1d4ed8;" onclick="App.closeUserDrawer(); App.navigateTo('users-management');">
@@ -1582,17 +1592,14 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
           </div>
 
           <div style="margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; gap: 10px; flex-wrap: wrap;">
-            <button class="btn btn-success" id="btnSaveToSubject" onclick="App.saveParsedQuestionsToSubject()" disabled>
-              💾 Lưu vào Môn học
+            <button class="btn btn-primary" id="btnSaveToSubject" onclick="App.saveParsedQuestionsToDraft()" disabled>
+              🚀 Lưu Bộ Đề Vào Hệ Thống (Chờ Duyệt) ➔
             </button>
             <button class="btn" id="btnDownloadJson" onclick="App.downloadParsedAsJson()" disabled>
               📥 Tải file JSON
             </button>
             <button class="btn" id="btnCopyJson" onclick="App.copyParsedJsonToClipboard()" disabled>
               📋 Sao chép JSON
-            </button>
-            <button class="btn btn-primary" id="btnContribute" onclick="App.openContributeModal()" disabled>
-              📤 Gửi đóng góp đề thi ➔
             </button>
           </div>
         </div>
@@ -1603,95 +1610,36 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
     this.onParserSubjectChange();
   },
 
-  openContributeModal(subjectId) {
-    const subId = subjectId || document.getElementById("parserSubjectSelect")?.value;
-    const sub = StorageService.getSubjectById(subId);
-    const subName = sub ? sub.name : "Môn học mới";
-    const subCode = sub ? (sub.code || sub.id) : "POL102";
-
-    const modal = document.getElementById("globalModal");
-    const title = document.getElementById("modalTitle");
-    const body = document.getElementById("modalBody");
-    const footer = document.getElementById("modalFooter");
-
-    title.textContent = "📤 Đóng Góp Bộ Đề Cho Cộng Đồng Sinh Viên DThu";
-
-    body.innerHTML = `
-      <div style="font-size: 13.5px; line-height: 1.6; color: var(--text-primary);">
-        <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: var(--radius-sm); padding: 14px; margin-bottom: 16px; color: #166534;">
-          <strong>🎉 Đang chuẩn bị gửi:</strong> ${this.currentParsedQuestions.length} câu hỏi môn <strong>${subName}</strong>.
-          Đóng góp sẽ được cộng <strong>+30 EXP</strong> vào hồ sơ cá nhân của bạn!
-        </div>
-
-        <div style="display: flex; flex-direction: column; gap: 14px;">
-          <!-- Option 1: Gửi trực tiếp lên web (Draft) -->
-          <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; background: var(--surface);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <h4 style="font-size: 14.5px; font-weight: 700; color: var(--text-primary);">⚡ Cách 1: Gửi duyệt trực tiếp (1-Click)</h4>
-              <span class="badge" style="background:#dbeafe; color:#1e40af;">Khuyên dùng</span>
-            </div>
-            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 10px;">
-              Bộ đề sẽ được chuyển ngay vào mục <strong>"🟡 Đề Cộng đồng (Drafts)"</strong> để bạn bè vào làm thử nghiệm và chờ Ban biên tập phê duyệt.
-            </p>
-            <button class="btn btn-primary" onclick="App.submitToCommunityDrafts('${subId}')">
-              🚀 Gửi duyệt ngay (+30 EXP)
-            </button>
-          </div>
-
-          <!-- Option 2: Tải JSON & Gửi GitHub -->
-          <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; background: var(--surface);">
-            <h4 style="font-size: 14.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">📥 Cách 2: Tải file JSON & Đóng góp qua GitHub</h4>
-            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 10px;">
-              Tải file đề chuẩn <code>.json</code> về máy để lưu trữ hoặc tạo Issue đóng góp trên GitHub chính thức của dự án.
-            </p>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-              <button class="btn btn-sm" onclick="App.downloadParsedAsJson()">📥 Tải file JSON</button>
-              <a href="https://github.com/VKhang-Bui/dthu-quizmaster/issues/new/choose" target="_blank" class="btn btn-sm" style="display: inline-flex; align-items: center; gap: 4px;">
-                🔗 GitHub Issue ➔
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-
-    footer.innerHTML = `
-      <button class="btn" onclick="App.closeModal()">Đóng</button>
-    `;
-
-    modal.classList.add("active");
-  },
-
-  submitToCommunityDrafts(subjectId) {
+  saveParsedQuestionsToDraft() {
     if (!this.currentParsedQuestions || this.currentParsedQuestions.length === 0) {
-      this.showToast("⚠️ Chưa có câu hỏi nào để đóng góp!", "warning");
+      this.showToast("⚠️ Chưa có câu hỏi nào để lưu!", "warning");
       return;
     }
 
-    const sub = StorageService.getSubjectById(subjectId);
+    const subId = document.getElementById("parserSubjectSelect")?.value;
+    const sub = StorageService.getSubjectById(subId);
     const profile = StorageService.getUserProfile();
 
-    const submission = {
-      id: "DRAFT_" + Date.now(),
+    const draftData = {
       code: sub ? sub.code : "GEN101",
-      name: (sub ? sub.name : "Bộ đề đóng góp mới") + " (Bản Thử Nghiệm)",
+      name: sub ? sub.name : "Bộ đề mới",
       department: sub ? sub.department : profile.department,
       author: profile.fullName + ` (MSSV: ${profile.studentId || 'DThu'})`,
-      description: `Bộ đề đóng góp gồm ${this.currentParsedQuestions.length} câu hỏi, do sinh viên đóng góp trực tuyến.`,
-      icon: "🧪",
-      status: "draft",
-      chapters: sub && sub.chapters ? sub.chapters : [{ id: "c1", name: "Chương 1: Tổng hợp" }],
+      authorEmail: profile.email || "",
+      description: `Bộ đề gồm ${this.currentParsedQuestions.length} câu hỏi, nhập qua Parser ngày ${new Date().toLocaleDateString('vi-VN')}.`,
+      icon: sub ? (sub.icon || "📝") : "📝",
       questions: this.currentParsedQuestions
     };
 
-    StorageService.addDraftSubmission(submission);
-    StorageService.addExp(30, "Đóng góp bộ đề thi mới (+30 EXP)");
+    StorageService.addDraftSubject(draftData);
+    StorageService.addExp(30, "Nhập bộ đề mới vào hệ thống (+30 EXP)");
 
-    this.closeModal();
-    this.showToast(`🎉 Đã gửi bộ đề "${submission.name}" lên Cộng đồng (Drafts) thành công! (+30 EXP)`, "success", 4500);
+    this.showToast(`🎉 Đã lưu ${this.currentParsedQuestions.length} câu hỏi vào danh sách Chờ Phê Duyệt!`, "success", 4000);
     this.renderHeader();
-    this.currentHubTab = "drafts";
-    this.navigateTo("home");
+
+    // Tự động chuyển sang trang Quản Lý Bộ Đề, tab "Chờ duyệt"
+    this.adminSubjectTab = "drafts";
+    this.navigateTo("manage");
   },
 
   onParserSubjectChange() {
@@ -3000,118 +2948,18 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
   },
 
   // ═════════════════════════════════════════════════════════════════════════
-  // 9. MODERATION DASHBOARD (TRANG DUYỆT ĐỀ THI DÀNH CHO ADMIN)
+  // 9. MODERATION → Chuyển hướng sang Quản Lý Bộ Đề (Tab Chờ Duyệt)
   // ═════════════════════════════════════════════════════════════════════════
   renderModerationView(container) {
-    const profile = StorageService.getUserProfile();
-    const canApprove = profile.role === "admin" || StorageService.hasPermission("canApproveDrafts");
-    if (!canApprove) {
-      container.innerHTML = `
-        <div style="text-align: center; padding: 60px 20px; max-width: 600px; margin: 0 auto;">
-          <div style="font-size: 48px; margin-bottom: 12px;">🛡️</div>
-          <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary);">Khu vực dành riêng cho Ban Biên Tập / Admin</h3>
-          <p style="color: var(--text-secondary); margin-top: 6px;">Bạn cần đăng nhập tài khoản Quản trị viên (Admin) hoặc Ban Biên tập (Editor) có quyền duyệt đề để truy cập trang này.</p>
-          <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
-            <button class="btn btn-primary" onclick="App.openAccountSwitcherModal()">🔑 Đổi sang tài khoản Admin / Editor</button>
-            <button class="btn" onclick="App.navigateTo('home')">🏠 Về Trang Chủ</button>
-          </div>
-        </div>
-      `;
-      return;
-    }
-
-    const drafts = StorageService.getDraftSubjects();
-
-    container.innerHTML = `
-      <div class="view-moderation">
-        <div class="moderation-header">
-          <div>
-            <h2 style="font-size: 24px; font-weight: 800; color: var(--text-primary);">🛡️ Ban Biên Tập: Duyệt Đề Thi Đóng Góp</h2>
-            <p style="color: var(--text-secondary); margin-top: 4px;">
-              Xem xét các bộ đề do sinh viên toàn trường đóng góp, chỉnh sửa câu hỏi và phê duyệt để phát hành chính thức.
-            </p>
-          </div>
-          <span class="badge" style="background:#fef3c7; color:#92400e; font-size: 13px; padding: 6px 14px; font-weight: 700;">
-            Đang chờ duyệt: ${drafts.length} bộ đề
-          </span>
-        </div>
-
-        ${drafts.length === 0 ? `
-          <div style="text-align: center; padding: 64px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);">
-            <div style="font-size: 48px; margin-bottom: 12px;">🎉</div>
-            <h3 style="font-size: 18px; color: var(--text-primary);">Hiện không có đề thi nào đang chờ duyệt!</h3>
-            <p style="color: var(--text-secondary); margin-top: 4px;">Mọi đóng góp từ cộng đồng đã được xử lý xong.</p>
-          </div>
-        ` : `
-          <div class="moderation-list">
-            ${drafts.map(d => `
-              <div class="moderation-card">
-                <div class="moderation-card-header">
-                  <div class="moderation-title-group">
-                    <h3>${d.icon || '🧪'} ${d.name} <span class="badge" style="background:#fef3c7; color:#b45309;">${d.code || d.id}</span></h3>
-                    <div class="moderation-meta">
-                      <span>🏛️ ${d.department || 'ĐH Đồng Tháp'}</span>
-                      <span>👤 Người gửi: <strong>${d.author || 'Ẩn danh'}</strong></span>
-                      <span>📅 Ngày gửi: <strong>${d.submissionDate || 'Gần đây'}</strong></span>
-                      <span>❓ Số câu hỏi: <strong>${d.questions ? d.questions.length : 0} câu</strong></span>
-                    </div>
-                  </div>
-
-                  <div class="moderation-actions">
-                    <button class="btn btn-primary" onclick="App.approveDraft('${d.id}')">
-                      ✅ Duyệt Chính Thức
-                    </button>
-                    <button class="btn btn-danger btn-sm" onclick="App.rejectDraftConfirm('${d.id}')">
-                      ❌ Từ chối
-                    </button>
-                  </div>
-                </div>
-
-                <div style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px;">
-                  ${d.description || 'Không có mô tả chi tiết.'}
-                </div>
-
-                <!-- Expandable Questions Preview -->
-                <details class="moderation-preview-accordion">
-                  <summary style="cursor: pointer; font-size: 13px; font-weight: 700; color: var(--brand-primary); user-select: none;">
-                    👁️ Bấm để xem chi tiết ${d.questions ? d.questions.length : 0} câu hỏi trong đề ➔
-                  </summary>
-                  <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 14px;">
-                    ${(d.questions || []).map((q, qIdx) => `
-                      <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px;">
-                        <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px;">
-                          Câu ${qIdx + 1}: ${SmartParserService.formatRichText(q.question)}
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
-                          ${(q.options || []).map((opt, optIdx) => `
-                            <div style="font-size: 13px; padding: 6px 10px; border-radius: 4px; border: 1px solid ${opt.isCorrect ? 'var(--correct-border)' : 'var(--border)'}; background: ${opt.isCorrect ? 'var(--correct-bg)' : '#ffffff'}; color: ${opt.isCorrect ? 'var(--correct-text)' : 'inherit'};">
-                              <strong>${this.letters[optIdx]}.</strong> ${SmartParserService.formatRichText(opt.text)} ${opt.isCorrect ? '✓ (Đúng)' : ''}
-                            </div>
-                          `).join('')}
-                        </div>
-                        ${q.options && q.options[q.answerIndex] && q.options[q.answerIndex].note ? `
-                          <div style="font-size: 12px; color: var(--correct-text); background: var(--correct-bg); padding: 6px 10px; border-radius: 4px;">
-                            💡 Giải thích: ${SmartParserService.formatRichText(q.options[q.answerIndex].note)}
-                          </div>
-                        ` : ''}
-                      </div>
-                    `).join('')}
-                  </div>
-                </details>
-              </div>
-            `).join('')}
-          </div>
-        `}
-      </div>
-    `;
+    this.adminSubjectTab = "drafts";
+    this.renderManageView(container);
   },
-
   approveDraft(draftId) {
     const res = StorageService.approveDraft(draftId);
     if (res) {
       this.showToast(`🎉 Đã duyệt bộ đề "${res.name}" sang Ngân hàng Chính thức! (+50 EXP)`, "success", 4500);
       this.renderHeader();
-      this.renderModerationView(document.getElementById("mainContent"));
+      this.renderManageView(document.getElementById("mainContent"));
     }
   },
 
@@ -3125,7 +2973,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       onConfirm: () => {
         StorageService.rejectDraft(draftId);
         this.renderHeader();
-        this.renderModerationView(document.getElementById("mainContent"));
+        this.renderManageView(document.getElementById("mainContent"));
       }
     });
   },
@@ -4971,54 +4819,109 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
   },
 
   // ═════════════════════════════════════════════════════════════════════════
-  // 12. MANAGE VIEW (QUẢN LÝ MÔN HỌC & ĐỀ THI)
+  // 12. MANAGE VIEW (QUẢN LÝ MÔN HỌC & ĐỀ THI) — Hợp nhất Chính thức + Chờ duyệt
   // ═════════════════════════════════════════════════════════════════════════
   renderManageView(container) {
     const subjects = StorageService.getSubjects();
+    const drafts = StorageService.getDraftSubjects();
+    const profile = StorageService.getUserProfile();
+    const canApprove = profile.role === "admin" || StorageService.hasPermission("canApproveDrafts");
+    const activeTab = this.adminSubjectTab || "official";
 
     container.innerHTML = `
       <div style="padding: 32px 28px; max-width: 1000px; margin: 0 auto; width: 100%;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
           <div>
-            <h2 style="font-size: 22px; font-weight: 800;">Quản Lý Đề Cương & Môn Học</h2>
-            <p>Nhấp vào bất kỳ môn học nào để xem chi tiết, quản lý danh sách chương và chỉnh sửa thông tin.</p>
+            <h2 style="font-size: 22px; font-weight: 800;">⚙️ Quản Lý Bộ Đề</h2>
+            <p style="color: var(--text-secondary); margin-top: 4px;">Quản lý toàn bộ ngân hàng đề thi chính thức và duyệt đề đóng góp từ cộng đồng.</p>
           </div>
           <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             <button class="btn btn-primary" onclick="App.navigateTo('parser')">📝 Nhập đề (Parser)</button>
             <button class="btn" onclick="App.openCreateSubjectModal()">➕ Thêm môn học</button>
-            <button class="btn" onclick="ImportExportService.exportAll()">💾 Sao lưu tất cả (.json)</button>
+            <button class="btn" onclick="App.refreshCloudSubjects()">🔄 Làm mới Cloud</button>
+            <button class="btn" onclick="ImportExportService.exportAll()">💾 Sao lưu (.json)</button>
           </div>
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 14px;">
-          ${subjects.map(sub => `
-            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; cursor: pointer; transition: var(--transition-fast);" onmouseover="this.style.borderColor='var(--border-hover)'; this.style.transform='translateY(-1px)';" onmouseout="this.style.borderColor='var(--border)'; this.style.transform='none';" onclick="App.navigateTo('subject-detail', { subjectId: '${sub.id}' })">
-              <div>
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                  <span class="badge badge-gray">${sub.code || sub.id}</span>
-                  <span class="badge badge-blue">${sub.department || 'ĐH Đồng Tháp'}</span>
-                </div>
-                <h3 style="font-size: 16.5px; margin-bottom: 2px; color: var(--text-primary);">${sub.name}</h3>
-                <div style="font-size: 12.5px; color: var(--text-tertiary);">
-                  ${sub.questions ? sub.questions.length : 0} câu hỏi · ${sub.chapters ? sub.chapters.length : 0} chương · Người đóng góp: <strong>${sub.author || 'Chưa cập nhật'}</strong>
-                </div>
-              </div>
-              <div style="display: flex; gap: 8px;" onclick="event.stopPropagation()">
-                <button class="btn btn-sm btn-primary" onclick="App.navigateTo('subject-detail', { subjectId: '${sub.id}' })">⚙️ Chi tiết & Quản lý</button>
-                <button class="btn btn-sm" onclick="ImportExportService.exportSubject('${sub.id}')">📥 Xuất JSON</button>
-                <button class="btn btn-danger btn-sm" onclick="App.deleteSubjectConfirm('${sub.id}')">Xóa</button>
-              </div>
-            </div>
-          `).join('')}
+        <div class="hub-tabs" style="margin-bottom: 20px;">
+          <button class="hub-tab-btn ${activeTab === 'official' ? 'active' : ''}" onclick="App.switchManageTab('official')">
+            📚 Bộ Đề Chính Thức <span class="badge-tab-count">${subjects.length}</span>
+          </button>
+          ${canApprove ? '<button class="hub-tab-btn ' + (activeTab === 'drafts' ? 'active' : '') + '" onclick="App.switchManageTab(\'drafts\')">⏳ Chờ Phê Duyệt <span class="badge-tab-count">' + drafts.length + '</span></button>' : ''}
+        </div>
+
+        <div id="manageTabContent">
+          ${activeTab === 'official' ? this.renderManageOfficialTab(subjects) : this.renderManageDraftsTab(drafts)}
         </div>
       </div>
     `;
   },
 
+  switchManageTab(tab) {
+    this.adminSubjectTab = tab;
+    this.renderManageView(document.getElementById("mainContent"));
+  },
+
+  renderManageOfficialTab(subjects) {
+    if (subjects.length === 0) {
+      return '<div style="text-align: center; padding: 48px; color: var(--text-tertiary); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);"><div style="font-size: 40px; margin-bottom: 10px;">📭</div><h3>Chưa có môn học chính thức nào.</h3><p style="margin-top: 6px;">Bấm "➕ Thêm môn học" hoặc nhập đề qua Parser.</p></div>';
+    }
+    return '<div style="display: flex; flex-direction: column; gap: 14px;">' +
+      subjects.map(sub => '<div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">' +
+        '<div style="flex: 1; min-width: 250px;">' +
+          '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;"><span class="badge badge-gray">' + (sub.code || sub.id) + '</span><span class="badge badge-blue">' + (sub.department || 'ĐH Đồng Tháp') + '</span></div>' +
+          '<h3 style="font-size: 16.5px; margin-bottom: 2px; color: var(--text-primary);">' + sub.name + '</h3>' +
+          '<div style="font-size: 12.5px; color: var(--text-tertiary);">' + (sub.questions ? sub.questions.length : 0) + ' câu hỏi · ' + (sub.chapters ? sub.chapters.length : 0) + ' chương · Tác giả: <strong>' + (sub.author || 'Chưa cập nhật') + '</strong></div>' +
+        '</div>' +
+        '<div style="display: flex; gap: 8px; flex-wrap: wrap;">' +
+          '<button class="btn btn-sm btn-primary" onclick="App.openQuizConfigModal(\'' + sub.id + '\')">👁️ Ôn Thi</button>' +
+          '<button class="btn btn-sm" onclick="App.navigateTo(\'subject-detail\', { subjectId: \'' + sub.id + '\' })">⚙️ Quản lý</button>' +
+          '<button class="btn btn-sm" onclick="ImportExportService.exportSubject(\'' + sub.id + '\')">📥 JSON</button>' +
+          '<button class="btn btn-danger btn-sm" onclick="App.deleteSubjectConfirm(\'' + sub.id + '\')">🗑️ Xóa</button>' +
+        '</div>' +
+      '</div>').join('') + '</div>';
+  },
+
+  renderManageDraftsTab(drafts) {
+    if (drafts.length === 0) {
+      return '<div style="text-align: center; padding: 48px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);"><div style="font-size: 40px; margin-bottom: 10px;">🎉</div><h3>Không có đề thi nào đang chờ duyệt!</h3><p style="margin-top: 6px; color: var(--text-secondary);">Mọi đóng góp từ cộng đồng đã được xử lý.</p></div>';
+    }
+    return '<div class="moderation-list">' +
+      drafts.map(d => '<div class="moderation-card">' +
+        '<div class="moderation-card-header">' +
+          '<div class="moderation-title-group">' +
+            '<h3>' + (d.icon || '🧪') + ' ' + d.name + ' <span class="badge" style="background:#fef3c7; color:#b45309;">' + (d.code || d.id) + '</span></h3>' +
+            '<div class="moderation-meta">' +
+              '<span>🏛️ ' + (d.department || 'ĐH Đồng Tháp') + '</span>' +
+              '<span>👤 Người gửi: <strong>' + (d.author || 'Ẩn danh') + '</strong></span>' +
+              '<span>📅 Ngày gửi: <strong>' + (d.submissionDate || 'Gần đây') + '</strong></span>' +
+              '<span>❓ Số câu hỏi: <strong>' + (d.questions ? d.questions.length : 0) + ' câu</strong></span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="moderation-actions">' +
+            '<button class="btn btn-primary" onclick="App.approveDraft(\'' + d.id + '\')">✅ Duyệt Chính Thức</button>' +
+            '<button class="btn btn-danger btn-sm" onclick="App.rejectDraftConfirm(\'' + d.id + '\')">❌ Từ chối</button>' +
+          '</div>' +
+        '</div>' +
+        '<div style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px;">' + (d.description || 'Không có mô tả chi tiết.') + '</div>' +
+      '</div>').join('') + '</div>';
+  },
+
+  async refreshCloudSubjects() {
+    this.showToast("🔄 Đang đồng bộ dữ liệu từ Cloud...", "info", 2000);
+    try {
+      await StorageService.syncWithCloud();
+      this.showToast("✅ Đã đồng bộ xong!", "success", 2500);
+      this.renderManageView(document.getElementById("mainContent"));
+    } catch (e) {
+      this.showToast("❌ Lỗi đồng bộ: " + e.message, "danger", 3000);
+    }
+  },
+
   deleteSubjectConfirm(subjectId) {
     this.showConfirmDialog({
       title: "Xác nhận xóa môn học",
-      message: "Bạn có chắc chắn muốn xóa môn học này không? Toàn bộ ngân hàng câu hỏi của môn này sẽ bị xóa khỏi máy.",
+      message: "Bạn có chắc chắn muốn xóa môn học này không? Toàn bộ ngân hàng câu hỏi sẽ bị xóa khỏi máy và Cloud.",
       icon: "🗑️",
       confirmText: "Xóa vĩnh viễn",
       isDanger: true,
@@ -5534,7 +5437,9 @@ Câu 2: Nội dung câu hỏi số 2 ở đây?
   }
 };
 
-// Khởi chạy ứng dụng khi DOM tải xong
-document.addEventListener("DOMContentLoaded", () => {
+// Khởi chạy ứng dụng an toàn cho mọi trình duyệt
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => App.init());
+} else {
   App.init();
-});
+}

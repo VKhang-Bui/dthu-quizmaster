@@ -147,6 +147,13 @@ const SupabaseClient = {
     });
   },
 
+  // Xóa môn học chính thức khỏi Supabase Cloud
+  async deleteSubject(subjectId) {
+    return await this.request(`subjects?id=eq.${subjectId}`, {
+      method: "DELETE"
+    });
+  },
+
   // ── 3. DRAFT SUBJECTS (ĐỀ ĐÓNG GÓP) ──────────────────────────────
   async getAllDraftSubjects() {
     return await this.request("draft_subjects?select=*&order=created_at.desc");

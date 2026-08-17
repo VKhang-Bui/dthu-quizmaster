@@ -82,12 +82,22 @@ const StorageService = {
       subjects.push(subject);
     }
     this.saveSubjects(subjects);
+
+    // Đồng bộ lên Supabase Cloud
+    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+      SupabaseClient.saveSubject(subject).catch(e => console.warn("Supabase saveSubject:", e));
+    }
   },
 
   deleteSubject(id) {
     let subjects = this.getSubjects();
     subjects = subjects.filter(s => s.id !== id);
     this.saveSubjects(subjects);
+
+    // Đồng bộ lên Supabase Cloud
+    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+      SupabaseClient.deleteSubject(id).catch(e => console.warn("Supabase deleteSubject:", e));
+    }
   },
 
   // ── 2. Quản lý Bộ Đề Draft do Sinh Viên Đóng Góp ────────────
@@ -314,6 +324,25 @@ const StorageService = {
       const cloudDrafts = await SupabaseClient.getAllDraftSubjects();
       if (Array.isArray(cloudDrafts)) {
         this.saveDraftSubjects(cloudDrafts);
+      }
+
+      // 2b. Đồng bộ môn học chính thức (Official Subjects) từ Cloud
+      const cloudSubjects = await SupabaseClient.getAllSubjects();
+      if (Array.isArray(cloudSubjects) && cloudSubjects.length > 0) {
+        // Cloud có dữ liệu → ghi đè localStorage
+        this.saveSubjects(cloudSubjects);
+      } else {
+        // Cloud rỗng → đẩy dữ liệu local lên cloud (seed lần đầu)
+        const localSubjects = this.getSubjects();
+        if (localSubjects.length > 0) {
+          for (const sub of localSubjects) {
+            try {
+              await SupabaseClient.saveSubject(sub);
+            } catch (e) {
+              console.warn("Seed subject to cloud:", e);
+            }
+          }
+        }
       }
 
       // 3. Đồng bộ phiếu hỗ trợ CSKH
