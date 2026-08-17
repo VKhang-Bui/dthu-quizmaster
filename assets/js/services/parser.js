@@ -48,14 +48,14 @@ const SmartParserService = {
     }
 
     // Chuẩn hóa xuống dòng
-    const text = rawText.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-    const questions = [];
-    const errors = [];
+    let text = rawText.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
     // Tách các câu hỏi dựa trên tiêu đề mở đầu câu:
     // Hỗ trợ: "Câu 1:", "**Câu 1:**", "*Câu 1*", "Bài 1:", "[Câu 1]", "1.", "1/ ", "1) "
     const questionSplits = text.split(/(?=(?:(?:\n|\A)\s*(?:\*{0,2}(?:Câu|Bài|Question)\s*\d+[\s\.:\*\-\]]+|\b\d+\s*[\.)]\s+|\[(?:Câu\s*)?\d+\])))/i);
 
+    const questions = [];
+    const errors = [];
     let currentChapter = defaultChapterId;
 
     questionSplits.forEach((block, blockIdx) => {
@@ -68,8 +68,25 @@ const SmartParserService = {
         currentChapter = `c${chapterMatch[1]}`;
       }
 
+      // Tiền xử lý an toàn: Tách các lựa chọn A., B., C., D. bị dính liền trên 1 dòng
+      // CHỈ tách SAU KHI phương án A. bắt đầu (để không bao giờ làm hỏng nội dung câu hỏi có chứa A, B, C, D)
+      let processedBlock = trimmedBlock;
+      const optAIndex = processedBlock.search(/(?:(?:\n|\A)\s*|[\t\s]{2,}|(?<=[^\s]))\[?A\]?[\.\)\:\*\_]\s+/i);
+      if (optAIndex !== -1) {
+        const promptPart = processedBlock.slice(0, optAIndex);
+        let optionsPart = processedBlock.slice(optAIndex);
+
+        // Tách các phương án B, C, D, E dính liền trong phần options
+        optionsPart = optionsPart
+          .replace(/[\t\s]{2,}(?=[B-Eb-e][\.\)\:\*]\s+)/g, "\n")
+          .replace(/([a-zA-Z0-9_\)\>\]\"\'])\s*(?=[B-Eb-e][\.\)\:]\s+)/g, "$1\n")
+          .replace(/([a-zA-Z0-9_\)\>\]\"\'])(?=[B-Eb-e]\.\s*)/g, "$1\n");
+
+        processedBlock = promptPart + optionsPart;
+      }
+
       // Xử lý khối câu hỏi
-      const parsedQ = this.parseSingleQuestionBlock(trimmedBlock, blockIdx + 1, currentChapter);
+      const parsedQ = this.parseSingleQuestionBlock(processedBlock, blockIdx + 1, currentChapter);
       if (parsedQ.success) {
         questions.push(parsedQ.data);
       } else if (parsedQ.error) {
@@ -127,15 +144,15 @@ const SmartParserService = {
       questionTitle = `Câu hỏi số ${index}`;
     }
 
-    // 2. Tìm đáp án cuối bài nếu có (VD: "Đáp án: A", "> Đáp án: B", "Key: C", "Đ/A: D", "**Đáp án:** A")
-    const answerMatch = block.match(/(?:(?:\n|\A)\s*(?:>|\/{2}|\*|_)*\s*(?:Đáp án|Đ\/A|Key|Answer|ĐA)\s*[\.:\*\-]?\s*\*{0,2}([A-Ea-e])\*{0,2})/i);
+    // 2. MẪU 1: Tìm đáp án cuối bài (VD: "Đáp án: A", "đáp án: A", "ĐÁP ÁN: A", "Key: C", "Đ/A: D")
+    const answerMatch = block.match(/(?:(?:\n|\A)\s*(?:>|\/{2}|\*|_)*\s*(?:đáp án|đ\/a|key|answer|đa)\s*[\.:\*\-]?\s*\*{0,2}([A-Ea-e])\*{0,2})/i);
     if (answerMatch) {
       const letter = answerMatch[1].toUpperCase();
       answerIndex = letter.charCodeAt(0) - 65; // A -> 0, B -> 1, C -> 2, D -> 3, E -> 4
     }
 
-    // 3. Tìm giải thích chung nếu có (VD: "Giải thích: ...", "> **Giải thích:** ...", "Lời giải: ...")
-    const explMatch = block.match(/(?:(?:\n|\A)\s*(?:>|\/{2}|\*|_)*\s*(?:Giải thích|Lời giải|Note|HD|Hướng dẫn giải)\s*[\.:\*\-]?\s*([\s\S]+?))(?=(?:\n\s*(?:>|\*{0,2})?(?:Câu|Bài|\d+[\.)])|$))/i);
+    // 3. MẪU 1: Tìm giải thích chung ở cuối (VD: "Giải thích: ...", "giải thích: ...", "GIẢI THÍCH: ...", "Lời giải: ...")
+    const explMatch = block.match(/(?:(?:\n|\A)\s*(?:>|\/{2}|\*|_)*\s*(?:giải thích|lời giải|note|hd|hướng dẫn giải)\s*[\.:\*\-]?\s*([\s\S]+?))(?=(?:\n\s*(?:>|\*{0,2})?(?:câu|bài|\d+[\.)])|$))/i);
     if (explMatch) {
       globalExplanation = explMatch[1].trim();
     }
@@ -150,7 +167,7 @@ const SmartParserService = {
       if (!trimmedLine) return;
 
       // Bỏ qua dòng Đáp án / Giải thích ở cuối
-      if (/^(?:>|\/{2}|\*|_)*\s*(?:Đáp án|Đ\/A|Key|Answer|Giải thích|Lời giải|HD)/i.test(trimmedLine)) {
+      if (/^(?:>|\/{2}|\*|_)*\s*(?:đáp án|đ\/a|key|answer|giải thích|lời giải|hd)/i.test(trimmedLine)) {
         return;
       }
 
@@ -194,7 +211,19 @@ const SmartParserService = {
       let isCorrect = ro.hasAsteriskPrefix || false;
       let note = "";
 
-      // Kiểm tra hậu tố đánh dấu đúng: [Đúng], (Đúng), (Đáp án đúng), hoặc dấu * ở cuối
+      // MẪU 2: Kiểm tra cú pháp inline có dấu > (VD: "> đúng: vì tui đẹp trai" hoặc "> đúng" hoặc "> sai: lý do...")
+      const inlineMatch = text.match(/>\s*(đúng|sai|true|false|chính xác|chưa đúng)\b(?:\s*:\s*([\s\S]*))?$/i);
+      if (inlineMatch) {
+        const statusWord = inlineMatch[1].toLowerCase();
+        isCorrect = ["đúng", "true", "chính xác"].includes(statusWord);
+        note = (inlineMatch[2] || "").trim();
+        text = text.slice(0, inlineMatch.index).trim();
+        if (isCorrect && !note) {
+          note = "Đáp án chính xác.";
+        }
+      }
+
+      // Kiểm tra hậu tố đánh dấu đúng nếu có: [Đúng], (Đúng), (Đáp án đúng), hoặc dấu * ở cuối
       if (/(?:\[Đúng\]|\(Đúng\)|\(Đáp án đúng\)|\*)$/i.test(text)) {
         isCorrect = true;
         text = text.replace(/(?:\[Đúng\]|\(Đúng\)|\(Đáp án đúng\)|\*)$/i, "").trim();
@@ -202,27 +231,6 @@ const SmartParserService = {
 
       // Làm sạch thẻ HTML gạch chân còn sót lại ở nội dung
       text = text.replace(/<\/?(?:u|ins|font|span)[^>]*>/gi, "").trim();
-
-      // Kiểm tra cú pháp inline:
-      // "A. Nội dung > Đúng: Giải thích" hoặc "A. Nội dung > **Đúng**: Giải thích"
-      // "A. Nội dung > Sai: Giải thích" hoặc "A. Nội dung // Sai: Giải thích"
-      const inlineCorrectMatch = text.match(/(?:>|\/{2}|\/\/|\(|\b)\s*\*{0,2}(Đúng|True|Chính xác|Correct)\*{0,2}\s*[\.:\-]?\s*([\s\S]*)/i);
-      const inlineWrongMatch = text.match(/(?:>|\/{2}|\/\/|\(|\b)\s*\*{0,2}(Sai|False|Chưa đúng|Incorrect)\*{0,2}\s*[\.:\-]?\s*([\s\S]*)/i);
-
-      if (inlineCorrectMatch) {
-        isCorrect = true;
-        text = text.slice(0, inlineCorrectMatch.index).trim();
-        // Bỏ ký tự phân cách ở cuối text như '>', '//'
-        text = text.replace(/(?:>|\/{2}|\/\/|\()$/, "").trim();
-        note = inlineCorrectMatch[2] ? inlineCorrectMatch[2].replace(/\)$/, "").trim() : "Đáp án chính xác.";
-      } else if (inlineWrongMatch) {
-        isCorrect = false;
-        text = text.slice(0, inlineWrongMatch.index).trim();
-        text = text.replace(/(?:>|\/{2}|\/\/|\()$/, "").trim();
-        note = inlineWrongMatch[2] ? inlineWrongMatch[2].replace(/\)$/, "").trim() : "Đáp án chưa chính xác.";
-      }
-
-      // Làm sạch ký tự phân cách thừa đầu dòng
       text = text.replace(/^[\-–—\.]\s*/, "").trim();
 
       options.push({
@@ -441,10 +449,15 @@ const SmartParserService = {
 
         const trimmed = lineText.trim();
         if (trimmed) {
-          // Nếu dòng là phương án A, B, C, D và được gạch chân hoặc tô đỏ
-          const isOptionLine = /^\s*(?:\*\s*)?(?:\*{0,2})\[?([A-Ea-e])\]?[\.\)\:\*]/.test(trimmed);
-          if (isOptionLine && isOptionMarkedCorrect && !trimmed.startsWith("*")) {
-            lines.push(`* ${trimmed}`);
+          // Nếu dòng là phương án A, B, C, D và được gạch chân hoặc tô đỏ trong Word
+          const isOptionLine = /^\s*\[?([A-Ea-e])\]?[\.\)\:\*]/.test(trimmed);
+          if (isOptionLine && isOptionMarkedCorrect) {
+            // Chuẩn hóa thành Mẫu 2 với đuôi ' > Đúng'
+            if (!trimmed.includes(">") && !trimmed.endsWith("*")) {
+              lines.push(`${trimmed} > Đúng`);
+            } else {
+              lines.push(trimmed);
+            }
           } else {
             lines.push(trimmed);
           }
