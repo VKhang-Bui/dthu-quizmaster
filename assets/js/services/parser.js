@@ -248,5 +248,189 @@ const SmartParserService = {
     };
 
     return { success: true, data: questionObj };
+  },
+
+  // ── TRÍCH XUẤT VĂN BẢN TỪ TỆP TIN (.TXT, .DOCX, .PDF, .MD, .JSON, .CSV) ──
+  async extractTextFromFile(file) {
+    if (!file) throw new Error("Vui lòng chọn tệp tin!");
+    const ext = file.name.split('.').pop().toLowerCase();
+
+    // 1. Tệp văn bản thuần (.txt, .md, .csv, .json, .text)
+    if (['txt', 'md', 'csv', 'json', 'text'].includes(ext)) {
+      return await this.readPlainTextFile(file);
+    }
+
+    // 2. Tệp Word (.docx)
+    if (ext === 'docx') {
+      return await this.extractTextFromDocx(file);
+    }
+
+    // 3. Tệp PDF (.pdf text)
+    if (ext === 'pdf') {
+      return await this.extractTextFromPdf(file);
+    }
+
+    // Mặc định thử đọc văn bản thuần
+    return await this.readPlainTextFile(file);
+  },
+
+  readPlainTextFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result || "");
+      reader.onerror = (err) => reject(new Error("Lỗi khi đọc tệp văn bản: " + err));
+      reader.readAsText(file, "UTF-8");
+    });
+  },
+
+  async extractTextFromDocx(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const buffer = e.target.result;
+          const uint8 = new Uint8Array(buffer);
+          const xmlText = await this.unzipDocxDocumentXml(uint8);
+          if (!xmlText) {
+            throw new Error("Không tìm thấy nội dung văn bản (word/document.xml) trong tệp DOCX!");
+          }
+          const text = this.parseDocxXmlToText(xmlText);
+          resolve(text);
+        } catch (err) {
+          reject(new Error("Không thể trích xuất file Word DOCX: " + err.message));
+        }
+      };
+      reader.onerror = (err) => reject(err);
+      reader.readAsArrayBuffer(file);
+    });
+  },
+
+  async unzipDocxDocumentXml(data) {
+    let pos = 0;
+    const len = data.length;
+
+    while (pos < len - 4) {
+      if (data[pos] === 0x50 && data[pos + 1] === 0x4B && data[pos + 2] === 0x03 && data[pos + 3] === 0x04) {
+        const method = data[pos + 8] | (data[pos + 9] << 8);
+        const cSize = data[pos + 18] | (data[pos + 19] << 8) | (data[pos + 20] << 16) | (data[pos + 21] << 24);
+        const fnLen = data[pos + 26] | (data[pos + 27] << 8);
+        const exLen = data[pos + 28] | (data[pos + 29] << 8);
+
+        const fnBytes = data.subarray(pos + 30, pos + 30 + fnLen);
+        const fn = new TextDecoder('utf-8').decode(fnBytes);
+        const dataStart = pos + 30 + fnLen + exLen;
+
+        if (fn === "word/document.xml") {
+          const compressed = data.subarray(dataStart, dataStart + (cSize >>> 0));
+          if (method === 0) {
+            return new TextDecoder('utf-8').decode(compressed);
+          } else if (method === 8) {
+            if (typeof DecompressionStream !== "undefined") {
+              try {
+                const ds = new DecompressionStream('deflate-raw');
+                const writer = ds.writable.getWriter();
+                writer.write(compressed);
+                writer.close();
+                const response = new Response(ds.readable);
+                const arrayBuf = await response.arrayBuffer();
+                return new TextDecoder('utf-8').decode(arrayBuf);
+              } catch (e1) {
+                try {
+                  const ds2 = new DecompressionStream('deflate');
+                  const writer2 = ds2.writable.getWriter();
+                  writer2.write(compressed);
+                  writer2.close();
+                  const response2 = new Response(ds2.readable);
+                  const arrayBuf2 = await response2.arrayBuffer();
+                  return new TextDecoder('utf-8').decode(arrayBuf2);
+                } catch (e2) {
+                  console.warn("Decompress error:", e2);
+                }
+              }
+            }
+          }
+        }
+        pos = dataStart + (cSize >>> 0);
+      } else {
+        pos += 1;
+      }
+    }
+    return null;
+  },
+
+  parseDocxXmlToText(xmlStr) {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xmlStr, "application/xml");
+      const paragraphs = doc.getElementsByTagName("w:p");
+      const lines = [];
+
+      for (let i = 0; i < paragraphs.length; i++) {
+        const p = paragraphs[i];
+        const textNodes = p.getElementsByTagName("w:t");
+        let lineText = "";
+        for (let j = 0; j < textNodes.length; j++) {
+          lineText += textNodes[j].textContent;
+        }
+        if (lineText.trim()) {
+          lines.push(lineText.trim());
+        }
+      }
+      return lines.join("\n");
+    } catch (e) {
+      return xmlStr
+        .replace(/<\/w:p>/gi, "\n")
+        .replace(/<[^>]+>/g, "")
+        .replace(/\n\s*\n/g, "\n")
+        .trim();
+    }
+  },
+
+  async extractTextFromPdf(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const buffer = e.target.result;
+          const uint8 = new Uint8Array(buffer);
+          const rawStr = new TextDecoder('utf-8', { fatal: false }).decode(uint8);
+
+          let extractedLines = [];
+
+          // Trích xuất các luồng stream text Tj / TJ
+          const tjMatches = rawStr.match(/\(([^)]+)\)\s*Tj/g) || [];
+          tjMatches.forEach(m => {
+            const text = m.replace(/^\(/, '').replace(/\)\s*Tj$/, '').replace(/\\([()\\])/g, '$1');
+            if (text.trim()) extractedLines.push(text.trim());
+          });
+
+          const arrayTjMatches = rawStr.match(/\[([^\]]+)\]\s*TJ/g) || [];
+          arrayTjMatches.forEach(m => {
+            const inner = m.replace(/^\[/, '').replace(/\]\s*TJ$/, '');
+            const strParts = inner.match(/\(([^)]*)\)/g) || [];
+            const fullLine = strParts.map(s => s.replace(/^\(/, '').replace(/\)$/, '').replace(/\\([()\\])/g, '$1')).join('');
+            if (fullLine.trim()) extractedLines.push(fullLine.trim());
+          });
+
+          if (extractedLines.length > 0) {
+            resolve(extractedLines.join("\n"));
+            return;
+          }
+
+          // Fallback: Tìm các câu hỏi dạng text
+          const textChunks = rawStr.match(/(?:Câu|Bài|Question|\b[A-D]\s*[\.\)])[^\r\n]{5,150}/g);
+          if (textChunks && textChunks.length > 0) {
+            resolve(textChunks.join("\n"));
+            return;
+          }
+
+          resolve("⚠️ Không thể trích xuất văn bản từ tệp PDF này (có thể là tệp PDF dạng ảnh scan). Vui lòng chuyển sang định dạng Word (.docx) hoặc sao chép văn bản (.txt) để phân tích tốt nhất.");
+        } catch (err) {
+          reject(new Error("Lỗi khi đọc tệp PDF: " + err.message));
+        }
+      };
+      reader.onerror = (err) => reject(err);
+      reader.readAsArrayBuffer(file);
+    });
   }
 };

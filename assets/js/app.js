@@ -1112,7 +1112,12 @@ const App = {
 
   // Router Điều hướng màn hình (Hỗ trợ Browser History Back/Forward)
   navigateTo(view, data = {}, pushHistory = true) {
+    if (this.currentView && this.currentView !== view) {
+      this.previousView = this.currentView;
+      this.previousViewData = this.currentViewData || {};
+    }
     this.currentView = view;
+    this.currentViewData = data;
     this.updateActiveNav(view);
     this.renderHeader();
 
@@ -1217,6 +1222,16 @@ const App = {
         break;
       default:
         this.renderHomeView(mainContainer);
+    }
+  },
+
+  navigateBackOrHome() {
+    if (this.previousView && this.previousView !== this.currentView) {
+      this.navigateTo(this.previousView, this.previousViewData || {});
+    } else if (typeof window !== "undefined" && window.history && window.history.length > 1) {
+      window.history.back();
+    } else {
+      this.navigateTo("home");
     }
   },
 
@@ -2389,33 +2404,63 @@ const App = {
 
     container.innerHTML = `
       <div class="view-parser">
-        <!-- Left Panel: Raw Input Area -->
-        <div class="parser-panel">
-          <div class="parser-panel-header">
-            <h3>📝 1. Nhập văn bản câu hỏi thô</h3>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-              <button class="btn btn-sm btn-primary" onclick="App.navigateTo('syntax-guide', { from: 'parser', subjectId: '${defaultSubId}' })">💡 Cú pháp ký tự ➔</button>
-              <button class="btn btn-sm" onclick="App.loadParserSampleText()">Dán đề mẫu</button>
-              <button class="btn btn-sm" onclick="App.clearParserInput()">Xóa trắng</button>
+        <!-- Top Navigation Header -->
+        <div class="parser-top-header">
+          <div class="parser-top-left">
+            <button class="btn btn-sm btn-back-nav" onclick="App.navigateBackOrHome()" title="Quay lại trang trước">
+              ⬅️ Quay Lại
+            </button>
+            <div class="parser-header-title-box">
+              <h2>📝 Công Cụ Nhập & Bóc Tách Đề Thi Tự Động</h2>
+              <p>Tải tệp tin (.docx Word, .pdf text, .txt, .md) hoặc Dán văn bản trắc nghiệm để trích xuất đề thi thông minh</p>
             </div>
           </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
-            <div class="form-group" style="margin: 0;">
-              <label class="form-label">Chọn môn học cần nạp (*):</label>
-              <select id="parserSubjectSelect" class="form-control" onchange="App.onParserSubjectChange()">
-                ${subjects.map(s => `<option value="${s.id}" ${s.id === defaultSubId ? 'selected' : ''}>${s.name} (${s.code || s.id})</option>`).join('')}
-              </select>
-            </div>
-            <div class="form-group" style="margin: 0;">
-              <label class="form-label">Gán vào chương:</label>
-              <select id="parserChapterSelect" class="form-control">
-                <option value="c1">Chương 1</option>
-              </select>
-            </div>
+          <div class="parser-top-right">
+            <button class="btn btn-sm btn-primary" onclick="App.navigateTo('syntax-guide', { from: 'parser', subjectId: '${defaultSubId}' })">
+              💡 Cú pháp ký tự ➔
+            </button>
           </div>
+        </div>
 
-          <textarea id="rawTextarea" class="parser-textarea" placeholder="Dán văn bản câu hỏi từ Word, PDF hoặc ChatGPT vào đây...
+        <div class="parser-main-layout">
+          <!-- Left Panel: Raw Input & File Upload Area -->
+          <div class="parser-panel" id="parserDropzone" ondragover="App.handleParserDragOver(event)" ondragleave="App.handleParserDragLeave(event)" ondrop="App.handleParserFileDrop(event)">
+            <div class="parser-panel-header">
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <h3>📝 1. Nhập hoặc Tải Tệp Đề</h3>
+                <span id="parserFileLoadedBadge" class="badge badge-blue" style="display: none; font-size: 11px;"></span>
+              </div>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <input type="file" id="parserFileInput" accept=".txt,.docx,.pdf,.md,.json,.csv,.text" style="display: none;" onchange="App.handleParserFileUpload(event)">
+                <button class="btn btn-sm btn-upload-doc" onclick="document.getElementById('parserFileInput').click()" title="Tải tệp Word (.docx), PDF hoặc TXT">
+                  📂 Tải tệp lên
+                </button>
+                <button class="btn btn-sm" onclick="App.loadParserSampleText()">Dán mẫu</button>
+                <button class="btn btn-sm" onclick="App.clearParserInput()">Xóa</button>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label">Chọn môn học cần nạp (*):</label>
+                <select id="parserSubjectSelect" class="form-control" onchange="App.onParserSubjectChange()">
+                  ${subjects.map(s => `<option value="${s.id}" ${s.id === defaultSubId ? 'selected' : ''}>${s.name} (${s.code || s.id})</option>`).join('')}
+                </select>
+              </div>
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label">Gán vào chương:</label>
+                <select id="parserChapterSelect" class="form-control">
+                  <option value="c1">Chương 1</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Drag & Drop Hint Dropzone Bar -->
+            <div class="parser-drop-hint" onclick="document.getElementById('parserFileInput').click()">
+              <span>📎 Kéo thả tệp tin hoặc bấm vào đây để nạp: <strong>.docx (Word)</strong>, <strong>.pdf (Text)</strong>, <strong>.txt</strong>, <strong>.md</strong></span>
+            </div>
+
+            <textarea id="rawTextarea" class="parser-textarea" placeholder="Dán văn bản câu hỏi từ Word, PDF, ChatGPT hoặc Kéo thả tệp tin vào đây...
 
 Hỗ trợ mọi định dạng phổ biến:
 1. Kiểu chuẩn:
@@ -2434,39 +2479,40 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
 * C. Một nhánh nhỏ độc lập > Sai: Giải thích C
 * D. Chỉ bao gồm bộ phận KTCT > Sai: Giải thích D" oninput="App.onParserInput()"></textarea>
 
-          <div style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
-            <span>💡 <strong>Mẹo:</strong> Hỗ trợ in đậm <code>**text**</code>, in nghiêng <code>*text*</code>, công thức <code>\`code\`</code> và mọi ký tự đặc biệt.</span>
-            <a href="javascript:void(0)" onclick="App.navigateTo('syntax-guide', { from: 'parser', subjectId: '${defaultSubId}' })" style="font-weight: 700; color: var(--brand-primary); text-decoration: underline;">Cú pháp ký tự ➔</a>
-          </div>
-
-          <button class="btn btn-primary" onclick="App.onParserInput(true)">
-            🚀 Bóc tách & Phân tích lại
-          </button>
-        </div>
-
-        <!-- Right Panel: Live Parsed Preview & Actions -->
-        <div class="parser-panel">
-          <div class="parser-panel-header">
-            <h3>👁️ 2. Xem trước kết quả bóc tách</h3>
-            <span class="badge badge-green" id="parserCounterBadge">0 câu hỏi hợp lệ</span>
-          </div>
-
-          <div class="parser-preview-list" id="parserPreviewList">
-            <div style="text-align: center; padding: 48px 20px; color: var(--text-tertiary);">
-              Vui lòng dán văn bản câu hỏi ở khung bên trái hoặc bấm <strong>"Dán đề mẫu"</strong> để xem kết quả phân tích tự động.
+            <div style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+              <span>💡 <strong>Mẹo:</strong> Hỗ trợ in đậm <code>**text**</code>, in nghiêng <code>*text*</code>, công thức <code>\`code\`</code> và mọi ký tự đặc biệt.</span>
+              <a href="javascript:void(0)" onclick="App.navigateTo('syntax-guide', { from: 'parser', subjectId: '${defaultSubId}' })" style="font-weight: 700; color: var(--brand-primary); text-decoration: underline;">Cú pháp ký tự ➔</a>
             </div>
+
+            <button class="btn btn-primary" onclick="App.onParserInput(true)">
+              🚀 Bóc tách & Phân tích lại
+            </button>
           </div>
 
-          <div style="margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; gap: 10px; flex-wrap: wrap;">
-            <button class="btn btn-primary" id="btnSaveToSubject" onclick="App.saveParsedQuestionsToDraft()" disabled>
-              🚀 Lưu Bộ Đề Vào Hệ Thống (Chờ Duyệt) ➔
-            </button>
-            <button class="btn" id="btnDownloadJson" onclick="App.downloadParsedAsJson()" disabled>
-              📥 Tải file JSON
-            </button>
-            <button class="btn" id="btnCopyJson" onclick="App.copyParsedJsonToClipboard()" disabled>
-              📋 Sao chép JSON
-            </button>
+          <!-- Right Panel: Live Parsed Preview & Actions -->
+          <div class="parser-panel">
+            <div class="parser-panel-header">
+              <h3>👁️ 2. Xem trước kết quả bóc tách</h3>
+              <span class="badge badge-green" id="parserCounterBadge">0 câu hỏi hợp lệ</span>
+            </div>
+
+            <div class="parser-preview-list" id="parserPreviewList">
+              <div style="text-align: center; padding: 48px 20px; color: var(--text-tertiary);">
+                Vui lòng tải tệp hoặc dán văn bản câu hỏi ở khung bên trái để xem kết quả phân tích tự động.
+              </div>
+            </div>
+
+            <div style="margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; gap: 10px; flex-wrap: wrap;">
+              <button class="btn btn-primary" id="btnSaveToSubject" onclick="App.saveParsedQuestionsToDraft()" disabled>
+                🚀 Lưu Bộ Đề Vào Hệ Thống (Chờ Duyệt) ➔
+              </button>
+              <button class="btn" id="btnDownloadJson" onclick="App.downloadParsedAsJson()" disabled>
+                📥 Tải file JSON
+              </button>
+              <button class="btn" id="btnCopyJson" onclick="App.copyParsedJsonToClipboard()" disabled>
+                📋 Sao chép JSON
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -2474,6 +2520,68 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
 
     // Cập nhật danh sách chương theo môn được chọn
     this.onParserSubjectChange();
+  },
+
+  // ── Xử lý Tải Tệp Đề Thi (.docx, .pdf, .txt, .md, .json) vào Parser ──
+  async handleParserFileUpload(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    await this.processParserFile(file);
+    event.target.value = "";
+  },
+
+  handleParserDragOver(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const dropzone = document.getElementById("parserDropzone");
+    if (dropzone) dropzone.classList.add("dragover");
+  },
+
+  handleParserDragLeave(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const dropzone = document.getElementById("parserDropzone");
+    if (dropzone) dropzone.classList.remove("dragover");
+  },
+
+  async handleParserFileDrop(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const dropzone = document.getElementById("parserDropzone");
+    if (dropzone) dropzone.classList.remove("dragover");
+
+    const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+    if (!file) return;
+    await this.processParserFile(file);
+  },
+
+  async processParserFile(file) {
+    try {
+      this.showToast(`⏳ Đang trích xuất nội dung từ tệp "${file.name}"...`, "info", 2500);
+      const text = await SmartParserService.extractTextFromFile(file);
+      
+      const textarea = document.getElementById("rawTextarea");
+      if (textarea) {
+        textarea.value = text;
+      }
+
+      const badge = document.getElementById("parserFileLoadedBadge");
+      if (badge) {
+        badge.style.display = "inline-flex";
+        badge.textContent = `📄 ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+      }
+
+      this.onParserInput(true);
+      const count = this.currentParsedQuestions ? this.currentParsedQuestions.length : 0;
+      if (count > 0) {
+        this.showToast(`🎉 Đã trích xuất thành công ${count} câu hỏi từ tệp "${file.name}"!`, "success", 4000);
+      } else {
+        this.showToast(`ℹ️ Đã nạp nội dung tệp. Vui lòng kiểm tra lại cấu trúc câu hỏi.`, "info", 3500);
+      }
+    } catch (err) {
+      console.error("processParserFile error:", err);
+      this.showToast(`❌ Lỗi: ${err.message}`, "danger", 4500);
+    }
   },
 
   saveParsedQuestionsToDraft() {
