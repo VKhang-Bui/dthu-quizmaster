@@ -17,7 +17,9 @@ const StorageService = {
     RESET_REQUESTS: "dthu_quiz_reset_requests_v2",
     EMAIL_OTPS: "dthu_quiz_email_otps_v2",
     NOTIFICATIONS: "dthu_quiz_notifications_v2",
-    CONTRIBUTION_PROGRESS: "dthu_quiz_contrib_progress_v2"
+    CONTRIBUTION_PROGRESS: "dthu_quiz_contrib_progress_v2",
+    LEADERBOARD_SETTINGS: "dthu_quiz_leaderboard_settings_v2",
+    LEADERBOARD_ARCHIVES: "dthu_quiz_leaderboard_archives_v2"
   },
 
   // Danh mục tất cả các loại cảnh báo hệ thống hỗ trợ ẩn/bật
@@ -1324,55 +1326,218 @@ const StorageService = {
     return match ? match : null;
   },
 
-  getLeaderboardData(type = "exp") {
-    const profile = this.getUserProfile();
+  // ═════════════════════════════════════════════════════════════════════════
+  // 5.1. QUẢN TRỊ & CẤU HÌNH BẢNG XẾP HẠNG (LEADERBOARD MANAGEMENT)
+  // ═════════════════════════════════════════════════════════════════════════
+  getLeaderboardSettings() {
+    try {
+      const data = localStorage.getItem(this.KEYS.LEADERBOARD_SETTINGS);
+      if (data) return JSON.parse(data);
+    } catch (e) {}
+    return {
+      seasonName: "Học Kỳ 1 (2026 - 2027)",
+      isPublic: true,
+      top1Title: "👑 Thủ Khoa",
+      top2Title: "🥈 Á Khoa",
+      top3Title: "🥉 Top 3",
+      hiddenUserIds: [],
+      customBadges: {},
+      seasonStartDate: new Date().toISOString()
+    };
+  },
+
+  saveLeaderboardSettings(settings) {
+    localStorage.setItem(this.KEYS.LEADERBOARD_SETTINGS, JSON.stringify(settings));
+  },
+
+  toggleHideUserFromLeaderboard(userId) {
+    const settings = this.getLeaderboardSettings();
+    if (!settings.hiddenUserIds) settings.hiddenUserIds = [];
+    const idx = settings.hiddenUserIds.indexOf(userId);
+    let isHidden = false;
+    if (idx >= 0) {
+      settings.hiddenUserIds.splice(idx, 1);
+      isHidden = false;
+    } else {
+      settings.hiddenUserIds.push(userId);
+      isHidden = true;
+    }
+    this.saveLeaderboardSettings(settings);
+    return isHidden;
+  },
+
+  setCustomUserBadge(userId, badgeText) {
+    const settings = this.getLeaderboardSettings();
+    if (!settings.customBadges) settings.customBadges = {};
+    if (!badgeText || !badgeText.trim()) {
+      delete settings.customBadges[userId];
+    } else {
+      settings.customBadges[userId] = badgeText.trim();
+    }
+    this.saveLeaderboardSettings(settings);
+  },
+
+  getLeaderboardArchives() {
+    try {
+      const data = localStorage.getItem(this.KEYS.LEADERBOARD_ARCHIVES);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      return [];
+    }
+  },
+
+  startNewSeason(seasonName, adminName = "Admin") {
+    const currentSettings = this.getLeaderboardSettings();
+    const currentExpBoard = this.getLeaderboardData("exp", { includeHidden: true });
+    const currentCpBoard = this.getLeaderboardData("cp", { includeHidden: true });
+
+    const archiveItem = {
+      id: "season-" + Date.now(),
+      seasonName: currentSettings.seasonName || "Mùa giải cũ",
+      closedAt: new Date().toISOString(),
+      closedBy: adminName,
+      topExp: currentExpBoard.slice(0, 10),
+      topCp: currentCpBoard.slice(0, 10)
+    };
+
+    const archives = this.getLeaderboardArchives();
+    archives.unshift(archiveItem);
+    localStorage.setItem(this.KEYS.LEADERBOARD_ARCHIVES, JSON.stringify(archives));
+
+    currentSettings.seasonName = seasonName || `Mùa giải mới (${new Date().toLocaleDateString('vi-VN')})`;
+    currentSettings.seasonStartDate = new Date().toISOString();
+    this.saveLeaderboardSettings(currentSettings);
+
+    // Gửi thông báo đến toàn bộ người dùng về mùa giải mới
+    const allUsers = this.getAllUsers();
+    allUsers.forEach(u => {
+      this.addNotification(u.id, {
+        type: "system_announcement",
+        title: "🏆 Khởi Động Mùa Giải Mới: " + currentSettings.seasonName,
+        message: `Ban quản trị đã chính thức mở mùa giải xếp hạng mới "${currentSettings.seasonName}". Chúc bạn đạt được nhiều thành tích và điểm tích lũy xuất sắc!`,
+        pointsDelta: null,
+        pointType: null
+      });
+    });
+
+    return archiveItem;
+  },
+
+  getLeaderboardStats() {
     const allUsers = this.getAllUsers().filter(u => u.status === "active");
+    const subjects = this.getSubjects();
+    const materials = this.getMaterials();
+
+    let totalExp = 0;
+    let totalCp = 0;
+    let totalQuestions = 0;
+
+    allUsers.forEach(u => {
+      totalExp += (u.totalExp || 0);
+      totalCp += (u.contributionPoints || 0);
+    });
+
+    subjects.forEach(s => {
+      if (s.questions) totalQuestions += s.questions.length;
+    });
+
+    return {
+      totalStudents: allUsers.length,
+      totalExp,
+      totalCp,
+      totalQuestions,
+      totalMaterials: materials.length
+    };
+  },
+
+  getLeaderboardData(type = "exp", options = {}) {
+    const profile = this.getUserProfile();
+    const settings = this.getLeaderboardSettings();
+    const hiddenIds = settings.hiddenUserIds || [];
+    const customBadges = settings.customBadges || {};
+    const includeHidden = options.includeHidden || false;
+    const filterDept = options.department || "all";
+    const searchQuery = (options.search || "").toLowerCase().trim();
+
+    let allUsers = this.getAllUsers().filter(u => u.status === "active");
+
+    if (!includeHidden) {
+      allUsers = allUsers.filter(u => !hiddenIds.includes(u.id));
+    }
+
+    if (filterDept && filterDept !== "all") {
+      allUsers = allUsers.filter(u => u.department === filterDept);
+    }
+
+    if (searchQuery) {
+      allUsers = allUsers.filter(u => 
+        (u.fullName && u.fullName.toLowerCase().includes(searchQuery)) ||
+        (u.studentId && u.studentId.toLowerCase().includes(searchQuery)) ||
+        (u.department && u.department.toLowerCase().includes(searchQuery))
+      );
+    }
 
     if (type === "cp") {
       // Bảng xếp hạng Điểm Cống Hiến (Contribution Points - CP)
-      const list = allUsers.map(u => ({
+      let list = allUsers.map(u => ({
         id: u.id,
         name: (profile.id === u.id) ? `${u.fullName} (Bạn)` : u.fullName,
+        rawName: u.fullName,
+        studentId: u.studentId || "Chưa cập nhật",
+        email: u.email || "",
         department: u.department || "ĐH Đồng Tháp",
         cp: u.contributionPoints || 0,
         questions: u.cumulativeQuestions || 0,
         chars: u.cumulativeChars || 0,
+        isHidden: hiddenIds.includes(u.id),
+        customBadge: customBadges[u.id] || null,
         isCurrentUser: (profile.id === u.id)
       }));
 
-      // Bổ sung mock nếu ít user
-      if (list.length < 3) {
-        list.push({ id: "mock-1", name: "Nguyễn Thị Mai Lan", department: "Khoa Sư phạm KHTN", cp: 120, questions: 1200, chars: 45000, isCurrentUser: false });
-        list.push({ id: "mock-2", name: "Trần Minh Đức", department: "Khoa Lý luận Chính trị", cp: 85, questions: 850, chars: 25000, isCurrentUser: false });
+      // Bổ sung mock nếu ít user và không có search filter
+      if (list.length < 3 && filterDept === "all" && !searchQuery) {
+        list.push({ id: "mock-1", name: "Nguyễn Thị Mai Lan", rawName: "Nguyễn Thị Mai Lan", studentId: "220101001", email: "220101001@dthu.edu.vn", department: "Khoa Sư phạm KHTN", cp: 120, questions: 1200, chars: 45000, isHidden: false, customBadge: null, isCurrentUser: false });
+        list.push({ id: "mock-2", name: "Trần Minh Đức", rawName: "Trần Minh Đức", studentId: "220101002", email: "220101002@dthu.edu.vn", department: "Khoa Lý luận Chính trị", cp: 85, questions: 850, chars: 25000, isHidden: false, customBadge: null, isCurrentUser: false });
       }
 
-      return list.sort((a, b) => b.cp - a.cp).map((item, index) => ({
-        ...item,
-        rank: index + 1,
-        badge: index === 0 ? "🥇 Đại Sứ" : (index === 1 ? "🥈 Tích Cực" : (index === 2 ? "🥉 Tiên Phong" : "🌟 Đóng Góp"))
-      }));
+      return list.sort((a, b) => b.cp - a.cp).map((item, index) => {
+        let badge = customBadges[item.id] || (index === 0 ? (settings.top1Title || "🥇 Đại Sứ") : (index === 1 ? (settings.top2Title || "🥈 Tích Cực") : (index === 2 ? (settings.top3Title || "🥉 Tiên Phong") : "🌟 Đóng Góp")));
+        return {
+          ...item,
+          rank: index + 1,
+          badge
+        };
+      });
     }
 
     // Mặc định: Bảng xếp hạng Điểm Học Tập (EXP)
-    const list = allUsers.map(u => ({
+    let list = allUsers.map(u => ({
       id: u.id,
       name: (profile.id === u.id) ? `${u.fullName} (Bạn)` : u.fullName,
+      rawName: u.fullName,
+      studentId: u.studentId || "Chưa cập nhật",
+      email: u.email || "",
       department: u.department || "ĐH Đồng Tháp",
       exp: u.totalExp || 0,
       quizzes: u.quizzesCompleted || 0,
+      isHidden: hiddenIds.includes(u.id),
+      customBadge: customBadges[u.id] || null,
       isCurrentUser: (profile.id === u.id)
     }));
 
-    if (list.length < 3) {
-      list.push({ id: "mock-1", name: "Nguyễn Thị Mai Lan", department: "Khoa Sư phạm KHTN", exp: 580, quizzes: 28, isCurrentUser: false });
-      list.push({ id: "mock-2", name: "Trần Minh Đức", department: "Khoa Lý luận Chính trị", exp: 210, quizzes: 15, isCurrentUser: false });
+    if (list.length < 3 && filterDept === "all" && !searchQuery) {
+      list.push({ id: "mock-1", name: "Nguyễn Thị Mai Lan", rawName: "Nguyễn Thị Mai Lan", studentId: "220101001", email: "220101001@dthu.edu.vn", department: "Khoa Sư phạm KHTN", exp: 580, quizzes: 28, isHidden: false, customBadge: null, isCurrentUser: false });
+      list.push({ id: "mock-2", name: "Trần Minh Đức", rawName: "Trần Minh Đức", studentId: "220101002", email: "220101002@dthu.edu.vn", department: "Khoa Lý luận Chính trị", exp: 210, quizzes: 15, isHidden: false, customBadge: null, isCurrentUser: false });
     }
 
-    return list.sort((a, b) => b.exp - a.exp).map((item, index) => ({
-      ...item,
-      rank: index + 1,
-      badge: index === 0 ? "🥇 Thủ Khoa" : (index === 1 ? "🥈 Á Khoa" : (index === 2 ? "🥉 Top 3" : "⭐ Chăm Chỉ"))
-    }));
+    return list.sort((a, b) => b.exp - a.exp).map((item, index) => {
+      let badge = customBadges[item.id] || (index === 0 ? (settings.top1Title || "🥇 Thủ Khoa") : (index === 1 ? (settings.top2Title || "🥈 Á Khoa") : (index === 2 ? (settings.top3Title || "🥉 Top 3") : "⭐ Chăm Chỉ")));
+      return {
+        ...item,
+        rank: index + 1,
+        badge
+      };
+    });
   },
 
   // ── 6. Ngân hàng Câu Sai (Mistake Vault) ────────────────────

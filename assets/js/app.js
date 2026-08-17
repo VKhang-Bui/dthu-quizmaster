@@ -4247,25 +4247,113 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
   },
 
   // ═════════════════════════════════════════════════════════════════════════
-  // 7. LEADERBOARD VIEW (BẢNG XẾP HẠNG ĐA CHIỀU EXP & CP)
+  // 7. LEADERBOARD VIEW (BẢNG XẾP HẠNG ĐA CHIỀU & QUẢN TRỊ ADMIN TOÀN DIỆN)
   // ═════════════════════════════════════════════════════════════════════════
   renderLeaderboardView(container) {
-    const activeTab = this.leaderboardTab || "exp";
-    const leaderboard = StorageService.getLeaderboardData(activeTab);
+    const isLogged = StorageService.isLoggedIn();
+    const profile = StorageService.getUserProfile();
+    const isAdmin = isLogged && (profile.role === "admin" || StorageService.hasPermission("canManageUsers"));
+    const settings = StorageService.getLeaderboardSettings();
+    const stats = StorageService.getLeaderboardStats();
+
+    if (!this.leaderboardTab) this.leaderboardTab = "exp";
+    if (!this.leaderboardDept) this.leaderboardDept = "all";
+    if (this.leaderboardSearch === undefined) this.leaderboardSearch = "";
+    if (this.leaderboardIncludeHidden === undefined) this.leaderboardIncludeHidden = false;
+
+    const activeTab = this.leaderboardTab;
+    const isCp = (activeTab === "cp");
+
+    // Lấy danh sách tất cả các khoa ngành duy nhất
+    const allUsers = StorageService.getAllUsers();
+    const departments = Array.from(new Set(allUsers.map(u => u.department).filter(Boolean)));
+
+    // Lấy dữ liệu bảng xếp hạng theo bộ lọc
+    const leaderboard = StorageService.getLeaderboardData(activeTab, {
+      department: this.leaderboardDept,
+      search: this.leaderboardSearch,
+      includeHidden: isAdmin && this.leaderboardIncludeHidden
+    });
+
     const top1 = leaderboard[0];
     const top2 = leaderboard[1];
     const top3 = leaderboard[2];
-    const isCp = (activeTab === "cp");
 
     container.innerHTML = `
-      <div class="view-leaderboard">
-        <div style="margin-bottom: 24px; text-align: center;">
-          <h2 style="font-size: 24px; font-weight: 800; color: var(--text-primary);">🏆 Bảng Xếp Hạng Sinh Viên DThu</h2>
-          <p style="color: var(--text-secondary); margin-top: 4px;">Tuyên dương những sinh viên có thành tích học tập và đóng góp xây dựng ngân hàng đề thi xuất sắc nhất toàn trường.</p>
+      <div class="view-leaderboard" style="max-width: 1080px; margin: 0 auto; padding: 24px 16px;">
+        <!-- Header & Season Pill -->
+        <div style="margin-bottom: 22px; text-align: center;">
+          <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 14px; background: #e0f2fe; color: #0369a1; border-radius: 20px; font-size: 12.5px; font-weight: 700; margin-bottom: 8px;">
+            <span>🗓️</span> <span>Mùa giải: <strong>${settings.seasonName || 'Học Kỳ Hiện Tại'}</strong></span>
+          </div>
+          <h2 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 0;">🏆 Bảng Xếp Hạng Sinh Viên DThu</h2>
+          <p style="color: var(--text-secondary); margin-top: 6px; font-size: 13.5px; max-width: 680px; margin-left: auto; margin-right: auto;">
+            Tôn vinh sinh viên có thành tích rèn luyện thi thử xuất sắc và đóng góp xây dựng ngân hàng tài liệu học tập toàn diện cho trường Đại học Đồng Tháp.
+          </p>
+        </div>
+
+        <!-- 👑 THANH CÔNG CỤ QUẢN TRỊ DÀNH CHO ADMIN (Chỉ hiện khi là Admin) -->
+        ${isAdmin ? `
+          <div class="leaderboard-admin-bar">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 20px;">🛡️</span>
+              <div>
+                <strong style="font-size: 13.5px; color: #854d0e;">Bảng Điều Khiển Quản Trị BXH (Admin Control Panel)</strong>
+                <div style="font-size: 11.5px; color: #a16207;">Toàn quyền cấu hình mùa giải, vinh danh huy hiệu, ẩn thành viên và xuất báo cáo.</div>
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #854d0e; cursor: pointer; background: #fef08a; padding: 4px 10px; border-radius: var(--radius-sm);">
+                <input type="checkbox" id="chkAdminShowHidden" ${this.leaderboardIncludeHidden ? 'checked' : ''} onchange="App.leaderboardIncludeHidden = this.checked; App.renderLeaderboardView(document.getElementById('mainContent'));">
+                <span>Xem cả tài khoản bị ẩn (${(settings.hiddenUserIds || []).length})</span>
+              </label>
+              <button class="btn btn-sm" style="background:#ffffff; color:#854d0e; border:1px solid #facc15; font-weight:700;" onclick="App.openLeaderboardSettingsModal()">
+                ⚙️ Cài Đặt Mùa & Podium
+              </button>
+              <button class="btn btn-sm" style="background:#ffffff; color:#854d0e; border:1px solid #facc15; font-weight:700;" onclick="App.openStartNewSeasonModal()">
+                🔄 Mùa Giải Mới
+              </button>
+              <button class="btn btn-sm" style="background:#854d0e; color:#ffffff; font-weight:700;" onclick="App.exportLeaderboardCSV()">
+                📥 Xuất File CSV
+              </button>
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- 📊 Ruy-băng Thống Kê Tổng Quan Toàn Trường -->
+        <div class="leaderboard-stats-ribbon">
+          <div class="leaderboard-stat-item">
+            <div class="leaderboard-stat-icon">👨‍🎓</div>
+            <div>
+              <div class="leaderboard-stat-num">${stats.totalStudents}</div>
+              <div class="leaderboard-stat-label">Sinh viên tranh tài</div>
+            </div>
+          </div>
+          <div class="leaderboard-stat-item">
+            <div class="leaderboard-stat-icon" style="color: #b45309;">⚡</div>
+            <div>
+              <div class="leaderboard-stat-num" style="color: #b45309;">${stats.totalExp.toLocaleString()}</div>
+              <div class="leaderboard-stat-label">Tổng EXP tích lũy</div>
+            </div>
+          </div>
+          <div class="leaderboard-stat-item">
+            <div class="leaderboard-stat-icon" style="color: #15803d;">🌟</div>
+            <div>
+              <div class="leaderboard-stat-num" style="color: #15803d;">${stats.totalCp.toLocaleString()}</div>
+              <div class="leaderboard-stat-label">Tổng CP cống hiến</div>
+            </div>
+          </div>
+          <div class="leaderboard-stat-item">
+            <div class="leaderboard-stat-icon" style="color: #0284c7;">📝</div>
+            <div>
+              <div class="leaderboard-stat-num" style="color: #0284c7;">${stats.totalQuestions.toLocaleString()}</div>
+              <div class="leaderboard-stat-label">Câu hỏi ngân hàng</div>
+            </div>
+          </div>
         </div>
 
         <!-- Tab Selector: EXP Học Tập vs CP Cống Hiến -->
-        <div class="hub-tabs" style="max-width: 500px; margin: 0 auto 28px auto;">
+        <div class="hub-tabs" style="max-width: 520px; margin: 0 auto 24px auto;">
           <button class="hub-tab-btn ${activeTab === 'exp' ? 'active' : ''}" onclick="App.leaderboardTab = 'exp'; App.renderLeaderboardView(document.getElementById('mainContent'));">
             ⚡ Top Học Tập (EXP)
           </button>
@@ -4274,43 +4362,70 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
           </button>
         </div>
 
-        <!-- Podium Top 3 -->
-        <div class="podium-container">
-          <!-- Rank 2 -->
-          <div class="podium-card podium-rank-2">
-            <div style="font-size: 13px; font-weight: 800; color: #64748b; margin-bottom: 6px;">🥈 HẠNG 2</div>
-            <div class="podium-avatar">${top2 ? (top2.isCurrentUser ? '👨‍🎓' : '🥈') : '👤'}</div>
-            <div class="podium-name">${top2 ? top2.name : 'Đang cập nhật'}</div>
-            <div style="font-size: 12px; color: var(--text-secondary);">${top2 ? top2.department : ''}</div>
-            <div class="podium-exp" style="${isCp ? 'background:#fef3c7; color:#b45309;' : ''}">
-              ${isCp ? `🌟 ${top2 ? top2.cp : 0} CP` : `⚡ ${top2 ? top2.exp : 0} EXP`}
+        <!-- 🔍 Thanh Tìm Kiếm, Lọc Khoa & Nút "Vị Trí Của Tôi" -->
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 24px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+          <div style="display: flex; gap: 10px; flex: 1; min-width: 280px; flex-wrap: wrap;">
+            <div class="search-input-wrapper" style="flex: 1; min-width: 180px;">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="leaderboardSearchInput" class="form-control" placeholder="Tìm theo tên, MSSV..." value="${this.leaderboardSearch}" oninput="App.onSearchLeaderboard(this.value)">
             </div>
+            <select id="leaderboardDeptFilter" class="form-control" style="width: auto; min-width: 200px;" onchange="App.onFilterLeaderboardDept(this.value)">
+              <option value="all" ${this.leaderboardDept === 'all' ? 'selected' : ''}>🏛️ Tất cả Khoa / Viện</option>
+              ${departments.map(d => `<option value="${d}" ${this.leaderboardDept === d ? 'selected' : ''}>${d}</option>`).join('')}
+            </select>
           </div>
 
-          <!-- Rank 1 (Thủ khoa / Đại sứ) -->
-          <div class="podium-card podium-rank-1">
-            <div style="font-size: 13px; font-weight: 800; color: #d97706; margin-bottom: 6px;">
-              ${isCp ? '👑 ĐẠI SỨ CỐNG HIẾN' : '👑 THỦ KHOA (HẠNG 1)'}
-            </div>
-            <div class="podium-avatar">${top1 ? '🥇' : '👤'}</div>
-            <div class="podium-name" style="font-size: 18px;">${top1 ? top1.name : 'Đang cập nhật'}</div>
-            <div style="font-size: 12.5px; color: var(--text-secondary);">${top1 ? top1.department : ''}</div>
-            <div class="podium-exp" style="font-size: 16px; ${isCp ? 'background:#fef3c7; color:#b45309;' : ''}">
-              ${isCp ? `🌟 ${top1 ? top1.cp : 0} CP` : `⚡ ${top1 ? top1.exp : 0} EXP`}
-            </div>
-          </div>
-
-          <!-- Rank 3 -->
-          <div class="podium-card podium-rank-3">
-            <div style="font-size: 13px; font-weight: 800; color: #c2410c; margin-bottom: 6px;">🥉 HẠNG 3</div>
-            <div class="podium-avatar">${top3 ? (top3.isCurrentUser ? '👨‍🎓' : '🥉') : '👤'}</div>
-            <div class="podium-name">${top3 ? top3.name : 'Đang cập nhật'}</div>
-            <div style="font-size: 12px; color: var(--text-secondary);">${top3 ? top3.department : ''}</div>
-            <div class="podium-exp" style="${isCp ? 'background:#fef3c7; color:#b45309;' : ''}">
-              ${isCp ? `🌟 ${top3 ? top3.cp : 0} CP` : `⚡ ${top3 ? top3.exp : 0} EXP`}
-            </div>
-          </div>
+          <button class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;" onclick="App.jumpToMyRank()">
+            <span>📍</span> <span>Vị trí của tôi</span>
+          </button>
         </div>
+
+        <!-- 🏆 Podium Top 3 -->
+        ${leaderboard.length > 0 && !this.leaderboardSearch ? `
+          <div class="podium-container">
+            <!-- Rank 2 -->
+            <div class="podium-card podium-rank-2">
+              <div style="font-size: 13px; font-weight: 800; color: #64748b; margin-bottom: 6px;">
+                ${settings.top2Title || '🥈 HẠNG 2'}
+              </div>
+              <div class="podium-avatar">${top2 ? (top2.isCurrentUser ? '👨‍🎓' : '🥈') : '👤'}</div>
+              <div class="podium-name">${top2 ? top2.name : 'Đang cập nhật'}</div>
+              <div style="font-size: 12px; color: var(--text-secondary);">${top2 ? top2.department : ''}</div>
+              ${top2 && top2.customBadge ? `<div style="margin-top: 4px;"><span class="custom-badge-pill">${top2.customBadge}</span></div>` : ''}
+              <div class="podium-exp" style="${isCp ? 'background:#fef3c7; color:#b45309;' : ''}">
+                ${isCp ? `🌟 ${top2 ? top2.cp : 0} CP` : `⚡ ${top2 ? top2.exp : 0} EXP`}
+              </div>
+            </div>
+
+            <!-- Rank 1 (Thủ khoa / Đại sứ) -->
+            <div class="podium-card podium-rank-1">
+              <div style="font-size: 13px; font-weight: 800; color: #d97706; margin-bottom: 6px;">
+                ${isCp ? (settings.top1Title || '👑 ĐẠI SỨ CỐNG HIẾN') : (settings.top1Title || '👑 THỦ KHOA (HẠNG 1)')}
+              </div>
+              <div class="podium-avatar">${top1 ? '🥇' : '👤'}</div>
+              <div class="podium-name" style="font-size: 18px;">${top1 ? top1.name : 'Đang cập nhật'}</div>
+              <div style="font-size: 12.5px; color: var(--text-secondary);">${top1 ? top1.department : ''}</div>
+              ${top1 && top1.customBadge ? `<div style="margin-top: 4px;"><span class="custom-badge-pill">${top1.customBadge}</span></div>` : ''}
+              <div class="podium-exp" style="font-size: 16px; ${isCp ? 'background:#fef3c7; color:#b45309;' : ''}">
+                ${isCp ? `🌟 ${top1 ? top1.cp : 0} CP` : `⚡ ${top1 ? top1.exp : 0} EXP`}
+              </div>
+            </div>
+
+            <!-- Rank 3 -->
+            <div class="podium-card podium-rank-3">
+              <div style="font-size: 13px; font-weight: 800; color: #c2410c; margin-bottom: 6px;">
+                ${settings.top3Title || '🥉 HẠNG 3'}
+              </div>
+              <div class="podium-avatar">${top3 ? (top3.isCurrentUser ? '👨‍🎓' : '🥉') : '👤'}</div>
+              <div class="podium-name">${top3 ? top3.name : 'Đang cập nhật'}</div>
+              <div style="font-size: 12px; color: var(--text-secondary);">${top3 ? top3.department : ''}</div>
+              ${top3 && top3.customBadge ? `<div style="margin-top: 4px;"><span class="custom-badge-pill">${top3.customBadge}</span></div>` : ''}
+              <div class="podium-exp" style="${isCp ? 'background:#fef3c7; color:#b45309;' : ''}">
+                ${isCp ? `🌟 ${top3 ? top3.cp : 0} CP` : `⚡ ${top3 ? top3.exp : 0} EXP`}
+              </div>
+            </div>
+          </div>
+        ` : ''}
 
         <!-- Leaderboard Table -->
         <div class="leaderboard-table-card">
@@ -4320,19 +4435,33 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                 <th style="width: 70px; text-align: center;">Hạng</th>
                 <th>Sinh viên</th>
                 <th>Khoa / Ngành</th>
-                <th style="text-align: center;">${isCp ? 'Sản lượng đóng góp' : 'Số bài thi'}</th>
+                <th style="text-align: center;">${isCp ? 'Sản lượng cống hiến' : 'Số bài thi'}</th>
                 <th style="text-align: right;">${isCp ? 'Điểm Cống Hiến' : 'Điểm EXP'}</th>
-                <th style="width: 140px; text-align: center;">Huy hiệu</th>
+                <th style="text-align: center;">Danh hiệu / Huy hiệu</th>
+                ${isAdmin ? `<th style="text-align: right; width: 220px;">Quản Trị BXH</th>` : ''}
               </tr>
             </thead>
             <tbody>
-              ${leaderboard.map(item => `
-                <tr class="${item.isCurrentUser ? 'current-user-row' : ''}">
+              ${leaderboard.length === 0 ? `
+                <tr>
+                  <td colspan="${isAdmin ? 7 : 6}" style="text-align: center; padding: 48px; color: var(--text-secondary);">
+                    <div style="font-size: 36px; margin-bottom: 8px;">🔍</div>
+                    <strong>Không tìm thấy sinh viên nào phù hợp với bộ lọc!</strong>
+                  </td>
+                </tr>
+              ` : leaderboard.map(item => `
+                <tr id="${item.isCurrentUser ? 'leaderboard-my-row' : 'leaderboard-row-' + item.id}" class="${item.isCurrentUser ? 'current-user-row' : ''}">
                   <td style="text-align: center; font-weight: 800;">
                     ${item.rank === 1 ? '🥇 1' : item.rank === 2 ? '🥈 2' : item.rank === 3 ? '🥉 3' : item.rank}
                   </td>
                   <td>
-                    <strong>${item.name}</strong>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <div>
+                        <strong>${item.name}</strong>
+                        ${item.isHidden ? '<span class="badge" style="background:#fee2e2; color:#b91c1c; font-size:10.5px; margin-left:4px;">🚫 Đã ẩn BXH</span>' : ''}
+                        <div style="font-size: 11.5px; color: var(--text-tertiary);">MSSV: ${item.studentId || 'Chưa cập nhật'}</div>
+                      </div>
+                    </div>
                   </td>
                   <td style="color: var(--text-secondary); font-size: 13px;">${item.department}</td>
                   <td style="text-align: center; font-size: 13px;">
@@ -4342,8 +4471,27 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                     ${isCp ? `🌟 ${item.cp || 0} CP` : `⚡ ${item.exp || 0} EXP`}
                   </td>
                   <td style="text-align: center;">
-                    <span class="badge ${isCp ? 'badge-success' : 'badge-blue'}">${item.badge}</span>
+                    ${item.customBadge ? `
+                      <span class="custom-badge-pill" title="Huy hiệu đặc cách do Ban Quản Trị vinh danh">${item.customBadge}</span>
+                    ` : `
+                      <span class="badge ${isCp ? 'badge-success' : 'badge-blue'}">${item.badge}</span>
+                    `}
                   </td>
+                  ${isAdmin ? `
+                    <td style="text-align: right;">
+                      <div style="display: inline-flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end;">
+                        <button class="btn btn-sm" style="padding: 3px 8px; font-size: 11.5px;" title="${item.isHidden ? 'Hiện lại trên BXH' : 'Ẩn khỏi BXH công khai'}" onclick="App.toggleHideUserFromLeaderboardAction('${item.id}')">
+                          ${item.isHidden ? '👁️ Hiện' : '👁️ Ẩn'}
+                        </button>
+                        <button class="btn btn-sm" style="padding: 3px 8px; font-size: 11.5px; background:#fdf4ff; color:#86198f; border-color:#f0abfc;" title="Trao huy hiệu danh dự đặc cách" onclick="App.openAwardBadgeModal('${item.id}')">
+                          🎖️ Huy Hiệu
+                        </button>
+                        <button class="btn btn-sm" style="padding: 3px 8px; font-size: 11.5px; background:#fef3c7; color:#b45309; border-color:#fde68a;" title="Điều chỉnh điểm EXP / CP" onclick="App.openAdminAdjustPointsModal('${item.id}')">
+                          ⚡ Điểm
+                        </button>
+                      </div>
+                    </td>
+                  ` : ''}
                 </tr>
               `).join('')}
             </tbody>
@@ -4351,6 +4499,287 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
         </div>
       </div>
     `;
+  },
+
+  onSearchLeaderboard(keyword) {
+    this.leaderboardSearch = keyword;
+    this.renderLeaderboardView(document.getElementById("mainContent"));
+    const input = document.getElementById("leaderboardSearchInput");
+    if (input) {
+      input.focus();
+      input.setSelectionRange(keyword.length, keyword.length);
+    }
+  },
+
+  onFilterLeaderboardDept(dept) {
+    this.leaderboardDept = dept;
+    this.renderLeaderboardView(document.getElementById("mainContent"));
+  },
+
+  jumpToMyRank() {
+    if (!StorageService.isLoggedIn()) {
+      this.showToast("🔒 Vui lòng đăng nhập tài khoản sinh viên DThu để xem vị trí của bạn trên Bảng Xếp Hạng!", "warning", 3500);
+      this.openAccountSwitcherModal();
+      return;
+    }
+
+    const myRow = document.getElementById("leaderboard-my-row");
+    if (myRow) {
+      myRow.scrollIntoView({ behavior: "smooth", block: "center" });
+      myRow.classList.add("leaderboard-row-highlight");
+      setTimeout(() => {
+        myRow.classList.remove("leaderboard-row-highlight");
+      }, 3000);
+      this.showToast("📍 Đã cuộn đến vị trí xếp hạng của bạn!", "info", 2000);
+    } else {
+      this.showToast("⚠️ Tài khoản của bạn hiện không nằm trong bộ lọc khoa/ngành hoặc tìm kiếm này!", "warning", 3500);
+    }
+  },
+
+  toggleHideUserFromLeaderboardAction(userId) {
+    const isHidden = StorageService.toggleHideUserFromLeaderboard(userId);
+    this.showToast(isHidden ? "🚫 Đã ẩn thành viên khỏi Bảng Xếp Hạng công khai!" : "✅ Đã cho phép thành viên hiển thị lại trên Bảng Xếp Hạng!", "info", 2500);
+    this.renderLeaderboardView(document.getElementById("mainContent"));
+  },
+
+  // Modal Cài Đặt Mùa Giải & Danh Hiệu Podium (Admin)
+  openLeaderboardSettingsModal() {
+    const settings = StorageService.getLeaderboardSettings();
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = "⚙️ Cài Đặt Mùa Giải & Tùy Biến Podium";
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-weight: 700;">Tên Mùa Giải / Học Kỳ Hiện Tại (*):</label>
+          <input type="text" id="settingSeasonName" class="form-control" value="${settings.seasonName || ''}" placeholder="Ví dụ: Học Kỳ 1 (2026 - 2027)">
+        </div>
+
+        <div style="border-top: 1px dashed var(--border); padding-top: 12px; margin-top: 4px;">
+          <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 8px; display: block;">
+            Tùy biến Danh hiệu hiển thị trên Podium Top 3:
+          </label>
+          <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-size: 12px;">Danh hiệu Hạng 1 (Thủ khoa / Đại sứ):</label>
+              <input type="text" id="settingTop1Title" class="form-control" value="${settings.top1Title || '👑 Thủ Khoa'}">
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-size: 12px;">Danh hiệu Hạng 2 (Á khoa):</label>
+              <input type="text" id="settingTop2Title" class="form-control" value="${settings.top2Title || '🥈 Á Khoa'}">
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-size: 12px;">Danh hiệu Hạng 3:</label>
+              <input type="text" id="settingTop3Title" class="form-control" value="${settings.top3Title || '🥉 Top 3'}">
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Hủy</button>
+      <button class="btn btn-primary" onclick="App.saveLeaderboardSettingsAction()">💾 Lưu Cấu Hình</button>
+    `;
+
+    this.openModal();
+  },
+
+  saveLeaderboardSettingsAction() {
+    const sName = document.getElementById("settingSeasonName")?.value.trim();
+    const t1 = document.getElementById("settingTop1Title")?.value.trim();
+    const t2 = document.getElementById("settingTop2Title")?.value.trim();
+    const t3 = document.getElementById("settingTop3Title")?.value.trim();
+
+    if (!sName) {
+      this.showToast("⚠️ Tên mùa giải không được để trống!", "warning");
+      return;
+    }
+
+    const current = StorageService.getLeaderboardSettings();
+    current.seasonName = sName;
+    current.top1Title = t1 || "👑 Thủ Khoa";
+    current.top2Title = t2 || "🥈 Á Khoa";
+    current.top3Title = t3 || "🥉 Top 3";
+
+    StorageService.saveLeaderboardSettings(current);
+    this.closeModal();
+    this.showToast("✅ Đã cập nhật cài đặt Bảng Xếp Hạng thành công!", "success", 3000);
+    this.renderLeaderboardView(document.getElementById("mainContent"));
+  },
+
+  // Modal Trao Huy Hiệu Đặc Cách / Vinh Danh (Admin)
+  openAwardBadgeModal(userId) {
+    const user = StorageService.getUserById(userId);
+    if (!user) return;
+
+    const settings = StorageService.getLeaderboardSettings();
+    const currentBadge = (settings.customBadges && settings.customBadges[userId]) || "";
+
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = `🎖️ Trao Huy Hiệu Vinh Danh: ${user.fullName}`;
+
+    const presetBadges = [
+      "🎖️ Sinh Viên 5 Tốt",
+      "🚀 Chiến Binh Ôn Thi",
+      "⭐ Gương Mặt Tiêu Biểu",
+      "🏆 Quán Quân Olympic",
+      "✍️ Cây Bút Vàng DThu",
+      "🌟 Trưởng Ban Học Tập",
+      "🔥 Siêu Sao Trắc Nghiệm",
+      "NONE"
+    ];
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 16px; font-size: 13px;">
+          <div>👤 Sinh viên: <strong>${user.fullName}</strong> (MSSV: <code>${user.studentId}</code>)</div>
+          <div style="margin-top: 4px; font-size: 12.5px; color: var(--text-secondary);">Khoa: ${user.department || 'ĐH Đồng Tháp'}</div>
+          ${currentBadge ? `<div style="margin-top: 6px;">Huy hiệu hiện tại: <span class="custom-badge-pill">${currentBadge}</span></div>` : ''}
+        </div>
+
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-weight: 700;">Chọn danh hiệu có sẵn:</label>
+          <select id="presetBadgeSelect" class="form-control" onchange="document.getElementById('customBadgeInput').value = (this.value === 'NONE' ? '' : this.value)">
+            <option value="">-- Chọn danh hiệu mẫu hoặc tự nhập bên dưới --</option>
+            ${presetBadges.map(b => `<option value="${b}" ${currentBadge === b ? 'selected' : ''}>${b === 'NONE' ? '❌ Gỡ huy hiệu (Xóa)' : b}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-weight: 700;">Hoặc tự nhập danh hiệu tùy biến:</label>
+          <input type="text" id="customBadgeInput" class="form-control" value="${currentBadge}" placeholder="Ví dụ: 🎗️ Đại Sứ Tri Thức 2026">
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Hủy</button>
+      <button class="btn btn-primary" onclick="App.saveAwardBadgeAction('${user.id}')">💾 Trao Huy Hiệu</button>
+    `;
+
+    this.openModal();
+  },
+
+  saveAwardBadgeAction(userId) {
+    const badgeVal = document.getElementById("customBadgeInput")?.value.trim();
+    StorageService.setCustomUserBadge(userId, badgeVal);
+
+    // Gửi thông báo đến sinh viên
+    const user = StorageService.getUserById(userId);
+    if (badgeVal) {
+      StorageService.addNotification(userId, {
+        type: "system_announcement",
+        title: "🎖️ Chúc Mừng Bạn Đã Được Trao Danh Hiệu Đặc Cách!",
+        message: `Ban Quản Trị DThu QuizMaster đã trao tặng bạn danh hiệu vinh danh "${badgeVal}" trên Bảng Xếp Hạng toàn trường. Hãy tiếp tục phát huy nhé!`,
+        pointsDelta: null,
+        pointType: null
+      });
+    }
+
+    this.closeModal();
+    this.showToast(badgeVal ? `🎉 Đã trao danh hiệu "${badgeVal}" cho ${user ? user.fullName : 'sinh viên'}!` : "✅ Đã gỡ huy hiệu đặc cách!", "success", 3500);
+    this.renderLeaderboardView(document.getElementById("mainContent"));
+  },
+
+  // Modal Khởi Động Mùa Giải Mới (Admin)
+  openStartNewSeasonModal() {
+    const settings = StorageService.getLeaderboardSettings();
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = "🔄 Khởi Động Mùa Giải Mới & Lưu Trữ (Archive)";
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #fef2f2; border: 1px solid #fca5a5; border-radius: var(--radius-sm); padding: 12px 16px; font-size: 13px; color: #991b1b;">
+          <strong>⚠️ Lưu ý quan trọng từ hệ thống:</strong>
+          <ul style="margin: 6px 0 0 0; padding-left: 18px; line-height: 1.6;">
+            <li>Kết quả bảng xếp hạng của mùa <strong>"${settings.seasonName}"</strong> sẽ được đóng băng và lưu trữ an toàn vào mục Lưu Trữ Mùa Cũ.</li>
+            <li>Hệ thống sẽ gửi thông báo chúc mừng mùa giải mới tới toàn bộ sinh viên.</li>
+            <li>Tổng điểm tích lũy All-Time của tất cả tài khoản vẫn được <strong>bảo lưu 100%</strong>.</li>
+          </ul>
+        </div>
+
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-weight: 700;">Tên Mùa Giải Mới (*):</label>
+          <input type="text" id="newSeasonNameInput" class="form-control" placeholder="Ví dụ: Học Kỳ 2 (2026 - 2027) hoặc Cuộc Thi Mùa Thu 2026">
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Hủy</button>
+      <button class="btn btn-danger" onclick="App.confirmStartNewSeasonAction()">🚀 Khởi Động Mùa Mới</button>
+    `;
+
+    this.openModal();
+  },
+
+  confirmStartNewSeasonAction() {
+    const sName = document.getElementById("newSeasonNameInput")?.value.trim();
+    if (!sName) {
+      this.showToast("⚠️ Vui lòng nhập tên mùa giải mới!", "warning");
+      return;
+    }
+
+    const adminProfile = StorageService.getUserProfile();
+    StorageService.startNewSeason(sName, adminProfile.fullName || "Admin");
+
+    this.closeModal();
+    this.showToast(`🎉 Đã mở mùa giải mới "${sName}" và lưu trữ mùa cũ thành công!`, "success", 4000);
+    this.renderLeaderboardView(document.getElementById("mainContent"));
+  },
+
+  // Xuất Báo Cáo Xếp Hạng Ra File CSV
+  exportLeaderboardCSV() {
+    const activeTab = this.leaderboardTab || "exp";
+    const data = StorageService.getLeaderboardData(activeTab, {
+      department: this.leaderboardDept,
+      search: this.leaderboardSearch,
+      includeHidden: true
+    });
+
+    const isCp = (activeTab === "cp");
+    const settings = StorageService.getLeaderboardSettings();
+
+    // Tiêu đề cột
+    const headers = ["Hang", "HoVaTen", "MSSV", "KhoaNganh", isCp ? "DiemCP" : "DiemEXP", isCp ? "SoCauDongGop" : "SoBaiThi", "DanhHieu", "TrangThaiBXH"];
+    
+    const rows = data.map(item => [
+      item.rank,
+      `"${(item.rawName || item.name || '').replace(/"/g, '""')}"`,
+      `"${item.studentId || ''}"`,
+      `"${(item.department || '').replace(/"/g, '""')}"`,
+      isCp ? (item.cp || 0) : (item.exp || 0),
+      isCp ? (item.questions || 0) : (item.quizzes || 0),
+      `"${(item.customBadge || item.badge || '').replace(/"/g, '""')}"`,
+      item.isHidden ? "DaAn" : "HienThi"
+    ]);
+
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(r => r.join(","))].join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const fileName = `BangXepHang_DThu_${activeTab.toUpperCase()}_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.setAttribute("href", url);
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    this.showToast(`📥 Đã tải xuống báo cáo "${fileName}" thành công!`, "success", 3500);
   },
 
   // ═════════════════════════════════════════════════════════════════════════
