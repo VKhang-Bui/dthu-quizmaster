@@ -11,7 +11,12 @@
 
 // Cấu hình Email Quản Trị Viên & CSKH Mặc Định
 const CONFIG = {
-  ADMIN_EMAIL: "bvkhang.cnsh@dthu.edu.vn",
+  ADMIN_EMAIL: "vkhg.bui@gmail.com, giaosukhang621@gmail.com",
+  ADMIN_NAME: "Bùi Văn Khang",
+  ADMIN_CLASS: "ĐHCNSH24A",
+  ADMIN_MSSV: "0024418475",
+  ADMIN_PHONE: "0354616301",
+  ADMIN_UNIT: "Khoa Kỹ thuật - Công nghệ · Trường Đại học Đồng Tháp",
   APP_NAME: "DThu QuizMaster",
   SYSTEM_TITLE: "Hệ Thống Ôn Thi Trắc Nghiệm - Đại Học Đồng Tháp"
 };

@@ -237,6 +237,12 @@ const App = {
                     <span class="drawer-arrow">➔</span>
                   </button>
 
+                  <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.openContactModal();">
+                    <span class="drawer-icon">📩</span>
+                    <span class="drawer-label">Liên Hệ & Góp Ý</span>
+                    <span class="drawer-arrow">➔</span>
+                  </button>
+
                   ${(profile.role === 'admin' || StorageService.hasPermission('canApproveDrafts')) ? `
                     <button class="drawer-nav-btn drawer-nav-btn-admin" onclick="App.closeUserDrawer(); App.navigateTo('moderation');">
                       <span class="drawer-icon">🛡️</span>
@@ -4380,6 +4386,131 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
       }
       this.showToast("❌ Không thể kết nối tới Google Apps Script URL này!", "danger", 4000);
     }
+  },
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // MODAL LIÊN HỆ, GÓP Ý & HỖ TRỢ KỸ THUẬT (GỬI EMAIL ĐẾN ADMIN BÙI VĂN KHANG)
+  // ═════════════════════════════════════════════════════════════════════════
+  openContactModal(prefill = {}) {
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    const currentProfile = StorageService.getUserProfile();
+    const isUserLoggedIn = StorageService.isLoggedIn();
+
+    title.textContent = "📩 Liên Hệ Ban Quản Trị & Đóng Góp Ý Kiến";
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <!-- Card Thông Tin Trưởng Ban Phát Triển -->
+        <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1.5px solid #bae6fd; border-radius: var(--radius-sm); padding: 14px 16px; font-size: 13px; color: #0369a1; line-height: 1.6;">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+            <div style="font-size: 28px;">👨‍💻</div>
+            <div>
+              <strong style="font-size: 14.5px; color: #0c4a6e;">Bùi Văn Khang</strong> (Trưởng Ban Phát Triển)
+              <div style="font-size: 12px; color: #0284c7;">Lớp ĐHCNSH24A · Khoa Kỹ thuật - Công nghệ · ĐH Đồng Tháp</div>
+            </div>
+          </div>
+          <div style="font-size: 12.5px; border-top: 1px dashed #7dd3fc; padding-top: 6px; margin-top: 6px; display: flex; flex-direction: column; gap: 3px;">
+            <div>📧 Email CSKH: <strong>vkhg.bui@gmail.com</strong> · <strong>giaosukhang621@gmail.com</strong></div>
+            <div>📞 Hotline / Zalo hỗ trợ: <strong>0354 616 301</strong> (Hỗ trợ 24/7)</div>
+          </div>
+        </div>
+
+        <p style="font-size: 13px; color: var(--text-secondary); margin: 0; line-height: 1.4;">
+          Mọi góp ý về ngân hàng câu hỏi, đề xuất tính năng hoặc báo cáo lỗi kỹ thuật sẽ được gửi trực tiếp đến hộp thư của Admin:
+        </p>
+
+        <!-- Form Nhập Thông Tin -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Họ và tên của bạn (*):</label>
+            <input type="text" id="contactSenderName" class="form-control" placeholder="Họ và tên..." value="${isUserLoggedIn ? currentProfile.fullName : (prefill.fullName || '')}">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Mã số sinh viên (MSSV):</label>
+            <input type="text" id="contactSenderMssv" class="form-control" placeholder="Ví dụ: 0024418475" value="${isUserLoggedIn ? (currentProfile.studentId || '') : (prefill.studentId || '')}">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Email / SĐT liên hệ (*):</label>
+            <input type="text" id="contactSenderInfo" class="form-control" placeholder="Email hoặc SĐT nhận phản hồi..." value="${isUserLoggedIn ? (currentProfile.email || '') : (prefill.contact || '')}">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Chủ đề liên hệ (*):</label>
+            <select id="contactCategory" class="form-control">
+              <option value="Đóng góp ý kiến & Cải tiến tính năng">💡 Đóng góp ý kiến & Tính năng mới</option>
+              <option value="Báo lỗi nội dung câu hỏi / Môn học">⚠️ Báo lỗi câu hỏi / Đề cương</option>
+              <option value="Đóng góp bộ đề thi mới (.txt)">📚 Đóng góp bộ đề thi mới</option>
+              <option value="Hỗ trợ tài khoản & Cấp lại mã PIN">🔑 Hỗ trợ tài khoản & Quên PIN</option>
+              <option value="Hợp tác & Khác">🤝 Hợp tác & Khác</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label">Tiêu đề tin nhắn (*):</label>
+          <input type="text" id="contactSubject" class="form-control" placeholder="Ví dụ: Góp ý thêm bộ đếm thời gian hoặc báo lỗi câu hỏi môn Toán C1">
+        </div>
+
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label">Nội dung chi tiết (*):</label>
+          <textarea id="contactMessage" class="form-control" rows="4" placeholder="Kính gửi Ban Quản Trị DThu QuizMaster & Admin Bùi Văn Khang,&#10;&#10;Em xin phép đóng góp ý kiến..." style="resize: vertical; font-size: 13.5px; line-height: 1.5;"></textarea>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Đóng</button>
+      <button class="btn btn-primary" style="font-weight: 700;" onclick="App.submitContactFeedbackAction()">
+        🚀 Gửi Lời Nhắn Đến Ban Quản Trị ➔
+      </button>
+    `;
+
+    modal.classList.add("active");
+  },
+
+  async submitContactFeedbackAction() {
+    const fullName = document.getElementById("contactSenderName")?.value.trim();
+    const studentId = document.getElementById("contactSenderMssv")?.value.trim();
+    const contact = document.getElementById("contactSenderInfo")?.value.trim();
+    const issueType = document.getElementById("contactCategory")?.value;
+    const title = document.getElementById("contactSubject")?.value.trim();
+    const content = document.getElementById("contactMessage")?.value.trim();
+
+    if (!fullName || !contact || !content) {
+      this.showToast("⚠️ Vui lòng điền đầy đủ Họ tên, Thông tin liên hệ và Nội dung lời nhắn!", "warning");
+      return;
+    }
+
+    const ticketId = "FEEDBACK-" + Math.floor(100000 + Math.random() * 900000);
+
+    const ticketData = {
+      ticketId,
+      fullName,
+      studentId: studentId || "Khách",
+      contact,
+      email: contact.includes("@") ? contact : "",
+      phone: !contact.includes("@") ? contact : "",
+      issueType,
+      title: title || `Liên hệ & Góp ý: ${issueType}`,
+      content
+    };
+
+    this.showToast("⏳ Đang gửi lời nhắn đến Admin Bùi Văn Khang...", "info", 2000);
+
+    // 1. Gửi qua Google Apps Script về email Admin
+    await EmailService.sendSupportTicket(ticketData);
+
+    // 2. Lưu vào hệ thống quản trị
+    StorageService.createSupportTicket(ticketData);
+
+    this.closeModal();
+    this.showToast(`🎉 Cảm ơn bạn! Lời nhắn đã được chuyển tiếp thành công đến hộp thư của Admin (Bùi Văn Khang)!`, "success", 5000);
   },
 
   // ═════════════════════════════════════════════════════════════════════════

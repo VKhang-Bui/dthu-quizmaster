@@ -177,9 +177,11 @@ const StorageService = {
     {
       id: "USR-01",
       fullName: "Bùi Văn Khang",
-      studentId: "220101001",
-      email: "bvkhang.cnsh@dthu.edu.vn",
-      department: "Khoa Nông nghiệp - Sinh học",
+      studentId: "0024418475",
+      className: "ĐHCNSH24A",
+      email: "vkhg.bui@gmail.com",
+      phone: "0354616301",
+      department: "Khoa Kỹ thuật - Công nghệ",
       role: "admin", // 'admin' | 'editor' | 'student'
       avatar: "👨‍🎓",
       pinCode: "123456",
@@ -189,11 +191,11 @@ const StorageService = {
         canManageMaterials: true,
         canManageUsers: true
       },
-      totalExp: 520,
-      streakDays: 7,
-      quizzesCompleted: 18,
+      totalExp: 1000,
+      streakDays: 14,
+      quizzesCompleted: 35,
       status: "active", // 'active' | 'pending_approval' | 'suspended'
-      createdAt: "2026-01-10T08:00:00.000Z"
+      createdAt: "2026-01-01T08:00:00.000Z"
     },
     {
       id: "USR-02",
@@ -265,7 +267,15 @@ const StorageService = {
       const data = localStorage.getItem(this.KEYS.USERS_LIST);
       if (data) {
         const list = JSON.parse(data);
-        if (Array.isArray(list) && list.length > 0) return list;
+        if (Array.isArray(list) && list.length > 0) {
+          // Tự động đồng bộ hồ sơ Admin USR-01 nếu phát hiện thông tin cũ
+          const adminIdx = list.findIndex(u => u.id === "USR-01" || u.role === "admin");
+          if (adminIdx !== -1 && list[adminIdx].studentId !== "0024418475") {
+            list[adminIdx] = Object.assign({}, list[adminIdx], this.DEFAULT_USERS[0]);
+            this.saveAllUsers(list);
+          }
+          return list;
+        }
       }
     } catch (e) {}
 
