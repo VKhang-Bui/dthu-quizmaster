@@ -214,35 +214,184 @@
   box-shadow: var(--shadow-xl);
 }
 
-/* Toast Notifications */
+/* ── 8. FLOATING TOAST NOTIFICATIONS (THÔNG BÁO TỰ TẮT 3s-5s) ────── */
 .toast-container {
   position: fixed;
-  bottom: 24px;
+  top: 24px;
   right: 24px;
-  z-index: 300;
+  z-index: 12000;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  pointer-events: none;
+  max-width: 380px;
+  width: calc(100vw - 48px);
 }
 
-.toast {
-  background: var(--brand-primary);
-  color: #fff;
-  padding: 12px 18px;
+.toast-item {
+  pointer-events: auto;
+  background: #ffffff;
+  color: var(--text-primary);
+  padding: 12px 16px;
   border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 12px;
   font-size: 13.5px;
   font-weight: 500;
-  box-shadow: var(--shadow-lg);
+  line-height: 1.4;
+  position: relative;
+  overflow: hidden;
+  animation: toastSlideIn 250ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 250ms ease, transform 250ms ease;
+}
+
+.toast-item.hide {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+.toast-item.success {
+  border-left: 4px solid var(--success);
+  background: #f0fdf4;
+}
+
+.toast-item.info {
+  border-left: 4px solid var(--primary);
+  background: #eff6ff;
+}
+
+.toast-item.warning {
+  border-left: 4px solid var(--warning);
+  background: #fffbeb;
+}
+
+.toast-item.danger {
+  border-left: 4px solid var(--danger);
+  background: #fef2f2;
+}
+
+.toast-icon {
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.toast-msg {
+  flex: 1;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 2px 6px;
+  line-height: 1;
+  border-radius: 4px;
+}
+
+.toast-close:hover {
+  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.15);
+  width: 100%;
+  transform-origin: left;
+}
+
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ── 9. INLINE ALERT BAR (CẢNH BÁO ĐẦU FORM NHỎ GỌN) ─────────────── */
+.inline-alert-bar {
   display: flex;
   align-items: center;
   gap: 10px;
-  animation: toastSlideUp 250ms ease;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  animation: fadeIn 200ms ease;
 }
 
-.toast.toast-success { background: #065f46; }
-.toast.toast-error { background: #991b1b; }
+.inline-alert-bar.warning {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+}
 
-@keyframes toastSlideUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+.inline-alert-bar.danger {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+}
+
+.inline-alert-bar.info {
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  color: #1e40af;
+}
+
+.inline-alert-bar.success {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #166534;
+}
+
+/* ── 10. SETTINGS MODAL UI ────────────────────────────────────────── */
+.settings-section {
+  margin-bottom: 22px;
+}
+
+.settings-section-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  gap: 12px;
+}
+
+.settings-row-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-row-info strong {
+  font-size: 13.5px;
+  color: var(--text-primary);
+}
+
+.settings-row-info span {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
 }

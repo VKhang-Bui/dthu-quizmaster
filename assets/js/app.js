@@ -132,6 +132,12 @@ const App = {
             <span class="drawer-arrow">➔</span>
           </button>
 
+          <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.openSettingsModal();">
+            <span class="drawer-icon">🛠️</span>
+            <span class="drawer-label">Cài Đặt & Cảnh Báo</span>
+            <span class="drawer-arrow">➔</span>
+          </button>
+
           ${profile.role === 'admin' ? `
             <button class="drawer-nav-btn drawer-nav-btn-admin" onclick="App.closeUserDrawer(); App.navigateTo('moderation');">
               <span class="drawer-icon">🛡️</span>
@@ -167,6 +173,7 @@ const App = {
     const newRole = profile.role === "admin" ? "student" : "admin";
     StorageService.switchUserRole(newRole);
     this.renderHeader();
+    this.showToast(`Đã chuyển vai trò sang: ${newRole === 'admin' ? '🛡️ Ban Biên Tập (Admin)' : '👨‍🎓 Sinh Viên'}`, 'info', 2500);
     if (this.currentView === "moderation" && newRole === "student") {
       this.navigateTo("home");
     } else {
@@ -181,7 +188,204 @@ const App = {
   },
 
   // ═════════════════════════════════════════════════════════════════════════
-  // HỆ THỐNG HỘP THOẠI CẢNH BÁO TÙY CHỌN ẨN LẦN SAU (SMART CONFIRM DIALOG)
+  // 1. FLOATING TOAST NOTIFICATIONS (TỰ BIẾN MẤT 3S-5S / KHÔNG CHẶN THAO TÁC)
+  // ═════════════════════════════════════════════════════════════════════════
+  showToast(message, type = "info", duration = null) {
+    const container = document.getElementById("toastContainer");
+    if (!container) return;
+
+    const settings = StorageService.getAppSettings();
+    const timeout = duration || settings.toastDuration || 3500;
+
+    const icons = {
+      success: "✓",
+      info: "ℹ️",
+      warning: "⚠️",
+      danger: "✕"
+    };
+
+    const toast = document.createElement("div");
+    toast.className = `toast-item ${type}`;
+    toast.innerHTML = `
+      <div class="toast-icon">${icons[type] || 'ℹ️'}</div>
+      <div class="toast-msg">${message}</div>
+      <button class="toast-close" title="Đóng">&times;</button>
+      <div class="toast-progress"></div>
+    `;
+
+    const closeBtn = toast.querySelector(".toast-close");
+    const progressBar = toast.querySelector(".toast-progress");
+
+    // Animation progress bar
+    progressBar.style.transition = `transform ${timeout}ms linear`;
+    setTimeout(() => {
+      progressBar.style.transform = "scaleX(0)";
+    }, 10);
+
+    const removeToast = () => {
+      toast.classList.add("hide");
+      setTimeout(() => {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 250);
+    };
+
+    const timer = setTimeout(removeToast, timeout);
+
+    closeBtn.onclick = () => {
+      clearTimeout(timer);
+      removeToast();
+    };
+
+    container.appendChild(toast);
+  },
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // 2. INLINE ALERT BAR (CẢNH BÁO ĐẦU TRANG/FORM NHỎ GỌN)
+  // ═════════════════════════════════════════════════════════════════════════
+  showInlineAlert(targetContainerId, message, type = "warning") {
+    const container = document.getElementById(targetContainerId);
+    if (!container) {
+      this.showToast(message, type);
+      return;
+    }
+
+    // Xóa alert cũ nếu có
+    const existing = container.querySelector(".inline-alert-bar");
+    if (existing) existing.remove();
+
+    const icons = {
+      warning: "⚠️",
+      danger: "🚫",
+      info: "ℹ️",
+      success: "✓"
+    };
+
+    const alertEl = document.createElement("div");
+    alertEl.className = `inline-alert-bar ${type}`;
+    alertEl.innerHTML = `
+      <span>${icons[type] || '⚠️'}</span>
+      <span style="flex: 1;">${message}</span>
+      <button style="background:none; border:none; cursor:pointer; font-size:16px; color:inherit; padding:0 4px;" onclick="this.parentElement.remove()">&times;</button>
+    `;
+
+    container.insertBefore(alertEl, container.firstChild);
+
+    // Tự động cuộn tới nếu cấu hình cho phép
+    const settings = StorageService.getAppSettings();
+    if (settings.autoScrollToError) {
+      alertEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    setTimeout(() => {
+      if (alertEl.parentNode) alertEl.remove();
+    }, 4500);
+  },
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // 3. SETTINGS MODAL (CÀI ĐẶT THÔNG BÁO & QUẢN LÝ CẢNH BÁO ĐÃ ẨN)
+  // ═════════════════════════════════════════════════════════════════════════
+  openSettingsModal() {
+    const settings = StorageService.getAppSettings();
+    const suppressed = StorageService.getSuppressedWarnings();
+    const knownWarnings = StorageService.KNOWN_WARNINGS;
+
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = "🛠️ Cài Đặt Hệ Thống & Cảnh Báo";
+
+    body.innerHTML = `
+      <div>
+        <!-- Cấu hình Toast Duration -->
+        <div class="settings-section">
+          <div class="settings-section-title">⏱️ Thời gian hiển thị Thông báo (Toast)</div>
+          <div class="settings-row">
+            <div class="settings-row-info">
+              <strong>Tự động biến mất sau</strong>
+              <span>Chọn thời gian thông báo nổi ở góc phải tự tắt</span>
+            </div>
+            <select id="selToastDuration" class="form-control" style="width: 140px;" onchange="App.onToastDurationChange(this.value)">
+              <option value="2500" ${settings.toastDuration === 2500 ? 'selected' : ''}>2.5 giây (Nhanh)</option>
+              <option value="3500" ${settings.toastDuration === 3500 || !settings.toastDuration ? 'selected' : ''}>3.5 giây (Chuẩn)</option>
+              <option value="5000" ${settings.toastDuration === 5000 ? 'selected' : ''}>5.0 giây (Chậm)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Quản lý Cảnh báo Đã Ẩn -->
+        <div class="settings-section">
+          <div class="settings-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>🛡️ Quản lý Hộp thoại Cảnh báo (Confirm)</span>
+            <button class="btn btn-sm" style="font-size: 11.5px; padding: 3px 8px;" onclick="App.resetAllWarnings()">
+              🔄 Khôi phục tất cả
+            </button>
+          </div>
+          <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 12px;">
+            Khi bạn tích chọn <em>"Không hiển thị lại cảnh báo này"</em>, hệ thống sẽ ghi nhớ tại đây. Bạn có thể bật lại bất cứ lúc nào:
+          </p>
+
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            ${Object.keys(knownWarnings).map(key => {
+              const item = knownWarnings[key];
+              const isSuppressed = !!suppressed[key];
+              return `
+                <div class="settings-row">
+                  <div class="settings-row-info">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <strong>${item.title}</strong>
+                      <span class="badge ${isSuppressed ? 'badge-yellow' : 'badge-green'}" style="font-size: 10px;">
+                        ${isSuppressed ? 'Đã ẩn (Tự đồng ý)' : 'Đang bật'}
+                      </span>
+                    </div>
+                    <span>${item.description}</span>
+                  </div>
+                  <div>
+                    <button class="btn btn-sm ${isSuppressed ? 'btn-primary' : ''}" style="font-size: 12px; padding: 4px 10px;" onclick="App.toggleWarningKey('${key}')">
+                      ${isSuppressed ? 'Bật lại' : 'Tắt (Ẩn)'}
+                    </button>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn btn-primary" onclick="App.closeModal()">Xong</button>
+    `;
+
+    modal.classList.add("active");
+  },
+
+  onToastDurationChange(val) {
+    const duration = parseInt(val, 10) || 3500;
+    StorageService.saveAppSettings({ toastDuration: duration });
+    this.showToast(`Đã lưu thời gian hiển thị thông báo: ${duration / 1000} giây`, "success", 2000);
+  },
+
+  toggleWarningKey(key) {
+    if (StorageService.isWarningSuppressed(key)) {
+      StorageService.unsuppressWarning(key);
+      this.showToast(`Đã bật lại cảnh báo: ${StorageService.KNOWN_WARNINGS[key]?.title || key}`, "success");
+    } else {
+      StorageService.suppressWarning(key);
+      this.showToast(`Đã tắt (ẩn) cảnh báo: ${StorageService.KNOWN_WARNINGS[key]?.title || key}`, "info");
+    }
+    this.openSettingsModal();
+  },
+
+  resetAllWarnings() {
+    StorageService.resetSuppressedWarnings();
+    this.showToast("✅ Đã khôi phục toàn bộ các cảnh báo gốc của hệ thống!", "success");
+    this.openSettingsModal();
+  },
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // 4. HỆ THỐNG HỘP THOẠI CẢNH BÁO TÙY CHỌN ẨN LẦN SAU (SMART CONFIRM DIALOG)
   // ═════════════════════════════════════════════════════════════════════════
   showConfirmDialog(config = {}) {
     const {
@@ -609,7 +813,7 @@ const App = {
     const desc = document.getElementById("editSubDesc")?.value.trim();
 
     if (!name || !code) {
-      alert("Vui lòng nhập đầy đủ Tên môn học và Mã môn học!");
+      this.showToast("⚠️ Vui lòng nhập đầy đủ Tên môn học và Mã môn học!", "warning");
       return;
     }
 
@@ -840,7 +1044,7 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
 
   submitToCommunityDrafts(subjectId) {
     if (!this.currentParsedQuestions || this.currentParsedQuestions.length === 0) {
-      alert("Chưa có câu hỏi nào để đóng góp!");
+      this.showToast("⚠️ Chưa có câu hỏi nào để đóng góp!", "warning");
       return;
     }
 
@@ -864,7 +1068,7 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
     StorageService.addExp(30, "Đóng góp bộ đề thi mới (+30 EXP)");
 
     this.closeModal();
-    alert(`🎉 Cảm ơn bạn! Bộ đề "${submission.name}" đã được gửi lên Cộng đồng (Drafts) thành công! Bạn đã nhận được +30 EXP.`);
+    this.showToast(`🎉 Đã gửi bộ đề "${submission.name}" lên Cộng đồng (Drafts) thành công! (+30 EXP)`, "success", 4500);
     this.renderHeader();
     this.currentHubTab = "drafts";
     this.navigateTo("home");
@@ -954,11 +1158,6 @@ C. Ký hiệu @author: Bùi Văn Khang (CNSH - DThu) & nhóm nghiên cứu #CNXH
 D. Biểu thức 'chuỗi ký tự đặc biệt': "100% chính xác?" / [Ghi chú]
 
 Câu 3: Hai phát kiến vĩ đại của *C. Mác* và *Ph. Ăng-ghen* tạo tiền đề để luận chứng sự ra đời của CNXHKH là gì?
-A. Chủ nghĩa duy vật biện chứng và Học thuyết giá trị thặng dư
-B. Chủ nghĩa duy vật lịch sử và Học thuyết giá trị thặng dư
-C. Phép biện chứng duy vật và Học thuyết đấu tranh giai cấp
-D. Học thuyết nhà nước và Học thuyết cách mạng vô sản
-Đáp án: B
 Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị thặng dư là hai phát kiến vĩ đại làm cơ sở chuyển CNXH từ không tưởng thành khoa học.`;
 
     const textarea = document.getElementById("rawTextarea");
@@ -985,7 +1184,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     sub.questions.push(...this.currentParsedQuestions);
 
     StorageService.saveSubject(sub);
-    alert(`🎉 Thành công! Đã thêm ${this.currentParsedQuestions.length} câu hỏi mới vào môn "${sub.name}".`);
+    this.showToast(`🎉 Đã thêm ${this.currentParsedQuestions.length} câu hỏi mới vào môn "${sub.name}"!`, "success", 3500);
     this.navigateTo("subject-detail", { subjectId: sub.id });
   },
 
@@ -1006,9 +1205,9 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     if (this.currentParsedQuestions.length === 0) return;
     const jsonStr = JSON.stringify(this.currentParsedQuestions, null, 2);
     navigator.clipboard.writeText(jsonStr).then(() => {
-      alert("📋 Đã sao chép toàn bộ mã JSON câu hỏi vào Clipboard!");
+      this.showToast("📋 Đã sao chép toàn bộ mã JSON câu hỏi vào Clipboard!", "success", 3000);
     }).catch(err => {
-      alert("Không thể sao chép: " + err);
+      this.showToast("Không thể sao chép: " + err, "danger", 3000);
     });
   },
 
@@ -1089,7 +1288,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     });
 
     if (session.questions.length === 0) {
-      alert("Không có câu hỏi nào trong phạm vi này!");
+      this.showToast("⚠️ Không có câu hỏi nào trong phạm vi lựa chọn!", "warning");
       return;
     }
 
@@ -1121,7 +1320,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
 
       if (this.activeSession.timeRemainingSeconds <= 0) {
         clearInterval(this.timerInterval);
-        alert("⏰ Đã hết thời gian làm bài! Hệ thống sẽ tự động nộp bài của bạn.");
+        this.showToast("⏰ Đã hết thời gian làm bài! Hệ thống tự động nộp bài.", "warning", 4500);
         this.submitQuiz(true);
       }
     }, 1000);
@@ -1769,7 +1968,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       .map(d => d.question);
 
     if (wrongQuestions.length === 0) {
-      alert("Không có câu làm sai nào trong bài thi này!");
+      this.showToast("Không có câu làm sai nào trong bài thi này!", "info");
       return;
     }
 
@@ -2046,7 +2245,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     const active = materials.find(m => m.id === this.activeMaterialId);
     if (active && active.content) {
       navigator.clipboard.writeText(active.content).then(() => {
-        alert("Đã sao chép nội dung tài liệu vào bộ nhớ tạm!");
+        this.showToast("📋 Đã sao chép nội dung tài liệu vào bộ nhớ tạm!", "success", 2500);
       });
     }
   },
@@ -2111,7 +2310,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     const content = document.getElementById("matContentInput")?.value.trim();
 
     if (!title || !content) {
-      alert("Vui lòng nhập đầy đủ Tiêu đề và Nội dung tài liệu!");
+      this.showToast("⚠️ Vui lòng nhập đầy đủ Tiêu đề và Nội dung tài liệu!", "warning");
       return;
     }
 
@@ -2131,6 +2330,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
 
     StorageService.addExp(20, "Đóng góp tài liệu học tập mới (+20 EXP)");
     this.closeModal();
+    this.showToast(`🎉 Đã lưu tài liệu "${title}" thành công! (+20 EXP)`, "success", 3500);
     this.renderMaterialsView(document.getElementById("mainContent"), newMat.id);
   },
 
@@ -2240,7 +2440,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
   approveDraft(draftId) {
     const res = StorageService.approveDraft(draftId);
     if (res) {
-      alert(`🎉 Đã duyệt bộ đề "${res.name}" thành công! Bộ đề đã được chuyển sang Ngân hàng Chính thức.`);
+      this.showToast(`🎉 Đã duyệt bộ đề "${res.name}" sang Ngân hàng Chính thức! (+50 EXP)`, "success", 4500);
       this.renderHeader();
       this.renderModerationView(document.getElementById("mainContent"));
     }
@@ -2657,7 +2857,7 @@ D. Học thuyết nhà nước và Học thuyết cách mạng vô sản
 Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị thặng dư là hai phát kiến vĩ đại của C. Mác và Ph. Ăng-ghen.`;
 
     navigator.clipboard.writeText(sample).then(() => {
-      alert("📋 Đã sao chép bộ câu hỏi mẫu nâng cao vào Clipboard! Bạn có thể vào trang Nhập đề bấm Ctrl+V để dán thử nghiệm.");
+      this.showToast("📋 Đã sao chép bộ câu hỏi mẫu nâng cao vào Clipboard!", "success", 3000);
     });
   },
 
@@ -2677,13 +2877,13 @@ Câu 2: Nội dung câu hỏi số 2 ở đây?
 * D. Lựa chọn D > Sai: Giải thích D`;
 
     navigator.clipboard.writeText(sample).then(() => {
-      alert("📋 Đã sao chép mẫu cấu trúc đề thi vào Clipboard! Bạn có thể dán vào Word hoặc gửi cho ChatGPT để soạn câu hỏi.");
+      this.showToast("📋 Đã sao chép mẫu cấu trúc đề thi vào Clipboard!", "success", 3000);
     });
   },
 
   resetSuppressedWarningsAction() {
     StorageService.resetSuppressedWarnings();
-    alert("✅ Đã khôi phục lại toàn bộ hộp thoại cảnh báo thành công!");
+    this.showToast("✅ Đã khôi phục lại toàn bộ hộp thoại cảnh báo thành công!", "success", 3000);
   },
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -2736,7 +2936,7 @@ Câu 2: Nội dung câu hỏi số 2 ở đây?
     const desc = document.getElementById("newSubDesc")?.value.trim() || "";
 
     if (!name || !code) {
-      alert("Vui lòng nhập đầy đủ Tên môn học và Mã môn học!");
+      this.showToast("⚠️ Vui lòng nhập đầy đủ Tên môn học và Mã môn học!", "warning");
       return;
     }
 
@@ -2755,6 +2955,7 @@ Câu 2: Nội dung câu hỏi số 2 ở đây?
 
     StorageService.saveSubject(newSub);
     this.closeModal();
+    this.showToast(`🎉 Đã tạo môn học "${name}" thành công!`, "success", 3000);
     this.navigateTo("subject-detail", { subjectId: newSub.id });
   },
 
@@ -2766,7 +2967,7 @@ Câu 2: Nội dung câu hỏi số 2 ở đây?
       const file = e.target.files[0];
       if (file) {
         ImportExportService.importFromFile(file, (success, msg) => {
-          alert(msg);
+          App.showToast(msg, success ? "success" : "danger", 4000);
           if (success) App.navigateTo("home");
         });
       }

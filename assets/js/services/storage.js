@@ -11,7 +11,37 @@ const StorageService = {
     MISTAKES: "dthu_quiz_mistakes_v2",
     USER_PROFILE: "dthu_quiz_user_profile_v2",
     MATERIALS: "dthu_quiz_materials_v2",
-    SUPPRESSED_WARNINGS: "dthu_quiz_suppressed_warnings_v2"
+    SUPPRESSED_WARNINGS: "dthu_quiz_suppressed_warnings_v2",
+    SETTINGS: "dthu_quiz_app_settings_v2"
+  },
+
+  // Danh mục tất cả các loại cảnh báo hệ thống hỗ trợ ẩn/bật
+  KNOWN_WARNINGS: {
+    exit_quiz: {
+      id: "exit_quiz",
+      title: "Rời khỏi phòng thi dở dang",
+      description: "Cảnh báo khi bạn đang làm bài thi mà bấm nút thoát ra ngoài."
+    },
+    submit_early: {
+      id: "submit_early",
+      title: "Nộp bài thi sớm",
+      description: "Cảnh báo khi nộp bài mà còn câu chưa làm hoặc còn câu đang đặt cờ 🚩."
+    },
+    delete_subject: {
+      id: "delete_subject",
+      title: "Xóa môn học / Ngân hàng đề thi",
+      description: "Cảnh báo khi thực hiện xóa toàn bộ câu hỏi của một môn học."
+    },
+    reject_draft: {
+      id: "reject_draft",
+      title: "Từ chối bộ đề thi đóng góp",
+      description: "Cảnh báo trước khi Ban biên tập xóa một đề thi chờ duyệt."
+    },
+    reset_all_data: {
+      id: "reset_all_data",
+      title: "Khôi phục dữ liệu gốc",
+      description: "Cảnh báo trước khi đặt lại toàn bộ dữ liệu ứng dụng về mặc định."
+    }
   },
 
   // ── 1. Quản lý Môn học Chính thức (Official Subjects) ──────
@@ -312,7 +342,36 @@ const StorageService = {
     localStorage.setItem(this.KEYS.SUPPRESSED_WARNINGS, JSON.stringify(map));
   },
 
+  unsuppressWarning(warningKey) {
+    if (!warningKey) return;
+    const map = this.getSuppressedWarnings();
+    delete map[warningKey];
+    localStorage.setItem(this.KEYS.SUPPRESSED_WARNINGS, JSON.stringify(map));
+  },
+
   resetSuppressedWarnings() {
     localStorage.removeItem(this.KEYS.SUPPRESSED_WARNINGS);
+  },
+
+  // ── 8. Cài Đặt Hệ Thống & Tùy Chỉnh Thông Báo (Settings) ─────
+  getAppSettings() {
+    try {
+      const data = localStorage.getItem(this.KEYS.SETTINGS);
+      if (data) return JSON.parse(data);
+    } catch (e) {}
+
+    // Cấu hình mặc định
+    return {
+      toastDuration: 3500, // 3.5 giây
+      soundEnabled: true,
+      autoScrollToError: true
+    };
+  },
+
+  saveAppSettings(settings) {
+    const current = this.getAppSettings();
+    const updated = Object.assign({}, current, settings);
+    localStorage.setItem(this.KEYS.SETTINGS, JSON.stringify(updated));
+    return updated;
   }
 };
