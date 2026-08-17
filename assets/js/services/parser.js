@@ -42,6 +42,45 @@ const SmartParserService = {
    * @param {string} defaultChapterId - Mã chương mặc định
    * @returns {Object} { questions: Array, errors: Array, totalParsed: number }
    */
+  /**
+   * Chuyển đổi ký tự chữ cái (A, B, C, D, Đ, E) sang chỉ số mảng (0, 1, 2, 3, 4)
+   */
+  letterToIndex(letter) {
+    if (!letter) return -1;
+    const u = letter.toUpperCase().trim();
+    if (u === 'A') return 0;
+    if (u === 'B') return 1;
+    if (u === 'C') return 2;
+    if (u === 'D' || u === 'Đ') return 3;
+    if (u === 'E') return 4;
+    return u.charCodeAt(0) - 65;
+  },
+
+  /**
+   * Trích xuất bảng đáp án tổng hợp (Answer Key) nếu có trong tài liệu:
+   * Hỗ trợ: "BẢNG ĐÁP ÁN: 1. Đ 2. A 3. D" hoặc "1-D, 2-A" hoặc "1.D 2.A"
+   */
+  extractGlobalAnswerKey(text) {
+    const keyMap = {};
+    if (!text) return keyMap;
+
+    const keySectionMatch = text.match(/(?:BẢNG\s+ĐÁP\s+ÁN|ĐÁP\s+ÁN\s+TRẮC\s+NGHIỆM|ANSWER\s+KEY|KEY\s+ĐÁP\s+ÁN|HƯỚNG\s+DẪN\s+CHẤM)[\s\:\-]+([\s\S]+)$/i);
+    const searchScope = keySectionMatch ? keySectionMatch[1] : text;
+
+    const matches = searchScope.matchAll(/(?:Câu\s*)?(\d+)\s*[\.\:\-\/]?\s*([A-Ea-eĐđ])\b/gi);
+    for (const m of matches) {
+      const num = parseInt(m[1], 10);
+      keyMap[num] = m[2].toUpperCase();
+    }
+    return keyMap;
+  },
+
+  /**
+   * Phân tích văn bản thô thành mảng câu hỏi
+   * @param {string} rawText - Văn bản thô do người dùng dán vào
+   * @param {string} defaultChapterId - Mã chương mặc định
+   * @returns {Object} { questions: Array, errors: Array, totalParsed: number }
+   */
   parseRawText(rawText, defaultChapterId = "c1") {
     if (!rawText || !rawText.trim()) {
       return { questions: [], errors: [], totalParsed: 0 };
@@ -49,6 +88,7 @@ const SmartParserService = {
 
     // Chuẩn hóa xuống dòng
     let text = rawText.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    const globalAnswerKey = this.extractGlobalAnswerKey(text);
 
     // Tách các câu hỏi dựa trên tiêu đề mở đầu câu:
     // Hỗ trợ: "Câu 1:", "**Câu 1:**", "*Câu 1*", "Bài 1:", "[Câu 1]", "1.", "1/ ", "1) "
@@ -62,25 +102,34 @@ const SmartParserService = {
       const trimmedBlock = block.trim();
       if (!trimmedBlock) return;
 
+      // Bỏ qua khối bảng đáp án tổng hợp không phải câu hỏi
+      if (/^(?:BẢNG\s+ĐÁP\s+ÁN|ĐÁP\s+ÁN\s+TRẮC\s+NGHIỆM|ANSWER\s+KEY)/i.test(trimmedBlock)) {
+        return;
+      }
+
       // Kiểm tra nếu khối chứa tiêu đề chương (VD: "Chương 1:", "Chương 2 -")
       const chapterMatch = trimmedBlock.match(/(?:Chương|Chapter)\s*(\d+)/i);
       if (chapterMatch) {
         currentChapter = `c${chapterMatch[1]}`;
       }
 
-      // Tiền xử lý an toàn: Tách các lựa chọn A., B., C., D. bị dính liền trên 1 dòng
+      // Lấy số thứ tự câu hỏi
+      const qNumMatch = trimmedBlock.match(/(?:Câu|Bài|Question)?\s*\[?(\d+)\]?/i);
+      const qNum = qNumMatch ? parseInt(qNumMatch[1], 10) : (blockIdx + 1);
+
+      // Tiền xử lý an toàn: Tách các lựa chọn A., B., C., D., Đ. bị dính liền trên 1 dòng
       // CHỈ tách SAU KHI phương án A. bắt đầu (để không bao giờ làm hỏng nội dung câu hỏi có chứa A, B, C, D)
       let processedBlock = trimmedBlock;
-      const optAIndex = processedBlock.search(/(?:(?:\n|\A)\s*|[\t\s]{2,}|(?<=[^\s]))\[?A\]?[\.\)\:\*\_]\s+/i);
+      const optAIndex = processedBlock.search(/(?:(?:\n|\A)\s*|[\t\s]{2,}|(?<=[\?\:\.\"\'])\s*)\[?A\]?[\.\)\:\*\_]\s+/i);
       if (optAIndex !== -1) {
         const promptPart = processedBlock.slice(0, optAIndex);
         let optionsPart = processedBlock.slice(optAIndex);
 
-        // Tách các phương án B, C, D, E dính liền trong phần options
+        // Tách các phương án B, C, D, Đ, E dính liền trong phần options
         optionsPart = optionsPart
-          .replace(/[\t\s]{2,}(?=[B-Eb-e][\.\)\:\*]\s+)/g, "\n")
-          .replace(/([a-zA-Z0-9_\)\>\]\"\'])\s*(?=[B-Eb-e][\.\)\:]\s+)/g, "$1\n")
-          .replace(/([a-zA-Z0-9_\)\>\]\"\'])(?=[B-Eb-e]\.\s*)/g, "$1\n");
+          .replace(/[\t\s]{2,}(?=[B-EĐđ][\.\)\:\*]\s+)/g, "\n")
+          .replace(/([a-zA-Z0-9_\)\>\]\"\'])\s*(?=[B-EĐđ][\.\)\:]\s+)/g, "$1\n")
+          .replace(/([a-zA-Z0-9_\)\>\]\"\'])(?=[B-EĐđ]\.\s*)/g, "$1\n");
 
         processedBlock = promptPart + optionsPart;
       }
@@ -88,10 +137,20 @@ const SmartParserService = {
       // Xử lý khối câu hỏi
       const parsedQ = this.parseSingleQuestionBlock(processedBlock, blockIdx + 1, currentChapter);
       if (parsedQ.success) {
+        // Nếu câu hỏi chưa có đáp án đúng rõ ràng nhưng có trong Bảng Đáp Án tổng hợp
+        if (globalAnswerKey[qNum]) {
+          const keyIdx = this.letterToIndex(globalAnswerKey[qNum]);
+          if (keyIdx >= 0 && keyIdx < parsedQ.data.options.length) {
+            parsedQ.data.answerIndex = keyIdx;
+            parsedQ.data.options.forEach((opt, oi) => {
+              opt.isCorrect = (oi === keyIdx);
+            });
+          }
+        }
         questions.push(parsedQ.data);
       } else if (parsedQ.error) {
         // Chỉ ghi nhận lỗi nếu khối thực sự là một câu hỏi
-        if (/(?:câu|bài|\b[A-E]\s*[\.\)])/i.test(trimmedBlock)) {
+        if (/(?:câu|bài|\b[A-EĐđ]\s*[\.\)])/i.test(trimmedBlock)) {
           errors.push(`Vị trí ${blockIdx + 1}: ${parsedQ.error}`);
         }
       }
@@ -119,7 +178,7 @@ const SmartParserService = {
     // 1. Tách dòng câu hỏi và các dòng lựa chọn
     // Tìm vị trí dòng đầu tiên bắt đầu một phương án (A. hoặc *A. hoặc <u>A.</u> hoặc [x] A. hoặc [A] hoặc A) )
     let firstOptionLineIdx = -1;
-    const optionStartPattern = /^\s*(?:\*\s*|<u>|<ins>|\[x\]\s*|\(x\)\s*|\[Đúng\]\s*)?(?:\*{0,2}|_{0,2}|<u>|<ins>)?\[?([A-Ea-e])\]?(?:<\/u>|<\/ins>)?[\.\)\:\*\_]*(?:<\/u>|<\/ins>)?\s+/i;
+    const optionStartPattern = /^\s*(?:\*\s*|<u>|<ins>|\[x\]\s*|\(x\)\s*|\[Đúng\]\s*)?(?:\*{0,2}|_{0,2}|<u>|<ins>)?\[?([A-Ea-eĐđ])\]?(?:<\/u>|<\/ins>)?[\.\)\:\*\_]*(?:<\/u>|<\/ins>)?\s+/i;
 
     for (let i = 0; i < rawLines.length; i++) {
       if (optionStartPattern.test(rawLines[i])) {
@@ -144,11 +203,10 @@ const SmartParserService = {
       questionTitle = `Câu hỏi số ${index}`;
     }
 
-    // 2. MẪU 1: Tìm đáp án cuối bài (VD: "Đáp án: A", "đáp án: A", "ĐÁP ÁN: A", "Key: C", "Đ/A: D")
-    const answerMatch = block.match(/(?:(?:\n|\A)\s*(?:>|\/{2}|\*|_)*\s*(?:đáp án|đ\/a|key|answer|đa)\s*[\.:\*\-]?\s*\*{0,2}([A-Ea-e])\*{0,2})/i);
+    // 2. MẪU 1: Tìm đáp án cuối bài (VD: "Đáp án: A", "đáp án: Đ", "ĐÁP ÁN: A", "Key: C", "Đ/A: D")
+    const answerMatch = block.match(/(?:(?:\n|\A)\s*(?:>|\/{2}|\*|_)*\s*(?:đáp án|đ\/a|key|answer|đa|đáp án đúng)\s*[\.:\*\-]?\s*\*{0,2}([A-Ea-eĐđ])\*{0,2})/i);
     if (answerMatch) {
-      const letter = answerMatch[1].toUpperCase();
-      answerIndex = letter.charCodeAt(0) - 65; // A -> 0, B -> 1, C -> 2, D -> 3, E -> 4
+      answerIndex = this.letterToIndex(answerMatch[1]);
     }
 
     // 3. MẪU 1: Tìm giải thích chung ở cuối (VD: "Giải thích: ...", "giải thích: ...", "GIẢI THÍCH: ...", "Lời giải: ...")
@@ -157,7 +215,7 @@ const SmartParserService = {
       globalExplanation = explMatch[1].trim();
     }
 
-    // 4. Tách các lựa chọn A, B, C, D, E
+    // 4. Tách các lựa chọn A, B, C, D, E, Đ
     const optionLines = rawLines.slice(firstOptionLineIdx);
     const rawOptions = [];
     let currentOption = null;
@@ -180,7 +238,7 @@ const SmartParserService = {
         // Lấy nội dung sau ký tự đánh dấu A., B., C...
         let content = trimmedLine.replace(optionStartPattern, "").trim();
         const hasAsteriskPrefix = /^\s*(?:\*|\[x\]|\(x\)|\[Đúng\]|<u>|<ins>|_)/i.test(trimmedLine) ||
-                                 /<u>\s*([A-Ea-e])\s*<\/u>/i.test(trimmedLine) ||
+                                 /<u>\s*([A-Ea-eĐđ])\s*<\/u>/i.test(trimmedLine) ||
                                  /<\/(?:u|ins)>/.test(trimmedLine) ||
                                  /<font\s+color=['"]?red['"]?/i.test(trimmedLine) ||
                                  /color:\s*red/i.test(trimmedLine);
@@ -300,7 +358,7 @@ const SmartParserService = {
   /**
    * Chuẩn hóa văn bản trích xuất từ tài liệu (Word, PDF, Text) trước khi đưa vào Textarea:
    * - Tự động tách các phương án dính chùm trên cùng 1 hàng thành từng dòng riêng biệt
-   * - Gắn hậu tố ' > Đúng' cho phương án đúng (gạch chân / tô đỏ / highlight)
+   * - Gắn hậu tố ' > Đúng' cho phương án đúng (gạch chân / tô đỏ / highlight / in đậm / từ bảng đáp án)
    * - Giữ nguyên vẹn 100% phần đề bài câu hỏi (kể cả có chứa MSA, NASA, node, ABCD...)
    * - Giãn cách các câu hỏi bằng 1 dòng trống (\n\n) để văn bản sạch đẹp, trực quan
    */
@@ -308,39 +366,49 @@ const SmartParserService = {
     if (!rawText || !rawText.trim()) return "";
     let text = rawText.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
+    const globalAnswers = this.extractGlobalAnswerKey(text);
     const questionSplits = text.split(/(?=(?:(?:\n|\A)\s*(?:\*{0,2}(?:Câu|Bài|Question)\s*\d+[\s\.:\*\-\]]+|\b\d+\s*[\.)]\s+|\[(?:Câu\s*)?\d+\])))/i);
     const optAPattern = /(?:(?:\n|\A)\s*|[\t\s]{2,}|(?<=[\?\:\.\"\'])\s*)\[?A\]?[\.\)\:\*\_]\s+/i;
     const formattedBlocks = [];
 
-    questionSplits.forEach((block) => {
+    questionSplits.forEach((block, blockIdx) => {
       let trimmedBlock = block.trim();
       if (!trimmedBlock) return;
+
+      // Bỏ qua khối bảng đáp án tổng hợp không phải câu hỏi
+      if (/^(?:BẢNG\s+ĐÁP\s+ÁN|ĐÁP\s+ÁN\s+TRẮC\s+NGHIỆM|ANSWER\s+KEY|HƯỚNG\s+DẪN\s+CHẤM)/i.test(trimmedBlock)) {
+        return;
+      }
+
+      const qNumMatch = trimmedBlock.match(/(?:Câu|Bài|Question)?\s*\[?(\d+)\]?/i);
+      const qNum = qNumMatch ? parseInt(qNumMatch[1], 10) : (blockIdx + 1);
+      const expectedAnsLetter = globalAnswers[qNum];
+      const expectedAnsIdx = expectedAnsLetter ? this.letterToIndex(expectedAnsLetter) : -1;
 
       const optAMatch = optAPattern.exec(trimmedBlock);
       if (optAMatch) {
         let promptPart = trimmedBlock.slice(0, optAMatch.index).trim();
         let optionsPart = trimmedBlock.slice(optAMatch.index);
 
-        // Tách các phương án A, B, C, D bị dính chùm trên cùng 1 dòng
+        // Tách các phương án A, B, C, D, Đ bị dính chùm trên cùng 1 dòng
         optionsPart = optionsPart
-          .replace(/[\t\s]{2,}(?=[A-E][\.\)\:\*]\s+)/g, "\n")
-          .replace(/([a-zA-Z0-9_\)\>\]\"\'])\s*(?=[B-E][\.\)\:]\s+)/g, "$1\n")
-          .replace(/([a-zA-Z0-9_\)\>\]\"\'])(?=[B-E]\.\s*)/g, "$1\n");
+          .replace(/[\t\s]{2,}(?=[A-EĐđ][\.\)\:\*]\s+)/g, "\n")
+          .replace(/([a-zA-Z0-9_\)\>\]\"\'])\s*(?=[B-EĐđ][\.\)\:]\s+)/g, "$1\n")
+          .replace(/([a-zA-Z0-9_\)\>\]\"\'])(?=[B-EĐđ]\.\s*)/g, "$1\n");
 
         const optionLines = optionsPart.split("\n").map(l => l.trim()).filter(Boolean);
         const cleanedOptionLines = [];
 
-        for (const line of optionLines) {
-          // Nếu dòng là phương án có đánh dấu đúng bằng * hoặc <u>, chuẩn hóa thành đuôi ' > Đúng'
-          if (/^\s*\*+\s*\[?([A-Ea-e])\]?[\.\)\:\*\_]/.test(line)) {
-            let cleanLine = line.replace(/^\s*\*+\s*/, "");
-            if (!cleanLine.includes(">")) {
-              cleanLine = `${cleanLine} > Đúng`;
-            }
-            cleanedOptionLines.push(cleanLine);
-          } else {
-            cleanedOptionLines.push(line);
+        for (let optIdx = 0; optIdx < optionLines.length; optIdx++) {
+          const line = optionLines[optIdx];
+          const hasAsterisk = /^\s*\*+\s*\[?([A-Ea-eĐđ])\]?[\.\)\:\*\_]/.test(line);
+          const isKeyMatch = (expectedAnsIdx !== -1 && optIdx === expectedAnsIdx);
+
+          let cleanLine = line.replace(/^\s*\*+\s*/, "");
+          if ((hasAsterisk || isKeyMatch) && !cleanLine.includes(">")) {
+            cleanLine = `${cleanLine} > Đúng`;
           }
+          cleanedOptionLines.push(cleanLine);
         }
 
         formattedBlocks.push(`${promptPart}\n${cleanedOptionLines.join("\n")}`);
@@ -443,9 +511,7 @@ const SmartParserService = {
       const paragraphs = doc.getElementsByTagName("w:p");
       const lines = [];
 
-      const RED_COLORS = [
-        "ff0000", "red", "c00000", "ed1c24", "e00000", "f00", "d32f2f", "b71c1c", "cc0000", "e11d48", "dc2626"
-      ];
+      const NON_BLACK_REGEX = /^(?!(?:000000|000|auto|333333|555555|111111|444444|none)$)/i;
 
       for (let i = 0; i < paragraphs.length; i++) {
         const p = paragraphs[i];
@@ -457,8 +523,9 @@ const SmartParserService = {
           const r = runs[j];
           const rPr = r.getElementsByTagName("w:rPr")[0];
           let isUnderlined = false;
-          let isRed = false;
+          let isColored = false;
           let isHighlighted = false;
+          let isBold = false;
 
           if (rPr) {
             // Kiểm tra thẻ gạch chân <w:u>
@@ -470,12 +537,21 @@ const SmartParserService = {
               }
             }
 
-            // Kiểm tra thẻ màu chữ <w:color>
+            // Kiểm tra thẻ màu chữ <w:color> (bất kỳ màu nào khác màu đen/xám mặc định)
             const color = rPr.getElementsByTagName("w:color")[0];
             if (color) {
               const colorVal = (color.getAttribute("w:val") || "").toLowerCase().trim();
-              if (RED_COLORS.some(rc => colorVal.includes(rc))) {
-                isRed = true;
+              if (NON_BLACK_REGEX.test(colorVal)) {
+                isColored = true;
+              }
+            }
+
+            // Kiểm tra thẻ in đậm <w:b>
+            const b = rPr.getElementsByTagName("w:b")[0] || rPr.getElementsByTagName("w:bCs")[0];
+            if (b) {
+              const bVal = b.getAttribute("w:val");
+              if (!bVal || bVal === "true" || bVal === "1") {
+                isBold = true;
               }
             }
 
@@ -483,7 +559,7 @@ const SmartParserService = {
             const highlight = rPr.getElementsByTagName("w:highlight")[0];
             if (highlight) {
               const hVal = (highlight.getAttribute("w:val") || "").toLowerCase().trim();
-              if (["red", "yellow", "green", "cyan", "magenta"].includes(hVal)) {
+              if (hVal && hVal !== "none") {
                 isHighlighted = true;
               }
             }
@@ -495,9 +571,12 @@ const SmartParserService = {
             runText += textNodes[k].textContent;
           }
 
-          // Nếu run chứa ký tự hoặc text được gạch chân / tô đỏ / highlight
-          if (runText && (isUnderlined || isRed || isHighlighted)) {
-            isOptionMarkedCorrect = true;
+          // Nếu run chứa ký tự hoặc text được gạch chân / đổi màu / highlight / in đậm
+          if (runText && (isUnderlined || isColored || isHighlighted || isBold)) {
+            // Nếu đánh dấu ở chữ cái đầu dòng A., B., C., Đ. hoặc toàn bộ dòng
+            if (j === 0 || /^\s*[A-Ea-eĐđ][\.\)\:\*]/.test(runText) || isUnderlined || isColored || isHighlighted) {
+              isOptionMarkedCorrect = true;
+            }
           }
 
           lineText += runText;
@@ -505,8 +584,8 @@ const SmartParserService = {
 
         const trimmed = lineText.trim();
         if (trimmed) {
-          // Nếu dòng là phương án A, B, C, D và được gạch chân hoặc tô đỏ trong Word
-          const isOptionLine = /^\s*\[?([A-Ea-e])\]?[\.\)\:\*]/.test(trimmed);
+          // Nếu dòng là phương án A, B, C, D, Đ và được gạch chân hoặc tô màu trong Word
+          const isOptionLine = /^\s*\[?([A-Ea-eĐđ])\]?[\.\)\:\*]/.test(trimmed);
           if (isOptionLine && isOptionMarkedCorrect) {
             // Chuẩn hóa thành Mẫu 2 với đuôi ' > Đúng'
             if (!trimmed.includes(">") && !trimmed.endsWith("*")) {
