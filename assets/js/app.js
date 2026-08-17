@@ -185,6 +185,9 @@ const App = {
                   <div style="font-size: 12px; color: var(--text-secondary); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                     MSSV: <strong>${profile.studentId || 'Chưa cập nhật'}</strong>
                   </div>
+                  <div style="font-size: 11.5px; color: var(--text-tertiary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    📧 <code>${profile.email || (profile.studentId ? profile.studentId + '@dthu.edu.vn' : '')}</code>
+                  </div>
                   <div style="display: flex; gap: 10px; margin-top: 8px; font-size: 12px;">
                     <span style="color: #b45309; font-weight: 800;">⚡ ${profile.totalExp} EXP</span>
                     <span style="color: #0369a1; font-weight: 700;">📝 ${history.length} bài</span>
@@ -3353,6 +3356,9 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                 <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
                   MSSV: <strong>${u.studentId || 'Chưa cập nhật'}</strong>
                 </div>
+                <div style="font-size: 11.5px; color: var(--text-tertiary); margin-top: 1px;">
+                  📧 <code>${u.email || (u.studentId ? u.studentId + '@dthu.edu.vn' : 'Chưa cập nhật')}</code>
+                </div>
               </div>
             </div>
           </td>
@@ -3420,6 +3426,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
   },
 
   // Modal Tạo Thành Viên Mới
+  // Modal Tạo Thành Viên Mới
   openCreateUserModal() {
     const modal = document.getElementById("globalModal");
     const title = document.getElementById("modalTitle");
@@ -3441,14 +3448,20 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
             <input type="text" id="newUsrId" class="form-control" placeholder="Ví dụ: 220105001">
           </div>
           <div class="form-group" style="margin: 0;">
-            <label class="form-label">Mã PIN Đăng nhập (6 số):</label>
-            <input type="password" id="newUsrPin" class="form-control" value="123456" maxlength="6">
+            <label class="form-label">Email sinh viên / Đăng ký (*):</label>
+            <input type="email" id="newUsrEmail" class="form-control" placeholder="Ví dụ: 220105001@dthu.edu.vn">
           </div>
         </div>
 
-        <div class="form-group" style="margin: 0;">
-          <label class="form-label">Khoa / Chuyên ngành:</label>
-          <input type="text" id="newUsrDept" class="form-control" placeholder="Ví dụ: Khoa Nông nghiệp - Sinh học">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Mã PIN Đăng nhập (6 số):</label>
+            <input type="password" id="newUsrPin" class="form-control" value="123456" maxlength="6">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Khoa / Chuyên ngành:</label>
+            <input type="text" id="newUsrDept" class="form-control" placeholder="Ví dụ: Khoa Nông nghiệp - Sinh học">
+          </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
@@ -3550,6 +3563,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
   saveNewUser() {
     const name = document.getElementById("newUsrName")?.value.trim();
     const id = document.getElementById("newUsrId")?.value.trim();
+    const email = document.getElementById("newUsrEmail")?.value.trim();
     const pin = document.getElementById("newUsrPin")?.value.trim() || "123456";
     const dept = document.getElementById("newUsrDept")?.value.trim() || "Đại học Đồng Tháp";
     const role = document.getElementById("newUsrRole")?.value || "student";
@@ -3564,6 +3578,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       const newUser = StorageService.createUser({
         fullName: name,
         studentId: id,
+        email: email || (id ? `${id}@dthu.edu.vn` : ""),
         pinCode: pin,
         department: dept,
         role: role,
@@ -3584,7 +3599,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     }
   },
 
-  // Modal Chỉnh Sửa & Phân Quyền Thành Viên
+  // Modal Chỉnh Sửa & Phân Quyền Thành Viên (Xem / Sửa Thông Tin)
   openEditUserModal(userId) {
     const user = StorageService.getUserById(userId);
     if (!user) return;
@@ -3595,10 +3610,17 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     const body = document.getElementById("modalBody");
     const footer = document.getElementById("modalFooter");
 
-    title.textContent = `✏️ Phân Quyền & Chỉnh Sửa: ${user.fullName}`;
+    title.textContent = `✏️ Xem & Chỉnh Sửa Thông Tin: ${user.fullName}`;
 
     body.innerHTML = `
       <div style="display: flex; flex-direction: column; gap: 14px;">
+        <!-- Metadata Header Pill -->
+        <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 12.5px; color: var(--text-secondary); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div>🆔 ID Hệ thống: <code>${user.id}</code></div>
+          <div>📅 Đăng ký: <strong>${user.registeredAt || user.createdAt ? new Date(user.registeredAt || user.createdAt).toLocaleDateString('vi-VN') : 'Mặc định'}</strong></div>
+          ${user.approvedBy ? `<div>✓ Duyệt bởi: <strong>${user.approvedBy}</strong></div>` : ''}
+        </div>
+
         <div class="form-group" style="margin: 0;">
           <label class="form-label">Họ và tên (*):</label>
           <input type="text" id="editUsrName" class="form-control" value="${user.fullName}">
@@ -3606,18 +3628,24 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div class="form-group" style="margin: 0;">
-            <label class="form-label">Mã số sinh viên (MSSV):</label>
+            <label class="form-label">Mã số sinh viên (MSSV) (*):</label>
             <input type="text" id="editUsrId" class="form-control" value="${user.studentId || ''}">
           </div>
           <div class="form-group" style="margin: 0;">
-            <label class="form-label">Mã PIN Đăng nhập:</label>
-            <input type="text" id="editUsrPin" class="form-control" value="${user.pinCode || '123456'}">
+            <label class="form-label">Email sinh viên / Đăng ký (*):</label>
+            <input type="email" id="editUsrEmail" class="form-control" value="${user.email || (user.studentId ? user.studentId + '@dthu.edu.vn' : '')}" placeholder="Ví dụ: 220101001@dthu.edu.vn">
           </div>
         </div>
 
-        <div class="form-group" style="margin: 0;">
-          <label class="form-label">Khoa / Chuyên ngành:</label>
-          <input type="text" id="editUsrDept" class="form-control" value="${user.department || ''}">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Mã PIN Đăng nhập (6 số):</label>
+            <input type="text" id="editUsrPin" class="form-control" value="${user.pinCode || '123456'}" maxlength="6">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Khoa / Chuyên ngành:</label>
+            <input type="text" id="editUsrDept" class="form-control" value="${user.department || ''}">
+          </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
@@ -3688,6 +3716,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
   saveEditedUser(userId) {
     const name = document.getElementById("editUsrName")?.value.trim();
     const id = document.getElementById("editUsrId")?.value.trim();
+    const email = document.getElementById("editUsrEmail")?.value.trim();
     const pin = document.getElementById("editUsrPin")?.value.trim();
     const dept = document.getElementById("editUsrDept")?.value.trim();
     const role = document.getElementById("editUsrRole")?.value || "student";
@@ -3698,9 +3727,18 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       return;
     }
 
+    if (email) {
+      const existingEmailUser = StorageService.getUserByEmail(email);
+      if (existingEmailUser && existingEmailUser.id !== userId) {
+        this.showToast(`⚠️ Địa chỉ email "${email}" đã được gán cho tài khoản khác!`, "warning");
+        return;
+      }
+    }
+
     StorageService.updateUser(userId, {
       fullName: name,
       studentId: id,
+      email: email ? email.toLowerCase() : "",
       pinCode: pin,
       department: dept,
       role: role,
