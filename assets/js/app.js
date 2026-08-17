@@ -6350,7 +6350,6 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     const pendingUsers = StorageService.getPendingUsers();
     const resetRequests = StorageService.getResetRequests();
     const auditLogs = StorageService.getAuditLogs();
-    const activeSeason = StorageService.getActiveSeason();
 
     const filteredActiveUsers = this.getFilteredActiveUsers();
 
@@ -6370,9 +6369,6 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
             </p>
           </div>
           <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-            <button class="btn" style="border-color: #eab308; background: #fefce8; color: #854d0e; font-weight: 800; display: inline-flex; align-items: center; gap: 6px;" onclick="App.navigateTo('leaderboard-admin')" title="Truy cập Trung tâm Quản trị BXH & Mùa giải">
-              <span>🏆</span> <span>Quản Trị BXH ➔</span>
-            </button>
             <button class="btn" style="border-color: #6366f1; color: #4338ca; font-weight: 700;" onclick="App.exportUsersCSV()" title="Xuất danh sách thành viên ra file CSV / Excel">
               📥 Xuất CSV
             </button>
@@ -6383,8 +6379,8 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
           </div>
         </div>
 
-        <!-- 5 Thẻ Thống Kê Tổng Quan -->
-        <div class="users-stat-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+        <!-- 4 Thẻ Thống Kê Tổng Quan -->
+        <div class="users-stat-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
           <div class="user-stat-card">
             <div class="user-stat-icon">👥</div>
             <div>
@@ -6397,13 +6393,6 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
             <div>
               <div class="user-stat-num" style="color: #b45309;">${pendingUsers.length}</div>
               <div class="user-stat-label">Hồ sơ chờ phê duyệt</div>
-            </div>
-          </div>
-          <div class="user-stat-card" style="cursor: pointer; border-color: #fde047; background: #fefce8;" onclick="App.navigateTo('leaderboard-admin')" title="Nhấp để mở Quản Trị BXH & Mùa Giải">
-            <div class="user-stat-icon">🏆</div>
-            <div>
-              <div class="user-stat-num" style="color: #b45309; font-size: 15px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">${activeSeason ? activeSeason.name : 'Chưa mở mùa'}</div>
-              <div class="user-stat-label">Quản trị BXH & Mùa ➔</div>
             </div>
           </div>
           <div class="user-stat-card">
