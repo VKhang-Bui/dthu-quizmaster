@@ -1927,6 +1927,50 @@ body.is-resizing-quiz {
   border-radius: 4px;
 }
 
+/* ── OTP COUNTDOWN & SUPPORT TICKETS ───────────────────────────────── */
+.otp-countdown-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
+  color: #166534;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.otp-countdown-badge.expired {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.otp-timer-num {
+  font-family: monospace;
+  font-size: 16px;
+  font-weight: 900;
+  color: #059669;
+}
+
+.otp-countdown-badge.expired .otp-timer-num {
+  color: #dc2626;
+}
+
+.ticket-type-pill {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
 /* Responsive */
 @media (max-width: 900px) {
   .view-quiz { flex-direction: column; }

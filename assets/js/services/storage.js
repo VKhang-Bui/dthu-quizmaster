@@ -429,11 +429,16 @@ const StorageService = {
     const requests = this.getResetRequests();
     const newReq = {
       id: "REQ-" + Date.now(),
+      ticketId: data.ticketId || ("TICKET-" + Math.floor(100000 + Math.random() * 900000)),
       studentId: data.studentId || "",
       fullName: data.fullName || "Sinh viên",
+      contact: data.contact || data.email || data.phone || "",
       email: data.email || "",
       phone: data.phone || "",
-      note: data.note || "Quên mã PIN đăng nhập, yêu cầu cấp lại.",
+      issueType: data.issueType || "Quên mã PIN / Mật khẩu",
+      title: data.title || "Yêu cầu cấp lại mã PIN",
+      content: data.content || data.note || "Quên mã PIN đăng nhập, yêu cầu cấp lại.",
+      note: data.content || data.note || "Quên mã PIN đăng nhập, yêu cầu cấp lại.",
       status: "pending", // 'pending' | 'resolved'
       createdAt: new Date().toISOString()
     };
@@ -442,9 +447,13 @@ const StorageService = {
     return newReq;
   },
 
+  createSupportTicket(data) {
+    return this.createResetRequest(data);
+  },
+
   resolveResetRequest(requestId, newPin = "123456") {
     const requests = this.getResetRequests();
-    const req = requests.find(r => r.id === requestId);
+    const req = requests.find(r => r.id === requestId || r.ticketId === requestId);
     if (!req) return null;
 
     req.status = "resolved";
@@ -452,33 +461,50 @@ const StorageService = {
     req.resolvedPin = newPin;
     this.saveResetRequests(requests);
 
-    // Cập nhật mã PIN mới cho tài khoản người dùng
-    const user = this.getUserByStudentId(req.studentId);
-    if (user) {
-      this.updateUser(user.id, { pinCode: newPin });
+    // Cập nhật mã PIN mới cho tài khoản người dùng nếu có MSSV
+    if (req.studentId) {
+      const user = this.getUserByStudentId(req.studentId);
+      if (user) {
+        this.updateUser(user.id, { pinCode: newPin });
+      }
     }
     return req;
   },
 
-  // ── 3.2. Quản lý Mã OTP Xác Thực Qua Email ────────────────────
-  generateEmailOtp(identifier) {
-    const user = this.getUserByStudentIdOrEmail(identifier);
-    if (!user) {
-      throw new Error("Không tìm thấy tài khoản sinh viên với thông tin này!");
+  // ── 3.2. Quản lý Mã OTP Xác Thực Qua Email (Hạn 300 giây) ────────────
+  generateEmailOtp(studentId, email) {
+    if (!studentId || !email) {
+      throw new Error("Vui lòng nhập đầy đủ cả Mã số sinh viên (MSSV) và Email đăng ký!");
     }
+
+    const cleanId = studentId.trim();
+    const cleanEmail = email.trim().toLowerCase();
+
+    const user = this.getUserByStudentId(cleanId);
+    if (!user) {
+      throw new Error(`Không tìm thấy tài khoản sinh viên với MSSV: ${cleanId}`);
+    }
+
+    const userEmail = (user.email || `${user.studentId}@dthu.edu.vn`).trim().toLowerCase();
+    if (userEmail !== cleanEmail) {
+      throw new Error("Địa chỉ Email không trùng khớp với hồ sơ đăng ký của MSSV này!");
+    }
+
     if (user.status === "pending_approval") {
-      throw new Error("Tài khoản đang chờ duyệt, chưa thể thực hiện khôi phục mã PIN!");
+      throw new Error("Tài khoản của bạn đang chờ Admin phê duyệt, chưa thể thực hiện khôi phục mã PIN!");
     }
 
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiry = Date.now() + 5 * 60 * 1000; // Có hiệu lực trong 5 phút
+    const expirySeconds = 300; // 300 giây = 5 phút
+    const expiryTimestamp = Date.now() + expirySeconds * 1000;
 
     const otpData = {
       userId: user.id,
       studentId: user.studentId,
-      email: user.email || `${user.studentId}@dthu.edu.vn`,
+      email: userEmail,
       otp: otpCode,
-      expiresAt: expiry
+      expiresAt: expiryTimestamp,
+      expirySeconds: expirySeconds
     };
 
     localStorage.setItem(this.KEYS.EMAIL_OTPS, JSON.stringify(otpData));
@@ -486,12 +512,15 @@ const StorageService = {
       success: true,
       user,
       otp: otpCode,
-      email: user.email || `${user.studentId}@dthu.edu.vn`
+      email: userEmail,
+      expiresAt: expiryTimestamp,
+      expirySeconds: expirySeconds
     };
   },
 
-  verifyEmailOtpAndResetPin(identifier, otp, newPin) {
-    const user = this.getUserByStudentIdOrEmail(identifier);
+  verifyEmailOtpAndResetPin(studentId, email, otp, newPin) {
+    const cleanId = (studentId || "").trim();
+    const user = this.getUserByStudentId(cleanId);
     if (!user) {
       throw new Error("Không tìm thấy tài khoản người dùng!");
     }
@@ -503,19 +532,19 @@ const StorageService = {
     } catch (e) {}
 
     if (!storedOtp || storedOtp.userId !== user.id) {
-      throw new Error("Không tìm thấy phiên xác thực OTP. Vui lòng gửi lại mã!");
+      throw new Error("Không tìm thấy phiên xác thực OTP. Vui lòng bấm gửi lại mã!");
     }
 
     if (Date.now() > storedOtp.expiresAt) {
-      throw new Error("Mã OTP đã hết hạn hiệu lực (quá 5 phút). Vui lòng yêu cầu mã mới!");
+      throw new Error("⏱️ Mã OTP đã hết hạn hiệu lực (quá 300 giây). Vui lòng gửi lại mã mới!");
     }
 
     if (storedOtp.otp !== otp.trim()) {
-      throw new Error("Mã OTP không chính xác! Vui lòng kiểm tra lại.");
+      throw new Error("Mã OTP không chính xác! Vui lòng kiểm tra lại trong hòm thư email.");
     }
 
     if (!newPin || newPin.trim().length < 4) {
-      throw new Error("Mã PIN mới phải có ít nhất 4 ký tự!");
+      throw new Error("Mã PIN mới phải có ít nhất 4 đến 6 số!");
     }
 
     this.updateUser(user.id, { pinCode: newPin.trim() });

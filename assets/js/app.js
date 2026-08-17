@@ -3066,6 +3066,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
             </p>
           </div>
           <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn" style="border-color: #0284c7; color: #0284c7;" onclick="App.openAppsScriptConfigModal()">⚙️ Cấu Hình Google Apps Script</button>
             <button class="btn btn-primary" onclick="App.openCreateUserModal()">➕ Thêm Thành Viên Mới</button>
             <button class="btn" onclick="App.openAccountSwitcherModal()">🔄 Đổi Tài Khoản</button>
           </div>
@@ -3262,24 +3263,34 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       <tr>
         <td>
           <div style="font-weight: 700; color: var(--text-primary);">${r.fullName}</div>
-          <div style="font-size: 12px; color: var(--text-secondary);">MSSV: <strong>${r.studentId}</strong></div>
+          <div style="font-size: 12px; color: var(--text-secondary);">MSSV: <strong>${r.studentId || 'Chưa có'}</strong></div>
+          <div style="font-size: 11px; color: var(--text-tertiary); font-family: monospace;">${r.ticketId || r.id}</div>
         </td>
-        <td style="font-size: 13px; color: var(--text-secondary);">${r.phone || r.email || 'Chưa cung cấp'}</td>
-        <td style="font-size: 13px; color: var(--text-secondary); max-width: 250px;">${r.note || 'Yêu cầu cấp lại mã PIN'}</td>
+        <td style="font-size: 13px; color: var(--text-secondary);">${r.contact || r.phone || r.email || 'Chưa cung cấp'}</td>
+        <td style="font-size: 13px; color: var(--text-secondary); max-width: 260px;">
+          <div style="margin-bottom: 4px;"><span class="ticket-type-pill">${r.issueType || 'CSKH'}</span></div>
+          <strong style="font-size: 12.5px; color: var(--text-primary); display: block;">${r.title || 'Yêu cầu hỗ trợ'}</strong>
+          <span style="font-size: 12px; color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${r.content || r.note || ''}</span>
+        </td>
         <td style="font-size: 12px; color: var(--text-tertiary);">${r.createdAt ? new Date(r.createdAt).toLocaleString('vi-VN') : 'Gần đây'}</td>
         <td>
           <span class="${r.status === 'resolved' ? 'status-badge-active' : 'status-badge-pending'}">
-            ${r.status === 'resolved' ? '✓ Đã cấp lại PIN' : '⏳ Cần xử lý'}
+            ${r.status === 'resolved' ? '✓ Đã giải quyết' : '⏳ Cần xử lý'}
           </span>
         </td>
         <td style="text-align: right;">
-          ${r.status !== 'resolved' ? `
-            <button class="btn btn-sm btn-primary" onclick="App.resolveResetRequestAction('${r.id}')">
-              🔄 Cấp PIN (123456)
+          <div style="display: inline-flex; gap: 6px;">
+            <button class="btn btn-sm" title="Xem chi tiết văn bản trình bày" onclick="App.viewSupportTicketDetailModal('${r.id || r.ticketId}')">
+              👁️ Xem
             </button>
-          ` : `
-            <span style="font-size: 12px; color: var(--text-tertiary);">Đã giải quyết</span>
-          `}
+            ${r.status !== 'resolved' ? `
+              <button class="btn btn-sm btn-primary" title="Cấp lại mã PIN mặc định 123456" onclick="App.resolveResetRequestAction('${r.id}')">
+                🔄 Cấp PIN (123456)
+              </button>
+            ` : `
+              <span style="font-size: 11.5px; color: var(--text-tertiary); align-self: center;">Đã xử lý</span>
+            `}
+          </div>
         </td>
       </tr>
     `).join('');
@@ -3896,9 +3907,11 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
   },
 
   // ═════════════════════════════════════════════════════════════════════════
-  // MODAL KHÔI PHỤC MÃ PIN / QUÊN MẬT KHẨU (FORGOT PASSWORD & CSKH)
+  // MODAL KHÔI PHỤC MÃ PIN / QUÊN MẬT KHẨU (MSSV + EMAIL -> OTP 300s & CSKH)
   // ═════════════════════════════════════════════════════════════════════════
   openForgotPasswordModal() {
+    this.clearOtpTimer();
+
     const modal = document.getElementById("globalModal");
     const title = document.getElementById("modalTitle");
     const body = document.getElementById("modalBody");
@@ -3909,135 +3922,464 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     body.innerHTML = `
       <div style="display: flex; flex-direction: column; gap: 16px;">
         <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin: 0;">
-          Vui lòng chọn một trong hai phương thức sau để cấp lại mã PIN đăng nhập:
+          Nhập <strong>Mã số sinh viên (MSSV)</strong> và <strong>Địa chỉ Email</strong> đã đăng ký để nhận mã OTP xác thực đặt lại mã PIN:
         </p>
 
-        <!-- Phương thức 1: Nhận mã OTP qua Email -->
-        <div style="border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 16px; background: var(--surface);">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-            <span style="font-size: 20px;">📧</span>
-            <strong style="font-size: 14.5px; color: var(--text-primary);">Cách 1: Nhận mã xác thực OTP qua Email</strong>
-          </div>
-          <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.4; margin: 0 0 10px 0;">
-            Hệ thống sẽ gửi mã xác thực 6 số đến địa chỉ email sinh viên đã đăng ký với tài khoản.
-          </p>
-
-          <div id="otpStep1">
-            <div style="display: flex; gap: 8px;">
-              <input type="text" id="forgotIdentifierInput" class="form-control" placeholder="Nhập MSSV hoặc Email..." style="flex: 1;">
-              <button class="btn btn-primary" onclick="App.sendEmailOtpAction()">Gửi OTP ➔</button>
+        <!-- Khung Xác Thực OTP Email -->
+        <div style="border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 18px; background: var(--surface);">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="font-size: 22px;">📧</span>
+            <div>
+              <strong style="font-size: 14.5px; color: var(--text-primary); display: block;">Nhận mã OTP qua Email sinh viên</strong>
+              <span style="font-size: 12px; color: var(--text-secondary);">Mã xác thực có hiệu lực trong 5 phút (300 giây).</span>
             </div>
           </div>
 
-          <div id="otpStep2" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border);">
-            <div style="font-size: 12.5px; color: #166534; background: #f0fdf4; padding: 8px 12px; border-radius: 4px; margin-bottom: 10px;" id="otpNoticeBox">
+          <!-- Bước 1: Nhập MSSV & Email -->
+          <div id="otpStep1">
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px;">
+              <div>
+                <label class="form-label" style="font-size: 12.5px; margin-bottom: 4px;">Mã số sinh viên (MSSV) (*):</label>
+                <input type="text" id="forgotMssvInput" class="form-control" placeholder="Ví dụ: 220101001">
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 12.5px; margin-bottom: 4px;">Địa chỉ Email đã đăng ký (*):</label>
+                <input type="email" id="forgotEmailInput" class="form-control" placeholder="Ví dụ: 220101001@dthu.edu.vn hoặc user@gmail.com">
+              </div>
+            </div>
+            <button class="btn btn-primary" style="width: 100%; font-weight: 700; padding: 11px;" onclick="App.sendEmailOtpAction()">
+              🚀 Gửi Mã OTP Xác Thực (300s) ➔
+            </button>
+          </div>
+
+          <!-- Bước 2: Nhập OTP & Đặt PIN mới + Đếm ngược 300s -->
+          <div id="otpStep2" style="display: none; padding-top: 10px;">
+            <div id="otpCountdownBox" class="otp-countdown-badge">
+              <span>⏱️ Mã OTP có hiệu lực trong:</span>
+              <span id="otpCountdownTimer" class="otp-timer-num">05:00</span>
+            </div>
+
+            <div style="font-size: 12.5px; color: #166534; background: #f0fdf4; padding: 8px 12px; border-radius: 4px; margin-bottom: 12px;" id="otpNoticeBox">
               📨 Mã OTP đã được gửi đến email của bạn!
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-              <input type="text" id="otpCodeInput" class="form-control" placeholder="Nhập mã OTP 6 số" maxlength="6">
-              <input type="password" id="newPinInput" class="form-control" placeholder="Tạo mã PIN mới (6 số)" maxlength="6">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+              <div>
+                <label class="form-label" style="font-size: 12px; margin-bottom: 4px;">Mã OTP (6 số):</label>
+                <input type="text" id="otpCodeInput" class="form-control" placeholder="Nhập 6 số OTP" maxlength="6" style="letter-spacing: 2px; font-weight: 700;">
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 12px; margin-bottom: 4px;">Mã PIN mới (6 số):</label>
+                <input type="password" id="newPinInput" class="form-control" placeholder="Mã PIN mới" maxlength="6">
+              </div>
             </div>
-            <button class="btn btn-success" style="width: 100%; font-weight: 700;" onclick="App.verifyOtpAndResetPinAction()">
-              ✓ Xác Nhận & Đặt Mã PIN Mới
-            </button>
+
+            <div style="display: flex; gap: 8px;">
+              <button id="btnVerifyOtp" class="btn btn-success" style="flex: 1; font-weight: 700; padding: 11px;" onclick="App.verifyOtpAndResetPinAction()">
+                ✓ Xác Nhận & Đặt Mã PIN Mới
+              </button>
+              <button class="btn btn-sm" style="padding: 0 12px;" title="Gửi lại mã OTP mới" onclick="App.sendEmailOtpAction()">
+                🔁 Gửi lại
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- Phương thức 2: Liên hệ CSKH & Admin Bùi Văn Khang -->
-        <div style="border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 16px; background: var(--surface-subtle);">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-            <span style="font-size: 20px;">👨‍💼</span>
-            <strong style="font-size: 14.5px; color: var(--text-primary);">Cách 2: Liên hệ Trực Tiếp Ban Quản Trị & CSKH</strong>
-          </div>
-          <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.4; margin: 0 0 12px 0;">
-            Gửi yêu cầu hỗ trợ trực tiếp đến hàng đợi CSKH của Admin (Bùi Văn Khang - CNSH DThu) để được cấp lại mã PIN mặc định <code>123456</code>:
+        <!-- Lựa chọn Thử cách khác: Báo cáo sự cố CSKH / Quên email -->
+        <div style="border-top: 1px dashed var(--border); padding-top: 12px; text-align: center;">
+          <p style="font-size: 12.5px; color: var(--text-secondary); margin: 0 0 8px 0;">
+            Không nhớ địa chỉ email đã đăng ký, không nhận được OTP hoặc tài khoản bị khóa?
           </p>
-
-          <div style="display: flex; flex-direction: column; gap: 8px;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-              <input type="text" id="cskhNameInput" class="form-control" placeholder="Họ và tên của bạn">
-              <input type="text" id="cskhMssvInput" class="form-control" placeholder="MSSV (*)">
-            </div>
-            <input type="text" id="cskhContactInput" class="form-control" placeholder="Số điện thoại / Zalo / Email liên hệ">
-            <button class="btn" style="width: 100%; border-color: var(--brand-primary); color: var(--brand-primary);" onclick="App.submitCskhResetAction()">
-              📤 Gửi Yêu Cầu Đến Ban Quản Trị ➔
-            </button>
-          </div>
+          <button class="btn" style="width: 100%; border-color: #e11d48; color: #be123c; font-weight: 700; padding: 10px;" onclick="App.openSupportTicketModal()">
+            🔄 Thử cách khác (Soạn văn bản gửi Admin & CSKH) ➔
+          </button>
         </div>
       </div>
     `;
 
     footer.innerHTML = `
-      <button class="btn" onclick="App.openAccountSwitcherModal()">← Quay lại Đăng nhập</button>
-      <button class="btn" onclick="App.closeModal()">Đóng</button>
+      <button class="btn" onclick="App.clearOtpTimer(); App.openAccountSwitcherModal()">← Quay lại Đăng nhập</button>
+      <button class="btn" onclick="App.clearOtpTimer(); App.closeModal()">Đóng</button>
     `;
 
     modal.classList.add("active");
   },
 
-  sendEmailOtpAction() {
-    const identifier = document.getElementById("forgotIdentifierInput")?.value.trim();
-    if (!identifier) {
-      this.showToast("⚠️ Vui lòng nhập MSSV hoặc Email của bạn!", "warning");
+  async sendEmailOtpAction() {
+    const mssv = document.getElementById("forgotMssvInput")?.value.trim();
+    const email = document.getElementById("forgotEmailInput")?.value.trim();
+
+    if (!mssv || !email) {
+      this.showToast("⚠️ Vui lòng nhập đầy đủ cả MSSV và Email đăng ký!", "warning");
       return;
     }
 
     try {
-      const res = StorageService.generateEmailOtp(identifier);
+      // 1. Tạo mã OTP trong LocalStorage với hạn 300s
+      const res = StorageService.generateEmailOtp(mssv, email);
+
+      // 2. Gửi email qua Google Apps Script hoặc Fallback
+      this.showToast("⏳ Đang gửi mã OTP đến hộp thư của bạn...", "info", 2000);
+      const emailResult = await EmailService.sendOtp(mssv, email, res.user.fullName, res.otp);
+
       document.getElementById("otpStep1").style.display = "none";
       const step2 = document.getElementById("otpStep2");
       step2.style.display = "block";
 
       const notice = document.getElementById("otpNoticeBox");
       if (notice) {
-        notice.innerHTML = `📨 Đã gửi mã OTP đến: <strong>${res.email}</strong>. (Mã giả lập thử nghiệm: <strong style="font-size:14px; color:#b45309;">${res.otp}</strong>)`;
+        if (emailResult.isRealEmail) {
+          notice.innerHTML = `📨 Đã gửi mã OTP thật đến hộp thư: <strong>${email}</strong>. Vui lòng kiểm tra hộp thư đến (và mục Spam nếu có).`;
+        } else {
+          notice.innerHTML = `📨 Đã tạo mã OTP cho email: <strong>${email}</strong>. (Mã thử nghiệm: <strong style="font-size:15px; color:#b45309;">${res.otp}</strong>)`;
+        }
       }
 
-      this.showToast(`📨 [Mô phỏng Email DThu] Mã xác thực OTP đặt lại PIN của bạn là: ${res.otp}`, "info", 7000);
+      // 3. Khởi động đồng hồ đếm ngược 300 giây (05:00)
+      this.startOtpCountdown(300, mssv, email);
+
+      if (emailResult.isRealEmail) {
+        this.showToast(`🎉 Đã gửi mã OTP đến ${email}! Vui lòng kiểm tra hộp thư.`, "success", 4500);
+      } else {
+        this.showToast(`📨 [Mô phỏng Email DThu] Mã xác thực OTP của bạn là: ${res.otp}`, "info", 7000);
+      }
     } catch (err) {
-      this.showToast("❌ " + err.message, "danger", 4000);
+      this.showToast("❌ " + err.message, "danger", 4500);
+    }
+  },
+
+  startOtpCountdown(totalSeconds = 300, mssv = "", email = "") {
+    this.clearOtpTimer();
+    let remaining = totalSeconds;
+
+    const timerElem = document.getElementById("otpCountdownTimer");
+    const boxElem = document.getElementById("otpCountdownBox");
+    const btnVerify = document.getElementById("btnVerifyOtp");
+
+    if (boxElem) boxElem.classList.remove("expired");
+    if (btnVerify) btnVerify.disabled = false;
+
+    const updateDisplay = () => {
+      const minutes = Math.floor(remaining / 60);
+      const seconds = remaining % 60;
+      const formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      if (timerElem) timerElem.textContent = formatted;
+    };
+
+    updateDisplay();
+
+    this.otpTimerInterval = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) {
+        this.clearOtpTimer();
+        if (timerElem) timerElem.textContent = "00:00 (Hết hạn)";
+        if (boxElem) {
+          boxElem.classList.add("expired");
+          boxElem.innerHTML = `⚠️ <span>Mã OTP đã hết hiệu lực! Vui lòng bấm <strong>Gửi lại</strong>.</span>`;
+        }
+        if (btnVerify) btnVerify.disabled = true;
+      } else {
+        updateDisplay();
+      }
+    }, 1000);
+  },
+
+  clearOtpTimer() {
+    if (this.otpTimerInterval) {
+      clearInterval(this.otpTimerInterval);
+      this.otpTimerInterval = null;
     }
   },
 
   verifyOtpAndResetPinAction() {
-    const identifier = document.getElementById("forgotIdentifierInput")?.value.trim();
+    const mssv = document.getElementById("forgotMssvInput")?.value.trim();
+    const email = document.getElementById("forgotEmailInput")?.value.trim();
     const otp = document.getElementById("otpCodeInput")?.value.trim();
     const newPin = document.getElementById("newPinInput")?.value.trim();
 
     if (!otp || !newPin) {
-      this.showToast("⚠️ Vui lòng nhập đầy đủ mã OTP và mã PIN mới!", "warning");
+      this.showToast("⚠️ Vui lòng nhập đầy đủ mã OTP 6 số và mã PIN mới!", "warning");
       return;
     }
 
     try {
-      const user = StorageService.verifyEmailOtpAndResetPin(identifier, otp, newPin);
+      const user = StorageService.verifyEmailOtpAndResetPin(mssv, email, otp, newPin);
+      this.clearOtpTimer();
       this.showToast(`🎉 Đã đặt lại mã PIN cho tài khoản "${user.fullName}" thành công! Vui lòng đăng nhập.`, "success", 4000);
       this.openAccountSwitcherModal();
     } catch (err) {
-      this.showToast("❌ " + err.message, "danger", 4000);
+      this.showToast("❌ " + err.message, "danger", 4500);
     }
   },
 
-  submitCskhResetAction() {
-    const name = document.getElementById("cskhNameInput")?.value.trim();
-    const mssv = document.getElementById("cskhMssvInput")?.value.trim();
-    const contact = document.getElementById("cskhContactInput")?.value.trim();
+  // ═════════════════════════════════════════════════════════════════════════
+  // MODAL SOẠN VĂN BẢN BÁO CÁO SỰ CỐ & CSKH GỬI ĐẾN ADMIN
+  // ═════════════════════════════════════════════════════════════════════════
+  openSupportTicketModal(prefill = {}) {
+    this.clearOtpTimer();
 
-    if (!mssv) {
-      this.showToast("⚠️ Vui lòng nhập Mã số sinh viên (MSSV) để xác thực!", "warning");
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = "🆘 Soạn Văn Bản Báo Cáo Sự Cố & CSKH";
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: var(--radius-sm); padding: 12px 14px; font-size: 12.5px; color: #9f1239; line-height: 1.5;">
+          ℹ️ <strong>Thông báo:</strong> Văn bản của bạn sẽ được gửi trực tiếp đến hộp thư của <strong>Ban Quản Trị & Admin (${EmailService.ADMIN_EMAIL})</strong> để được hỗ trợ xử lý và cấp lại tài khoản nhanh chóng.
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Họ và tên sinh viên (*):</label>
+            <input type="text" id="supportFullName" class="form-control" placeholder="Ví dụ: Lê Thị Thu Thảo" value="${prefill.fullName || ''}">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Mã số sinh viên (MSSV) (*):</label>
+            <input type="text" id="supportStudentId" class="form-control" placeholder="Ví dụ: 220105888" value="${prefill.studentId || ''}">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Email / SĐT liên hệ nhận phản hồi (*):</label>
+            <input type="text" id="supportContact" class="form-control" placeholder="Email hoặc Số điện thoại / Zalo" value="${prefill.email || prefill.contact || ''}">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Phân loại sự cố (*):</label>
+            <select id="supportIssueType" class="form-control">
+              <option value="Quên địa chỉ Email đăng ký">Quên địa chỉ Email đăng ký</option>
+              <option value="Không nhận được mã OTP (300s)">Không nhận được mã OTP (300s)</option>
+              <option value="Tài khoản bị tạm khóa / Lỗi đăng nhập">Tài khoản bị tạm khóa / Lỗi đăng nhập</option>
+              <option value="Báo lỗi câu hỏi / Đề cương môn học">Báo lỗi câu hỏi / Đề cương môn học</option>
+              <option value="Đóng góp ý kiến & Đề xuất tính năng">Đóng góp ý kiến & Đề xuất tính năng</option>
+              <option value="Khác">Sự cố khác</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label">Tiêu đề yêu cầu (*):</label>
+          <input type="text" id="supportTitle" class="form-control" placeholder="Ví dụ: Yêu cầu cấp lại mã PIN do mất quyền truy cập email cũ">
+        </div>
+
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label">Nội dung văn bản trình bày chi tiết (*):</label>
+          <textarea id="supportContent" class="form-control" rows="5" placeholder="Kính gửi Ban Quản Trị & Admin Bùi Văn Khang,&#10;&#10;Em gặp sự cố...&#10;Kính mong Ban Quản Trị hỗ trợ cấp lại mã PIN hoặc mở khóa tài khoản giúp em. Em xin chân thành cảm ơn!" style="resize: vertical; line-height: 1.5; font-size: 13.5px;"></textarea>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.openForgotPasswordModal()">← Quay lại Quên mã PIN</button>
+      <button class="btn btn-primary" style="background: #e11d48; border-color: #be123c;" onclick="App.submitSupportTicketAction()">
+        📤 Gửi Văn Bản Đến Admin & CSKH ➔
+      </button>
+    `;
+
+    modal.classList.add("active");
+  },
+
+  async submitSupportTicketAction() {
+    const fullName = document.getElementById("supportFullName")?.value.trim();
+    const studentId = document.getElementById("supportStudentId")?.value.trim();
+    const contact = document.getElementById("supportContact")?.value.trim();
+    const issueType = document.getElementById("supportIssueType")?.value;
+    const title = document.getElementById("supportTitle")?.value.trim();
+    const content = document.getElementById("supportContent")?.value.trim();
+
+    if (!fullName || !studentId || !contact || !content) {
+      this.showToast("⚠️ Vui lòng điền đầy đủ Họ tên, MSSV, Thông tin liên hệ và Nội dung!", "warning");
       return;
     }
 
-    StorageService.createResetRequest({
-      studentId: mssv,
-      fullName: name || "Sinh viên",
-      email: contact,
-      phone: contact,
-      note: `Yêu cầu cấp lại mã PIN cho MSSV ${mssv}`
-    });
+    const ticketId = "TICKET-" + Math.floor(100000 + Math.random() * 900000);
 
-    this.showToast("✅ Đã gửi yêu cầu khôi phục PIN đến Ban Quản Trị / Admin (Bùi Văn Khang)!", "success", 4500);
+    const ticketData = {
+      ticketId,
+      fullName,
+      studentId,
+      contact,
+      email: contact.includes("@") ? contact : "",
+      phone: !contact.includes("@") ? contact : "",
+      issueType,
+      title: title || `Yêu cầu hỗ trợ: ${issueType}`,
+      content
+    };
+
+    this.showToast("⏳ Đang gửi văn bản báo cáo đến Admin...", "info", 2000);
+
+    // 1. Gửi qua Google Apps Script về email Admin
+    await EmailService.sendSupportTicket(ticketData);
+
+    // 2. Lưu vào hệ thống quản trị
+    StorageService.createSupportTicket(ticketData);
+
+    const modal = document.getElementById("globalModal");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalBody = document.getElementById("modalBody");
+    const modalFooter = document.getElementById("modalFooter");
+
+    modalTitle.textContent = "✅ Đã Gửi Báo Cáo CSKH Thành Công!";
+
+    modalBody.innerHTML = `
+      <div style="text-align: center; padding: 20px 10px;">
+        <div style="font-size: 52px; margin-bottom: 12px; line-height: 1;">📨</div>
+        <h3 style="font-size: 19px; font-weight: 800; color: var(--text-primary); margin: 0 0 8px 0;">Văn Bản Của Bạn Đã Được Chuyển Tiếp!</h3>
+        <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin: 0 0 16px 0;">
+          Yêu cầu của bạn đã được gửi trực tiếp đến hộp thư của <strong>Admin Bùi Văn Khang (${EmailService.ADMIN_EMAIL})</strong>.
+        </p>
+
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 14px; text-align: left; font-size: 13px; line-height: 1.7; margin-bottom: 20px;">
+          <div>🎫 <strong>Mã Phiếu Hỗ Trợ:</strong> <code style="color: #e11d48; font-weight: 700;">${ticketId}</code></div>
+          <div>👤 <strong>Người gửi:</strong> ${fullName} (MSSV: ${studentId})</div>
+          <div>🏷️ <strong>Loại sự cố:</strong> ${issueType}</div>
+          <div>📞 <strong>Kênh phản hồi:</strong> ${contact}</div>
+        </div>
+
+        <button class="btn btn-primary" style="width: 100%;" onclick="App.closeModal(); App.navigateTo('home');">
+          🏠 Về Trang Chủ
+        </button>
+      </div>
+    `;
+
+    modalFooter.innerHTML = ``;
+  },
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // MODAL XEM CHI TIẾT VĂN BẢN PHIẾU HỖ TRỢ CSKH (CHO ADMIN)
+  // ═════════════════════════════════════════════════════════════════════════
+  viewSupportTicketDetailModal(ticketId) {
+    const requests = StorageService.getResetRequests();
+    const ticket = requests.find(r => r.id === ticketId || r.ticketId === ticketId);
+    if (!ticket) return;
+
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = `👁️ Chi Tiết Phiếu CSKH: ${ticket.ticketId || ticket.id}`;
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; font-size: 13px; line-height: 1.8;">
+          <div>🎫 <strong>Mã phiếu:</strong> <code style="font-weight:700; color:#e11d48;">${ticket.ticketId || ticket.id}</code></div>
+          <div>👤 <strong>Sinh viên:</strong> <strong>${ticket.fullName}</strong> (MSSV: <strong>${ticket.studentId || 'Chưa có'}</strong>)</div>
+          <div>📞 <strong>Liên hệ:</strong> <a href="mailto:${ticket.contact || ticket.email}" style="color:var(--brand-primary); font-weight:600;">${ticket.contact || ticket.phone || ticket.email || 'Chưa có'}</a></div>
+          <div>🏷️ <strong>Phân loại:</strong> <span class="ticket-type-pill">${ticket.issueType || 'CSKH'}</span></div>
+          <div>📅 <strong>Thời gian gửi:</strong> ${ticket.createdAt ? new Date(ticket.createdAt).toLocaleString('vi-VN') : 'Gần đây'}</div>
+          <div>📌 <strong>Trạng thái:</strong> <span class="${ticket.status === 'resolved' ? 'status-badge-active' : 'status-badge-pending'}">${ticket.status === 'resolved' ? '✓ Đã xử lý' : '⏳ Cần xử lý'}</span></div>
+        </div>
+
+        <div>
+          <strong style="font-size: 14px; color: var(--text-primary); display: block; margin-bottom: 6px;">
+            📝 Tiêu đề: ${ticket.title || 'Yêu cầu hỗ trợ'}
+          </strong>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; font-size: 13.5px; line-height: 1.7; color: var(--text-primary); white-space: pre-wrap; max-height: 250px; overflow-y: auto;">
+${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
+          </div>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Đóng</button>
+      ${ticket.status !== 'resolved' ? `
+        <button class="btn btn-primary" onclick="App.resolveResetRequestAction('${ticket.id}'); App.closeModal();">
+          🔄 Cấp Lại PIN Mặc Định (123456)
+        </button>
+      ` : ''}
+    `;
+
+    modal.classList.add("active");
+  },
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // MODAL CẤU HÌNH GOOGLE APPS SCRIPT WEB APP URL (DÀNH CHO ADMIN)
+  // ═════════════════════════════════════════════════════════════════════════
+  openAppsScriptConfigModal() {
+    const currentUrl = EmailService.getAppsScriptUrl();
+
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = "⚙️ Cấu Hình Google Apps Script (Gửi Email Thật)";
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: var(--radius-sm); padding: 12px 14px; font-size: 13px; color: #0369a1; line-height: 1.5;">
+          💡 <strong>Hướng dẫn:</strong> Triển khai mã nguồn trong thư mục <code>google-apps-script/Code.gs</code> lên <a href="https://script.google.com" target="_blank" style="color:#0284c7; font-weight:700; text-decoration:underline;">script.google.com</a>, sau đó sao chép <strong>URL Ứng dụng web</strong> và dán vào ô bên dưới:
+        </div>
+
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label">Google Apps Script Web App URL (*):</label>
+          <input type="text" id="appsScriptUrlInput" class="form-control" placeholder="https://script.google.com/macros/s/AKfycb.../exec" value="${currentUrl}">
+        </div>
+
+        <div id="gasStatusBox" style="font-size: 12.5px; padding: 10px 12px; border-radius: 4px; ${currentUrl ? 'background:#f0fdf4; color:#166534; border:1px solid #bbf7d0;' : 'background:#f8fafc; color:#64748b; border:1px solid #e2e8f0;'}">
+          ${currentUrl ? `✓ Đang liên kết: <code>${currentUrl.substring(0, 45)}...</code>` : 'Chưa cấu hình URL (Hệ thống sẽ chạy ở chế độ mô phỏng OTP).'}
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-sm" style="border-color: #0284c7; color: #0284c7;" onclick="App.testAppsScriptConnection()">
+            🧪 Kiểm Tra Kết Nối
+          </button>
+          <a href="https://script.google.com" target="_blank" class="btn btn-sm">
+            🌐 Mở script.google.com ➔
+          </a>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Hủy</button>
+      <button class="btn btn-primary" onclick="App.saveAppsScriptConfig()">Lưu Cấu Hình</button>
+    `;
+
+    modal.classList.add("active");
+  },
+
+  saveAppsScriptConfig() {
+    const url = document.getElementById("appsScriptUrlInput")?.value.trim();
+    EmailService.setAppsScriptUrl(url);
+    this.showToast(url ? "✅ Đã lưu URL Google Apps Script thành công!" : "ℹ️ Đã xóa URL Google Apps Script.", "success", 3500);
     this.closeModal();
+  },
+
+  async testAppsScriptConnection() {
+    const url = document.getElementById("appsScriptUrlInput")?.value.trim();
+    if (!url) {
+      this.showToast("⚠️ Vui lòng nhập URL Google Apps Script trước khi kiểm tra!", "warning");
+      return;
+    }
+
+    const statusBox = document.getElementById("gasStatusBox");
+    if (statusBox) statusBox.innerHTML = "⏳ Đang kết nối tới máy chủ Google Apps Script...";
+
+    try {
+      const resp = await fetch(url);
+      const data = await resp.json();
+      if (statusBox) {
+        statusBox.style.background = "#f0fdf4";
+        statusBox.style.color = "#166534";
+        statusBox.style.border = "1px solid #bbf7d0";
+        statusBox.innerHTML = `🎉 Kết nối thành công! Trạng thái: <strong>${data.status || 'online'}</strong> (Admin: ${data.admin || 'DThu'})`;
+      }
+      this.showToast("🎉 Kết nối thành công với Google Apps Script!", "success", 3500);
+    } catch (err) {
+      if (statusBox) {
+        statusBox.style.background = "#fef2f2";
+        statusBox.style.color = "#991b1b";
+        statusBox.style.border = "1px solid #fecdd3";
+        statusBox.innerHTML = `❌ Không thể kết nối. Vui lòng kiểm tra lại quyền Web App ("Anyone") và URL!`;
+      }
+      this.showToast("❌ Không thể kết nối tới Google Apps Script URL này!", "danger", 4000);
+    }
   },
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -4146,6 +4488,18 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
 
     if (!fullName || !studentId || !pin) {
       this.showToast("⚠️ Vui lòng điền đầy đủ Họ tên, MSSV và Mã PIN!", "warning");
+      return;
+    }
+
+    if (!email) {
+      this.showToast("⚠️ Vui lòng nhập địa chỉ Email của bạn!", "warning");
+      return;
+    }
+
+    // Kiểm tra cấu trúc & tính hợp lệ của email chạy ẩn phía dưới
+    const emailValidation = EmailService.validateEmail(email);
+    if (!emailValidation.isValid) {
+      this.showToast(`⚠️ ${emailValidation.message}`, "warning", 4500);
       return;
     }
 
