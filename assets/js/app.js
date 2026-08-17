@@ -6314,6 +6314,10 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
 
     if (!this.adminUserTab) this.adminUserTab = "active";
     if (!this.selectedUserIds) this.selectedUserIds = new Set();
+    if (typeof this.userSearchQuery === "undefined") this.userSearchQuery = "";
+    if (typeof this.userRoleFilter === "undefined") this.userRoleFilter = "all";
+    if (typeof this.userDeptFilter === "undefined") this.userDeptFilter = "all";
+    if (typeof this.auditLogActionFilter === "undefined") this.auditLogActionFilter = "all";
 
     // Tự động kéo dữ liệu mới nhất từ Supabase Cloud
     if (typeof StorageService !== "undefined" && typeof StorageService.syncWithCloud === "function") {
@@ -6345,7 +6349,10 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     const activeUsers = StorageService.getActiveUsers();
     const pendingUsers = StorageService.getPendingUsers();
     const resetRequests = StorageService.getResetRequests();
+    const auditLogs = StorageService.getAuditLogs();
     const activeSeason = StorageService.getActiveSeason();
+
+    const filteredActiveUsers = this.getFilteredActiveUsers();
 
     const admins = allUsers.filter(u => u.role === "admin" && u.status === "active");
     const editors = allUsers.filter(u => u.role === "editor" && u.status === "active");
@@ -6359,15 +6366,18 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
           <div>
             <h2 style="font-size: 24px; font-weight: 800; color: var(--text-primary);">👥 Quản Trị Người Dùng & Phân Quyền</h2>
             <p style="color: var(--text-secondary); margin-top: 4px;">
-              Quản lý danh sách sinh viên, phê duyệt hồ sơ đăng ký mới, cấp quyền biên tập viên và quản trị hệ thống.
+              Quản lý danh sách sinh viên, phê duyệt hồ sơ đăng ký mới, cấp quyền biên tập viên và kiểm toán hệ thống.
             </p>
           </div>
-          <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
             <button class="btn" style="border-color: #eab308; background: #fefce8; color: #854d0e; font-weight: 800; display: inline-flex; align-items: center; gap: 6px;" onclick="App.navigateTo('leaderboard-admin')" title="Truy cập Trung tâm Quản trị BXH & Mùa giải">
-              <span>🏆</span> <span>Quản Trị BXH & Mùa Giải ➔</span>
+              <span>🏆</span> <span>Quản Trị BXH ➔</span>
+            </button>
+            <button class="btn" style="border-color: #6366f1; color: #4338ca; font-weight: 700;" onclick="App.exportUsersCSV()" title="Xuất danh sách thành viên ra file CSV / Excel">
+              📥 Xuất CSV
             </button>
             <button class="btn" style="border-color: #10b981; color: #047857; font-weight: 700;" onclick="App.refreshUsersFromCloud()">🔄 Làm Mới Cloud</button>
-            <button class="btn" style="border-color: #0284c7; color: #0284c7;" onclick="App.openAppsScriptConfigModal()">⚙️ Cấu Hình Google Apps Script</button>
+            <button class="btn" style="border-color: #0284c7; color: #0284c7;" onclick="App.openAppsScriptConfigModal()">⚙️ Google Apps Script</button>
             <button class="btn btn-primary" onclick="App.openCreateUserModal()">➕ Thêm Thành Viên</button>
             <button class="btn" onclick="App.openAccountSwitcherModal()">🔄 Đổi Tài Khoản</button>
           </div>
@@ -6412,7 +6422,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
           </div>
         </div>
 
-        <!-- Admin Tab Bar -->
+        <!-- Admin Tab Bar (4 Tabs) -->
         <div class="admin-tab-bar">
           <button class="admin-tab-btn ${this.adminUserTab === 'active' ? 'active' : ''}" onclick="App.switchAdminUserTab('active')">
             👥 Thành Viên Hoạt Động <span class="badge" style="background:#e2e8f0; color:#334155; font-size:11px;">${activeUsers.length}</span>
@@ -6423,26 +6433,34 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
           <button class="admin-tab-btn ${this.adminUserTab === 'resets' ? 'active' : ''}" onclick="App.switchAdminUserTab('resets')">
             🆘 Hỗ Trợ Quên PIN / CSKH <span class="badge" style="background:#fee2e2; color:#b91c1c; font-size:11px;">${resetRequests.length}</span>
           </button>
+          <button class="admin-tab-btn ${this.adminUserTab === 'audit_logs' ? 'active' : ''}" onclick="App.switchAdminUserTab('audit_logs')">
+            📋 Nhật Ký Hoạt Động <span class="badge" style="background:#f1f5f9; color:#475569; font-size:11px;">${auditLogs.length}</span>
+          </button>
         </div>
 
         <!-- Nội dung theo Tab được chọn -->
         ${this.adminUserTab === 'active' ? `
-          <!-- Thanh Tìm kiếm & Bộ lọc cho Active Users -->
+          <!-- Thanh Tìm kiếm & Bộ lọc cho Active Users (Binding bền vững) -->
           <div class="search-filter-bar" style="margin: 0 0 12px 0;">
             <div class="search-input-wrapper">
               <span class="search-icon">🔍</span>
-              <input type="text" id="userSearchInput" class="form-control" placeholder="Tìm theo tên, MSSV, email..." oninput="App.onSearchUsers()">
+              <input type="text" id="userSearchInput" class="form-control" placeholder="Tìm theo tên, MSSV, email..." value="${this.userSearchQuery || ''}" oninput="App.onSearchUsers()">
             </div>
             <select id="userRoleFilter" class="form-control" style="width: auto; min-width: 170px;" onchange="App.onSearchUsers()">
-              <option value="all">Tất cả vai trò</option>
-              <option value="admin">👑 Quản trị viên (Admin)</option>
-              <option value="editor">🛡️ Ban Biên Tập (Editor)</option>
-              <option value="student">👨‍🎓 Sinh viên</option>
+              <option value="all" ${this.userRoleFilter === 'all' ? 'selected' : ''}>Tất cả vai trò</option>
+              <option value="admin" ${this.userRoleFilter === 'admin' ? 'selected' : ''}>👑 Quản trị viên (Admin)</option>
+              <option value="editor" ${this.userRoleFilter === 'editor' ? 'selected' : ''}>🛡️ Ban Biên Tập (Editor)</option>
+              <option value="student" ${this.userRoleFilter === 'student' ? 'selected' : ''}>👨‍🎓 Sinh viên</option>
             </select>
             <select id="userDeptFilter" class="form-control" style="width: auto; min-width: 200px;" onchange="App.onSearchUsers()">
-              <option value="all">Tất cả khoa / ngành</option>
-              ${depts.map(d => `<option value="${d}">${d}</option>`).join('')}
+              <option value="all" ${this.userDeptFilter === 'all' ? 'selected' : ''}>Tất cả khoa / ngành</option>
+              ${depts.map(d => `<option value="${d}" ${this.userDeptFilter === d ? 'selected' : ''}>${d}</option>`).join('')}
             </select>
+            ${(this.userSearchQuery || this.userRoleFilter !== 'all' || this.userDeptFilter !== 'all') ? `
+              <button class="btn btn-sm" onclick="App.clearUserFilters()" title="Xóa toàn bộ bộ lọc">
+                🔄 Xóa lọc
+              </button>
+            ` : ''}
           </div>
 
           <!-- Thanh Thao Tác Hàng Loạt Tối Giản Cho Active Users -->
@@ -6480,7 +6498,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
               <thead>
                 <tr>
                   <th style="width: 36px; text-align: center;">
-                    <input type="checkbox" id="selectAllActiveUsers" ${activeUsers.length > 0 && activeUsers.every(u => this.selectedUserIds && this.selectedUserIds.has(u.id)) ? 'checked' : ''} onchange="App.toggleSelectAllUsers(this.checked, 'active')" title="Chọn / Bỏ chọn tất cả">
+                    <input type="checkbox" id="selectAllActiveUsers" ${filteredActiveUsers.length > 0 && filteredActiveUsers.every(u => this.selectedUserIds && this.selectedUserIds.has(u.id)) ? 'checked' : ''} onchange="App.toggleSelectAllUsers(this.checked, 'active')" title="Chọn / Bỏ chọn tất cả (theo bộ lọc hiện tại)">
                   </th>
                   <th>Thành Viên</th>
                   <th>Khoa / Ngành</th>
@@ -6492,7 +6510,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                 </tr>
               </thead>
               <tbody id="usersTableBody">
-                ${this.renderUsersTableRows(activeUsers)}
+                ${this.renderUsersTableRows(filteredActiveUsers)}
               </tbody>
             </table>
           </div>
@@ -6538,7 +6556,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
               </tbody>
             </table>
           </div>
-        ` : `
+        ` : this.adminUserTab === 'resets' ? `
           <!-- Bảng Yêu Cầu Khôi Phục Mã PIN / CSKH -->
           <div class="users-table-container">
             <table class="users-table">
@@ -6557,6 +6575,44 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
               </tbody>
             </table>
           </div>
+        ` : `
+          <!-- Tab Nhật Ký Kiểm Toán & Hoạt Động Hệ Thống -->
+          <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <span style="font-weight: 700; font-size: 13px; color: var(--text-secondary);">Lọc theo hành động:</span>
+              <select id="userAuditFilter" class="form-control" style="width: auto; min-width: 180px;" onchange="App.onUserAuditFilterChange(this.value)">
+                <option value="all" ${this.auditLogActionFilter === 'all' ? 'selected' : ''}>Tất cả hành động (${auditLogs.length})</option>
+                <option value="EDIT_USER" ${this.auditLogActionFilter === 'EDIT_USER' ? 'selected' : ''}>Sửa thông tin & phân quyền</option>
+                <option value="CREATE_USER" ${this.auditLogActionFilter === 'CREATE_USER' ? 'selected' : ''}>Thêm thành viên</option>
+                <option value="TOGGLE_USER_STATUS" ${this.auditLogActionFilter === 'TOGGLE_USER_STATUS' ? 'selected' : ''}>Khóa/Mở tài khoản</option>
+                <option value="BULK_STATUS_CHANGE" ${this.auditLogActionFilter === 'BULK_STATUS_CHANGE' ? 'selected' : ''}>Thao tác hàng loạt</option>
+                <option value="ADJUST_POINTS" ${this.auditLogActionFilter === 'ADJUST_POINTS' ? 'selected' : ''}>Điều chỉnh điểm EXP/CP</option>
+                <option value="AWARD_BADGE" ${this.auditLogActionFilter === 'AWARD_BADGE' ? 'selected' : ''}>Trao danh hiệu / huy hiệu</option>
+              </select>
+            </div>
+            <div>
+              <button class="btn btn-sm btn-danger" onclick="App.clearAuditLogsConfirm()">
+                🗑️ Xóa Lịch Sử Nhật Ký
+              </button>
+            </div>
+          </div>
+
+          <div class="users-table-container">
+            <table class="users-table">
+              <thead>
+                <tr>
+                  <th style="width: 160px;">Thời Gian</th>
+                  <th style="width: 140px;">Người Thực Hiện</th>
+                  <th style="width: 160px;">Hành Động</th>
+                  <th>Đối Tượng</th>
+                  <th>Chi Tiết</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${this.renderAuditLogsTableRows(auditLogs)}
+              </tbody>
+            </table>
+          </div>
         `}
       </div>
     `;
@@ -6564,7 +6620,122 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
 
   switchAdminUserTab(tab) {
     this.adminUserTab = tab;
+    if (this.selectedUserIds) this.selectedUserIds.clear();
     this.renderUsersManagementView(document.getElementById("mainContent"));
+  },
+
+  clearUserFilters() {
+    this.userSearchQuery = "";
+    this.userRoleFilter = "all";
+    this.userDeptFilter = "all";
+    if (this.selectedUserIds) this.selectedUserIds.clear();
+    this.renderUsersManagementView(document.getElementById("mainContent"));
+  },
+
+  getFilteredActiveUsers() {
+    const all = StorageService.getActiveUsers();
+    const query = (this.userSearchQuery || "").toLowerCase().trim();
+    const role = this.userRoleFilter || "all";
+    const dept = this.userDeptFilter || "all";
+
+    return all.filter(u => {
+      const matchQuery = !query || 
+        (u.fullName && u.fullName.toLowerCase().includes(query)) ||
+        (u.studentId && u.studentId.toLowerCase().includes(query)) ||
+        (u.email && u.email.toLowerCase().includes(query));
+      const matchRole = role === "all" || u.role === role;
+      const matchDept = dept === "all" || u.department === dept;
+      return matchQuery && matchRole && matchDept;
+    });
+  },
+
+  exportUsersCSV() {
+    const users = this.getFilteredActiveUsers();
+    if (!users || users.length === 0) {
+      this.showToast("⚠️ Không có dữ liệu thành viên nào để xuất CSV!", "warning");
+      return;
+    }
+
+    let csvContent = "\uFEFF"; // UTF-8 BOM cho tiếng Việt
+    csvContent += "MSSV,Họ và Tên,Email,Khoa/Ngành,Vai Trò,EXP Tổng,CP Cống Hiến,Trạng Thái,Ngày Tham Gia\n";
+
+    users.forEach(u => {
+      const row = [
+        `"${(u.studentId || '').replace(/"/g, '""')}"`,
+        `"${(u.fullName || '').replace(/"/g, '""')}"`,
+        `"${(u.email || '').replace(/"/g, '""')}"`,
+        `"${(u.department || 'ĐH Đồng Tháp').replace(/"/g, '""')}"`,
+        `"${u.role === 'admin' ? 'Quản trị viên' : u.role === 'editor' ? 'Ban Biên Tập' : 'Sinh Viên'}"`,
+        u.totalExp || 0,
+        u.contributionPoints || 0,
+        `"${u.status === 'suspended' ? 'Đã khóa' : 'Hoạt động'}"`,
+        `"${u.registeredAt || u.createdAt ? new Date(u.registeredAt || u.createdAt).toLocaleDateString('vi-VN') : 'N/A'}"`
+      ];
+      csvContent += row.join(",") + "\n";
+    });
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Danh_Sach_Thanh_Vien_DThu_QuizMaster_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    this.showToast(`📥 Đã xuất thành công ${users.length} thành viên ra file CSV!`, "success", 3000);
+  },
+
+  onUserAuditFilterChange(filter) {
+    this.auditLogActionFilter = filter;
+    this.renderUsersManagementView(document.getElementById("mainContent"));
+  },
+
+  renderAuditLogsTableRows(logs) {
+    if (!logs || logs.length === 0) {
+      return `
+        <tr>
+          <td colspan="5" style="text-align: center; padding: 48px 20px; color: var(--text-secondary);">
+            <div style="font-size: 36px; margin-bottom: 8px;">📋</div>
+            <strong style="font-size: 15px; color: var(--text-primary); display: block;">Chưa có nhật ký hoạt động nào!</strong>
+            <span style="font-size: 12.5px;">Mọi hành động quản trị sẽ được ghi nhận minh bạch tại đây.</span>
+          </td>
+        </tr>
+      `;
+    }
+
+    const filter = this.auditLogActionFilter || "all";
+    const filteredLogs = filter === "all" ? logs : logs.filter(l => l.action && l.action.includes(filter));
+
+    if (filteredLogs.length === 0) {
+      return `
+        <tr>
+          <td colspan="5" style="text-align: center; padding: 36px 20px; color: var(--text-tertiary);">
+            Không có nhật ký nào thuộc loại hành động "${filter}".
+          </td>
+        </tr>
+      `;
+    }
+
+    return filteredLogs.map(log => `
+      <tr>
+        <td style="font-size: 12px; color: var(--text-secondary); font-family: monospace;">
+          ${new Date(log.timestamp).toLocaleString('vi-VN')}
+        </td>
+        <td>
+          <strong style="color: var(--text-primary); font-size: 13px;">${log.adminName || 'Quản trị viên'}</strong>
+        </td>
+        <td>
+          <span class="badge" style="background:#f1f5f9; color:#0f172a; font-weight:800; font-size:11px;">${log.action}</span>
+        </td>
+        <td>
+          <strong style="color: var(--text-primary); font-size: 13px;">${log.target || 'Hệ thống'}</strong>
+        </td>
+        <td style="font-size: 13px; color: var(--text-secondary);">
+          ${log.details || 'Không có chi tiết'}
+        </td>
+      </tr>
+    `).join('');
   },
 
   async refreshUsersFromCloud() {
@@ -7071,7 +7242,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
   // Selection handlers cho Users Management
   toggleSelectAllUsers(checked, tab = 'active') {
     if (!this.selectedUserIds) this.selectedUserIds = new Set();
-    const list = tab === 'active' ? StorageService.getActiveUsers() : StorageService.getPendingUsers();
+    const list = tab === 'active' ? this.getFilteredActiveUsers() : StorageService.getPendingUsers();
     if (checked) {
       list.forEach(u => this.selectedUserIds.add(u.id));
     } else {
@@ -7142,6 +7313,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     for (const id of ids) {
       await StorageService.approveUserRegistration(id, adminName);
     }
+    StorageService.addAuditLog("BULK_APPROVE_USERS", `${ids.length} hồ sơ`, `Phê duyệt kích hoạt hàng loạt ${ids.length} tài khoản sinh viên`, adminName);
     this.selectedUserIds.clear();
     this.showToast(`🎉 Đã phê duyệt kích hoạt thành công ${ids.length} tài khoản sinh viên!`, "success", 4000);
     this.renderHeader();
@@ -7155,6 +7327,9 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       return;
     }
     const ids = Array.from(this.selectedUserIds);
+    const adminProfile = StorageService.getUserProfile();
+    const adminName = adminProfile.fullName || "Admin";
+
     this.showConfirmDialog({
       title: "Xác nhận từ chối hàng loạt",
       message: `Bạn có chắc chắn muốn TỪ CHỐI <strong>${ids.length}</strong> hồ sơ đăng ký đã chọn không?`,
@@ -7165,6 +7340,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
         for (const id of ids) {
           await StorageService.rejectUserRegistration(id);
         }
+        StorageService.addAuditLog("BULK_REJECT_USERS", `${ids.length} hồ sơ`, `Từ chối hàng loạt ${ids.length} hồ sơ đăng ký`, adminName);
         this.selectedUserIds.clear();
         this.showToast(`Đã từ chối ${ids.length} hồ sơ đăng ký!`, "info", 3000);
         this.renderHeader();
@@ -7179,18 +7355,37 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       this.showToast("⚠️ Vui lòng tích chọn ít nhất 1 thành viên!", "warning");
       return;
     }
-    const ids = Array.from(this.selectedUserIds);
-    const users = StorageService.getAllUsers();
-    let count = 0;
-    users.forEach(u => {
-      if (ids.includes(u.id)) {
-        u.status = targetStatus;
-        count++;
+    const currentProfile = StorageService.getUserProfile();
+    const ids = Array.from(this.selectedUserIds).filter(id => id !== currentProfile.id);
+    if (ids.length === 0) {
+      this.showToast("⚠️ Không thể thay đổi trạng thái của chính tài khoản bạn đang đăng nhập!", "warning");
+      return;
+    }
+
+    const actionText = targetStatus === 'suspended' ? 'TẠM KHÓA' : 'MỞ KHÓA';
+    this.showConfirmDialog({
+      title: `Xác nhận ${actionText} hàng loạt`,
+      message: `Bạn có chắc chắn muốn <strong>${actionText} ${ids.length} tài khoản</strong> đã chọn không?`,
+      icon: targetStatus === 'suspended' ? "🔒" : "🔓",
+      confirmText: `${actionText} ${ids.length} tài khoản`,
+      isDanger: targetStatus === 'suspended',
+      onConfirm: () => {
+        const adminName = currentProfile.fullName || "Quản trị viên";
+        const users = StorageService.getAllUsers();
+        let count = 0;
+        users.forEach(u => {
+          if (ids.includes(u.id)) {
+            u.status = targetStatus;
+            count++;
+          }
+        });
+        StorageService.saveAllUsers(users);
+        StorageService.addAuditLog("BULK_STATUS_CHANGE", `${count} tài khoản`, `${actionText} tài khoản hàng loạt`, adminName);
+        this.selectedUserIds.clear();
+        this.showToast(`✅ Đã ${targetStatus === 'suspended' ? 'tạm khóa' : 'mở khóa'} thành công ${count} tài khoản!`, "success", 3000);
+        this.renderUsersManagementView(document.getElementById("mainContent"));
       }
     });
-    StorageService.saveAllUsers(users);
-    this.showToast(`✅ Đã ${targetStatus === 'suspended' ? 'tạm khóa' : 'mở khóa'} thành công ${count} tài khoản!`, "success", 3000);
-    this.renderUsersManagementView(document.getElementById("mainContent"));
   },
 
   // Thao tác hàng loạt: Xóa tài khoản (Bulk Delete Users)
@@ -7199,17 +7394,27 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       this.showToast("⚠️ Vui lòng tích chọn ít nhất 1 thành viên!", "warning");
       return;
     }
-    const ids = Array.from(this.selectedUserIds);
+    const currentProfile = StorageService.getUserProfile();
+    const ids = Array.from(this.selectedUserIds).filter(id => id !== currentProfile.id);
+    if (ids.length === 0) {
+      this.showToast("⚠️ Không thể xóa tài khoản bạn đang đăng nhập!", "warning");
+      return;
+    }
+
     this.showConfirmDialog({
       title: "Xác nhận xóa hàng loạt thành viên",
       message: `Bạn có chắc chắn muốn XÓA VĨNH VIỄN <strong>${ids.length}</strong> tài khoản đã chọn khỏi hệ thống không? Dữ liệu không thể khôi phục!`,
       icon: "🗑️",
       confirmText: `Xóa ${ids.length} tài khoản`,
       isDanger: true,
-      onConfirm: () => {
-        let users = StorageService.getAllUsers();
-        users = users.filter(u => !ids.includes(u.id));
-        StorageService.saveAllUsers(users);
+      onConfirm: async () => {
+        const adminName = currentProfile.fullName || "Quản trị viên";
+        for (const id of ids) {
+          try {
+            await StorageService.deleteUser(id);
+          } catch (e) {}
+        }
+        StorageService.addAuditLog("BULK_DELETE_USERS", `${ids.length} tài khoản`, `Xóa vĩnh viễn hàng loạt ${ids.length} tài khoản khỏi hệ thống`, adminName);
         this.selectedUserIds.clear();
         this.showToast(`🗑️ Đã xóa ${ids.length} tài khoản thành công!`, "info", 3500);
         this.renderUsersManagementView(document.getElementById("mainContent"));
@@ -7561,25 +7766,20 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
   },
 
   onSearchUsers() {
-    const query = document.getElementById("userSearchInput")?.value.toLowerCase().trim() || "";
-    const role = document.getElementById("userRoleFilter")?.value || "all";
-    const dept = document.getElementById("userDeptFilter")?.value || "all";
+    this.userSearchQuery = document.getElementById("userSearchInput")?.value || "";
+    this.userRoleFilter = document.getElementById("userRoleFilter")?.value || "all";
+    this.userDeptFilter = document.getElementById("userDeptFilter")?.value || "all";
 
-    const all = StorageService.getActiveUsers();
-    const filtered = all.filter(u => {
-      const matchQuery = (u.fullName && u.fullName.toLowerCase().includes(query)) || 
-                         (u.studentId && u.studentId.toLowerCase().includes(query)) ||
-                         (u.email && u.email.toLowerCase().includes(query));
-      const matchRole = role === "all" || u.role === role;
-      const matchDept = dept === "all" || u.department === dept;
-      return matchQuery && matchRole && matchDept;
-    });
-
+    const filtered = this.getFilteredActiveUsers();
     const tbody = document.getElementById("usersTableBody");
     if (tbody) tbody.innerHTML = this.renderUsersTableRows(filtered);
+
+    const selectAllBox = document.getElementById("selectAllActiveUsers");
+    if (selectAllBox) {
+      selectAllBox.checked = filtered.length > 0 && filtered.every(u => this.selectedUserIds && this.selectedUserIds.has(u.id));
+    }
   },
 
-  // Modal Tạo Thành Viên Mới
   // Modal Tạo Thành Viên Mới
   openCreateUserModal() {
     const modal = document.getElementById("globalModal");
@@ -7610,7 +7810,10 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div class="form-group" style="margin: 0;">
             <label class="form-label">Mã PIN Đăng nhập (6 số):</label>
-            <input type="password" id="newUsrPin" class="form-control" value="123456" maxlength="6">
+            <div style="position: relative;">
+              <input type="password" id="newUsrPin" class="form-control" value="123456" maxlength="6" style="padding-right: 36px;">
+              <button type="button" class="btn btn-sm" style="position: absolute; right: 4px; top: 50%; transform: translateY(-50%); padding: 2px 6px; border: none; background: transparent; cursor: pointer; font-size: 13px;" onclick="const el = document.getElementById('newUsrPin'); el.type = el.type === 'password' ? 'text' : 'password';" title="Hiện/Ẩn PIN">👁️</button>
+            </div>
           </div>
           <div class="form-group" style="margin: 0;">
             <label class="form-label">Khoa / Chuyên ngành:</label>
@@ -7687,7 +7890,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       <button class="btn btn-primary" onclick="App.saveNewUser()">Lưu Thành Viên</button>
     `;
 
-    modal.classList.add("active");
+    this.openModal();
   },
 
   onNewUserRoleChange(role) {
@@ -7695,6 +7898,30 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     const pEdit = document.getElementById("permEditSubjects");
     const pMat = document.getElementById("permManageMaterials");
     const pUsers = document.getElementById("permManageUsers");
+
+    if (role === "admin") {
+      if (pApprove) pApprove.checked = true;
+      if (pEdit) pEdit.checked = true;
+      if (pMat) pMat.checked = true;
+      if (pUsers) pUsers.checked = true;
+    } else if (role === "editor") {
+      if (pApprove) pApprove.checked = true;
+      if (pEdit) pEdit.checked = false;
+      if (pMat) pMat.checked = true;
+      if (pUsers) pUsers.checked = false;
+    } else {
+      if (pApprove) pApprove.checked = false;
+      if (pEdit) pEdit.checked = false;
+      if (pMat) pMat.checked = false;
+      if (pUsers) pUsers.checked = false;
+    }
+  },
+
+  onEditUserRoleChange(role) {
+    const pApprove = document.getElementById("editPermApproveDrafts");
+    const pEdit = document.getElementById("editPermEditSubjects");
+    const pMat = document.getElementById("editPermManageMaterials");
+    const pUsers = document.getElementById("editPermManageUsers");
 
     if (role === "admin") {
       if (pApprove) pApprove.checked = true;
@@ -7745,6 +7972,9 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
         }
       });
 
+      const adminProfile = StorageService.getUserProfile();
+      StorageService.addAuditLog("CREATE_USER", name, `Thêm thành viên mới [${id}] (Vai trò: ${role})`, adminProfile.fullName || "Quản trị viên");
+
       this.closeModal();
       this.showToast(`🎉 Đã thêm thành viên "${name}" (${id}) thành công!`, "success", 3500);
       this.renderUsersManagementView(document.getElementById("mainContent"));
@@ -7794,7 +8024,10 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div class="form-group" style="margin: 0;">
             <label class="form-label">Mã PIN Đăng nhập (6 số):</label>
-            <input type="text" id="editUsrPin" class="form-control" value="${user.pinCode || '123456'}" maxlength="6">
+            <div style="position: relative;">
+              <input type="password" id="editUsrPin" class="form-control" value="${user.pinCode || '123456'}" maxlength="6" style="padding-right: 36px;">
+              <button type="button" class="btn btn-sm" style="position: absolute; right: 4px; top: 50%; transform: translateY(-50%); padding: 2px 6px; border: none; background: transparent; cursor: pointer; font-size: 13px;" onclick="const el = document.getElementById('editUsrPin'); el.type = el.type === 'password' ? 'text' : 'password';" title="Hiện/Ẩn PIN">👁️</button>
+            </div>
           </div>
           <div class="form-group" style="margin: 0;">
             <label class="form-label">Khoa / Chuyên ngành:</label>
@@ -7805,7 +8038,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
           <div class="form-group" style="margin: 0;">
             <label class="form-label">Vai trò (*):</label>
-            <select id="editUsrRole" class="form-control">
+            <select id="editUsrRole" class="form-control" onchange="App.onEditUserRoleChange(this.value)">
               <option value="student" ${user.role === 'student' ? 'selected' : ''}>👨‍🎓 Sinh Viên</option>
               <option value="editor" ${user.role === 'editor' ? 'selected' : ''}>🛡️ Ban Biên Tập (Editor)</option>
               <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>👑 Quản Trị Viên (Admin)</option>
@@ -7868,7 +8101,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       <button class="btn btn-primary" onclick="App.saveEditedUser('${user.id}')">Lưu Thay Đổi</button>
     `;
 
-    modal.classList.add("active");
+    this.openModal();
   },
 
   saveEditedUser(userId) {
@@ -7884,6 +8117,14 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     if (!name) {
       this.showToast("⚠️ Họ và tên không được để trống!", "warning");
       return;
+    }
+
+    if (id) {
+      const existingStudentIdUser = StorageService.getUserByStudentId(id);
+      if (existingStudentIdUser && existingStudentIdUser.id !== userId) {
+        this.showToast(`⚠️ MSSV "${id}" đã thuộc về sinh viên "${existingStudentIdUser.fullName}"!`, "warning");
+        return;
+      }
     }
 
     if (email) {
@@ -7911,6 +8152,9 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       }
     });
 
+    const adminProfile = StorageService.getUserProfile();
+    StorageService.addAuditLog("EDIT_USER", name, `Cập nhật thông tin & phân quyền thành viên [${id || userId}] (Vai trò: ${role})`, adminProfile.fullName || "Quản trị viên");
+
     this.closeModal();
     this.renderHeader();
     this.showToast("✅ Đã cập nhật quyền hạn và thông tin người dùng thành công!", "success", 3000);
@@ -7920,6 +8164,8 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
   toggleUserStatusAction(userId) {
     const updated = StorageService.toggleUserStatus(userId);
     if (updated) {
+      const adminProfile = StorageService.getUserProfile();
+      StorageService.addAuditLog("TOGGLE_USER_STATUS", updated.fullName, `Chuyển trạng thái sang ${updated.status === 'suspended' ? 'Đã khóa' : 'Hoạt động'}`, adminProfile.fullName || "Quản trị viên");
       this.showToast(`Đã ${updated.status === 'suspended' ? '🔒 khóa' : '🔓 mở khóa'} tài khoản: ${updated.fullName}`, "info", 2500);
       this.renderUsersManagementView(document.getElementById("mainContent"));
     }
@@ -7938,6 +8184,8 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       onConfirm: async () => {
         try {
           await StorageService.deleteUser(userId);
+          const adminProfile = StorageService.getUserProfile();
+          StorageService.addAuditLog("DELETE_USER", user.fullName, `Xóa tài khoản thành viên [${user.studentId || user.id}] khỏi hệ thống`, adminProfile.fullName || "Quản trị viên");
           this.showToast(`Đã xóa tài khoản "${user.fullName}" khỏi hệ thống!`, "success", 3000);
           this.renderHeader();
           await this.renderUsersManagementView(document.getElementById("mainContent"));
