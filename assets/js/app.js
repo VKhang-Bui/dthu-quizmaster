@@ -40,7 +40,18 @@ const App = {
         }
       }
       this.renderHeader();
-      this.navigateTo("home");
+
+      // Đọc URL Hash ban đầu nếu có (Direct link / Bookmark / F5 Reload)
+      const initialRoute = this.parseHashRoute();
+      const startView = (initialRoute.view && initialRoute.view !== "quiz") ? initialRoute.view : "home";
+      const startData = (initialRoute.view && initialRoute.view !== "quiz") ? (initialRoute.data || {}) : {};
+
+      // Cập nhật trạng thái ban đầu vào Browser History
+      if (typeof window !== "undefined" && window.history && window.history.replaceState) {
+        window.history.replaceState({ view: startView, data: startData }, "", this.buildViewHash(startView, startData));
+      }
+
+      this.navigateTo(startView, startData, false);
       this.bindGlobalEvents();
 
       // Tự động đồng bộ CSDL đám mây Supabase Cloud (chạy nền)
@@ -959,10 +970,54 @@ const App = {
     modal.classList.add("active");
   },
 
-  // Router Điều hướng màn hình
-  navigateTo(view, data = {}) {
+  // Tạo chuỗi URL Hash tương ứng với view và dữ liệu
+  buildViewHash(view, data = {}) {
+    let hash = `#${view}`;
+    const params = new URLSearchParams();
+    if (data.subjectId) params.set("subjectId", data.subjectId);
+    if (data.draftId) params.set("draftId", data.draftId);
+    if (data.materialId) params.set("materialId", data.materialId);
+    if (data.from) params.set("from", data.from);
+
+    const queryString = params.toString();
+    if (queryString) {
+      hash += `?${queryString}`;
+    }
+    return hash;
+  },
+
+  // Phân tích URL Hash hiện tại của trình duyệt
+  parseHashRoute() {
+    if (typeof window === "undefined" || !window.location || !window.location.hash) {
+      return { view: "home", data: {} };
+    }
+    const raw = window.location.hash.slice(1).trim();
+    if (!raw) return { view: "home", data: {} };
+
+    const [viewPart, queryPart] = raw.split("?");
+    const view = viewPart || "home";
+    const data = {};
+    if (queryPart) {
+      const params = new URLSearchParams(queryPart);
+      for (const [k, v] of params.entries()) {
+        data[k] = v;
+      }
+    }
+    return { view, data };
+  },
+
+  // Router Điều hướng màn hình (Hỗ trợ Browser History Back/Forward)
+  navigateTo(view, data = {}, pushHistory = true) {
     this.currentView = view;
     this.updateActiveNav(view);
+
+    // Cập nhật Browser History nếu pushHistory = true
+    if (pushHistory && typeof window !== "undefined" && window.history && window.history.pushState) {
+      const targetHash = this.buildViewHash(view, data);
+      if (window.location.hash !== targetHash) {
+        window.history.pushState({ view, data }, "", targetHash);
+      }
+    }
 
     // Hủy timer nếu rời khỏi phòng thi
     if (this.timerInterval && view !== "quiz") {
@@ -7294,6 +7349,32 @@ Câu 2: Nội dung câu hỏi số 2 ở đây?
       if (e.key === "Escape") {
         this.closeModal();
         this.closeUserDrawer();
+      }
+    });
+
+    // Xử lý nút Quay lại (Back / Forward) của Trình duyệt và Cử chỉ vuốt trên Điện thoại
+    window.addEventListener("popstate", (e) => {
+      // 1. NẾU ĐANG LÀM BÀI THI / ÔN TẬP DỞ DANG -> TUYỆT ĐỐI KHÔNG TỰ THOÁT MẤT BÀI
+      if (this.currentView === "quiz" && this.activeSession && !this.activeSession.isSubmitted) {
+        // Đẩy lại state #quiz để giữ nguyên bài làm
+        if (window.history && window.history.pushState) {
+          window.history.pushState({ view: "quiz", data: {} }, "", "#quiz");
+        }
+        // Hiện hộp thoại xác nhận rời phòng
+        this.confirmExitQuiz();
+        return;
+      }
+
+      // 2. Đóng các modal/drawer đang mở nếu có
+      this.closeModal();
+      this.closeUserDrawer();
+
+      // 3. Điều hướng về trang trước đó
+      if (e.state && e.state.view) {
+        this.navigateTo(e.state.view, e.state.data || {}, false);
+      } else {
+        const route = this.parseHashRoute();
+        this.navigateTo(route.view, route.data || {}, false);
       }
     });
 
