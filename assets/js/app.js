@@ -3121,7 +3121,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
   // ═════════════════════════════════════════════════════════════════════════
   // 10. USERS MANAGEMENT DASHBOARD (QUẢN LÝ NGƯỜI DÙNG & PHÂN QUYỀN CHO ADMIN)
   // ═════════════════════════════════════════════════════════════════════════
-  renderUsersManagementView(container) {
+  async renderUsersManagementView(container) {
     const profile = StorageService.getUserProfile();
     const canManage = profile.role === "admin" || StorageService.hasPermission("canManageUsers");
 
@@ -3144,6 +3144,11 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
 
     if (!this.adminUserTab) this.adminUserTab = "active";
 
+    // Tự động kéo dữ liệu mới nhất từ Supabase Cloud
+    if (typeof StorageService !== "undefined" && typeof StorageService.syncWithCloud === "function") {
+      await StorageService.syncWithCloud();
+    }
+
     const allUsers = StorageService.getAllUsers();
     const activeUsers = StorageService.getActiveUsers();
     const pendingUsers = StorageService.getPendingUsers();
@@ -3165,8 +3170,9 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
             </p>
           </div>
           <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn" style="border-color: #10b981; color: #047857; font-weight: 700;" onclick="App.refreshUsersFromCloud()">🔄 Làm Mới Cloud</button>
             <button class="btn" style="border-color: #0284c7; color: #0284c7;" onclick="App.openAppsScriptConfigModal()">⚙️ Cấu Hình Google Apps Script</button>
-            <button class="btn btn-primary" onclick="App.openCreateUserModal()">➕ Thêm Thành Viên Mới</button>
+            <button class="btn btn-primary" onclick="App.openCreateUserModal()">➕ Thêm Thành Viên</button>
             <button class="btn" onclick="App.openAccountSwitcherModal()">🔄 Đổi Tài Khoản</button>
           </div>
         </div>
@@ -3301,6 +3307,15 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
   switchAdminUserTab(tab) {
     this.adminUserTab = tab;
     this.renderUsersManagementView(document.getElementById("mainContent"));
+  },
+
+  async refreshUsersFromCloud() {
+    this.showToast("⏳ Đang kéo dữ liệu mới nhất từ Supabase Cloud...", "info", 1500);
+    if (typeof StorageService !== "undefined" && typeof StorageService.syncWithCloud === "function") {
+      await StorageService.syncWithCloud();
+    }
+    await this.renderUsersManagementView(document.getElementById("mainContent"));
+    this.showToast("✅ Đã cập nhật dữ liệu người dùng mới nhất từ Cloud!", "success", 2500);
   },
 
   renderPendingUsersTableRows(pendingUsers) {
