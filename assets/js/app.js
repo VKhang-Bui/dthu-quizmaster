@@ -4749,11 +4749,46 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                 </button>
               </div>
 
+              <!-- Thanh Thao Tác Hàng Loạt Tối Giản Cho Thành Viên BXH -->
+              ${this.selectedAdminMemberIds && this.selectedAdminMemberIds.size > 0 ? `
+                <div id="adminMembersBulkToolbar" style="background: #f0f9ff; border: 1.5px solid #0284c7; border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                  <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #0369a1;">
+                    <span>☑️ Đã chọn: <strong>${this.selectedAdminMemberIds.size}</strong> thành viên</span>
+                  </div>
+                  <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                    <button class="btn btn-sm" style="background:#fee2e2; color:#b91c1c; border-color:#fca5a5; font-weight:700;" onclick="App.openBulkKickModal()">
+                      👢 Kick Hàng Loạt (${this.selectedAdminMemberIds.size})
+                    </button>
+                    <button class="btn btn-sm" style="background:#dcfce7; color:#15803d; border-color:#86efac; font-weight:700;" onclick="App.bulkReinstateUsersAction()">
+                      ♻️ Khôi Phục (${this.selectedAdminMemberIds.size})
+                    </button>
+                    <button class="btn btn-sm" style="background:#f1f5f9; color:#334155; border-color:#cbd5e1; font-weight:700;" onclick="App.openBulkResetPointsModal()">
+                      🔄 Reset Điểm Mùa Này
+                    </button>
+                    <button class="btn btn-sm" style="background:#fef3c7; color:#b45309; border-color:#fde68a; font-weight:700;" onclick="App.openBulkAdjustPointsModal('leaderboard')">
+                      ⚡ Sửa Điểm Chung
+                    </button>
+                    <button class="btn btn-sm" style="background:#fdf4ff; color:#86198f; border-color:#f0abfc; font-weight:700;" onclick="App.openBulkAwardBadgeModal('leaderboard')">
+                      🎖️ Trao Huy Hiệu
+                    </button>
+                    <button class="btn btn-sm" onclick="App.bulkToggleHideLeaderboardAction()">
+                      👁️ Ẩn/Hiện BXH
+                    </button>
+                    <button class="btn btn-sm" onclick="App.clearAdminMemberSelections()">
+                      ❌ Bỏ Chọn
+                    </button>
+                  </div>
+                </div>
+              ` : ''}
+
               <!-- Table Quản Trị Thành Viên Thực Tế -->
               <div class="leaderboard-table-card">
                 <table class="leaderboard-table">
                   <thead>
                     <tr>
+                      <th style="width: 36px; text-align: center;">
+                        <input type="checkbox" id="selectAllMembersHeader" ${memberList.length > 0 && memberList.every(u => this.selectedAdminMemberIds && this.selectedAdminMemberIds.has(u.id)) ? 'checked' : ''} onchange="App.toggleSelectAllAdminMembers(this.checked)" title="Chọn / Bỏ chọn tất cả">
+                      </th>
                       <th>Sinh viên & Trạng thái nhóm</th>
                       <th>Khoa / Ngành</th>
                       <th style="text-align: right;">⚡ EXP (Mùa / Tổng)</th>
@@ -4766,7 +4801,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                   <tbody>
                     ${memberList.length === 0 ? `
                       <tr>
-                        <td colspan="7" style="text-align: center; padding: 36px; color: var(--text-secondary);">
+                        <td colspan="8" style="text-align: center; padding: 36px; color: var(--text-secondary);">
                           Không có thành viên nào phù hợp với bộ lọc!
                         </td>
                       </tr>
@@ -4777,9 +4812,13 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                       const isPending = (u.status === "pending_approval");
                       const seasonExpVal = typeof u.seasonExp === "number" ? u.seasonExp : (u.totalExp || 0);
                       const seasonCpVal = typeof u.seasonCp === "number" ? u.seasonCp : (u.contributionPoints || 0);
+                      const isSelected = this.selectedAdminMemberIds && this.selectedAdminMemberIds.has(u.id);
 
                       return `
-                        <tr style="${isKicked ? 'background:#fff1f2; opacity:0.85;' : ''}">
+                        <tr style="${isSelected ? 'background:#f0f9ff;' : isKicked ? 'background:#fff1f2; opacity:0.85;' : ''}">
+                          <td style="text-align: center; width: 36px;">
+                            <input type="checkbox" class="admin-member-checkbox" value="${u.id}" ${isSelected ? 'checked' : ''} onchange="App.toggleAdminMemberSelection('${u.id}', this.checked)">
+                          </td>
                           <td>
                             <div style="display: flex; align-items: center; gap: 8px;">
                               <div>
@@ -6274,6 +6313,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     }
 
     if (!this.adminUserTab) this.adminUserTab = "active";
+    if (!this.selectedUserIds) this.selectedUserIds = new Set();
 
     // Tự động kéo dữ liệu mới nhất từ Supabase Cloud
     if (typeof StorageService !== "undefined" && typeof StorageService.syncWithCloud === "function") {
@@ -6305,6 +6345,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     const activeUsers = StorageService.getActiveUsers();
     const pendingUsers = StorageService.getPendingUsers();
     const resetRequests = StorageService.getResetRequests();
+    const activeSeason = StorageService.getActiveSeason();
 
     const admins = allUsers.filter(u => u.role === "admin" && u.status === "active");
     const editors = allUsers.filter(u => u.role === "editor" && u.status === "active");
@@ -6318,10 +6359,13 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
           <div>
             <h2 style="font-size: 24px; font-weight: 800; color: var(--text-primary);">👥 Quản Trị Người Dùng & Phân Quyền</h2>
             <p style="color: var(--text-secondary); margin-top: 4px;">
-              Quản lý danh sách sinh viên, phê duyệt hồ sơ đăng ký mới, cấp quyền biên tập viên và xử lý yêu cầu CSKH.
+              Quản lý danh sách sinh viên, phê duyệt hồ sơ đăng ký mới, cấp quyền biên tập viên và quản trị hệ thống.
             </p>
           </div>
-          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <button class="btn" style="border-color: #eab308; background: #fefce8; color: #854d0e; font-weight: 800; display: inline-flex; align-items: center; gap: 6px;" onclick="App.navigateTo('leaderboard-admin')" title="Truy cập Trung tâm Quản trị BXH & Mùa giải">
+              <span>🏆</span> <span>Quản Trị BXH & Mùa Giải ➔</span>
+            </button>
             <button class="btn" style="border-color: #10b981; color: #047857; font-weight: 700;" onclick="App.refreshUsersFromCloud()">🔄 Làm Mới Cloud</button>
             <button class="btn" style="border-color: #0284c7; color: #0284c7;" onclick="App.openAppsScriptConfigModal()">⚙️ Cấu Hình Google Apps Script</button>
             <button class="btn btn-primary" onclick="App.openCreateUserModal()">➕ Thêm Thành Viên</button>
@@ -6329,8 +6373,8 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
           </div>
         </div>
 
-        <!-- 4 Thẻ Thống Kê -->
-        <div class="users-stat-grid">
+        <!-- 5 Thẻ Thống Kê Tổng Quan -->
+        <div class="users-stat-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
           <div class="user-stat-card">
             <div class="user-stat-icon">👥</div>
             <div>
@@ -6343,6 +6387,13 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
             <div>
               <div class="user-stat-num" style="color: #b45309;">${pendingUsers.length}</div>
               <div class="user-stat-label">Hồ sơ chờ phê duyệt</div>
+            </div>
+          </div>
+          <div class="user-stat-card" style="cursor: pointer; border-color: #fde047; background: #fefce8;" onclick="App.navigateTo('leaderboard-admin')" title="Nhấp để mở Quản Trị BXH & Mùa Giải">
+            <div class="user-stat-icon">🏆</div>
+            <div>
+              <div class="user-stat-num" style="color: #b45309; font-size: 15px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">${activeSeason ? activeSeason.name : 'Chưa mở mùa'}</div>
+              <div class="user-stat-label">Quản trị BXH & Mùa ➔</div>
             </div>
           </div>
           <div class="user-stat-card">
@@ -6377,7 +6428,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
         <!-- Nội dung theo Tab được chọn -->
         ${this.adminUserTab === 'active' ? `
           <!-- Thanh Tìm kiếm & Bộ lọc cho Active Users -->
-          <div class="search-filter-bar" style="margin: 0;">
+          <div class="search-filter-bar" style="margin: 0 0 12px 0;">
             <div class="search-input-wrapper">
               <span class="search-icon">🔍</span>
               <input type="text" id="userSearchInput" class="form-control" placeholder="Tìm theo tên, MSSV, email..." oninput="App.onSearchUsers()">
@@ -6394,11 +6445,43 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
             </select>
           </div>
 
+          <!-- Thanh Thao Tác Hàng Loạt Tối Giản Cho Active Users -->
+          ${this.selectedUserIds && this.selectedUserIds.size > 0 ? `
+            <div id="usersBulkToolbar" style="background: #f8fafc; border: 1.5px solid #0284c7; border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #0369a1;">
+                <span>☑️ Đã chọn: <strong>${this.selectedUserIds.size}</strong> thành viên</span>
+              </div>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <button class="btn btn-sm" style="background:#fef3c7; color:#b45309; border-color:#fde68a; font-weight:700;" onclick="App.openBulkAdjustPointsModal('users')">
+                  ⚡ Sửa Điểm Hàng Loạt
+                </button>
+                <button class="btn btn-sm" style="background:#fdf4ff; color:#86198f; border-color:#f0abfc; font-weight:700;" onclick="App.openBulkAwardBadgeModal('users')">
+                  🎖️ Trao Huy Hiệu
+                </button>
+                <button class="btn btn-sm" style="background:#fee2e2; color:#b91c1c; border-color:#fca5a5; font-weight:700;" onclick="App.bulkToggleUserStatusAction('suspended')">
+                  🔒 Tạm Khóa (${this.selectedUserIds.size})
+                </button>
+                <button class="btn btn-sm" style="background:#dcfce7; color:#15803d; border-color:#86efac; font-weight:700;" onclick="App.bulkToggleUserStatusAction('active')">
+                  🔓 Mở Khóa (${this.selectedUserIds.size})
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="App.bulkDeleteUsersConfirm()">
+                  🗑️ Xóa (${this.selectedUserIds.size})
+                </button>
+                <button class="btn btn-sm" onclick="App.clearUserSelections()">
+                  ❌ Bỏ Chọn
+                </button>
+              </div>
+            </div>
+          ` : ''}
+
           <!-- Bảng Danh Sách Thành Viên Hoạt Động -->
           <div class="users-table-container">
             <table class="users-table">
               <thead>
                 <tr>
+                  <th style="width: 36px; text-align: center;">
+                    <input type="checkbox" id="selectAllActiveUsers" ${activeUsers.length > 0 && activeUsers.every(u => this.selectedUserIds && this.selectedUserIds.has(u.id)) ? 'checked' : ''} onchange="App.toggleSelectAllUsers(this.checked, 'active')" title="Chọn / Bỏ chọn tất cả">
+                  </th>
                   <th>Thành Viên</th>
                   <th>Khoa / Ngành</th>
                   <th>Vai Trò</th>
@@ -6414,11 +6497,34 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
             </table>
           </div>
         ` : this.adminUserTab === 'pending' ? `
+          <!-- Thanh Thao Tác Hàng Loạt Tối Giản Cho Hồ Sơ Chờ Phê Duyệt -->
+          ${this.selectedUserIds && this.selectedUserIds.size > 0 ? `
+            <div id="pendingBulkToolbar" style="background: #fefce8; border: 1.5px solid #eab308; border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+              <div style="font-size: 13px; font-weight: 700; color: #854d0e;">
+                <span>☑️ Đã chọn: <strong>${this.selectedUserIds.size}</strong> hồ sơ chờ duyệt</span>
+              </div>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <button class="btn btn-sm btn-primary" onclick="App.bulkApprovePendingUsersAction()">
+                  ✅ Phê Duyệt Tất Cả (${this.selectedUserIds.size})
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="App.bulkRejectPendingUsersAction()">
+                  ❌ Từ Chối Tất Cả (${this.selectedUserIds.size})
+                </button>
+                <button class="btn btn-sm" onclick="App.clearUserSelections()">
+                  ❌ Bỏ Chọn
+                </button>
+              </div>
+            </div>
+          ` : ''}
+
           <!-- Bảng Danh Sách Chờ Phê Duyệt -->
           <div class="users-table-container">
             <table class="users-table">
               <thead>
                 <tr>
+                  <th style="width: 36px; text-align: center;">
+                    <input type="checkbox" id="selectAllPendingUsers" ${pendingUsers.length > 0 && pendingUsers.every(u => this.selectedUserIds && this.selectedUserIds.has(u.id)) ? 'checked' : ''} onchange="App.toggleSelectAllUsers(this.checked, 'pending')" title="Chọn / Bỏ chọn tất cả">
+                  </th>
                   <th>Sinh Viên Đăng Ký</th>
                   <th>Khoa / Chuyên Ngành</th>
                   <th>Email Nhận Thông Báo</th>
@@ -6474,7 +6580,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     if (!pendingUsers || pendingUsers.length === 0) {
       return `
         <tr>
-          <td colspan="6" style="text-align: center; padding: 56px 20px; color: var(--text-secondary);">
+          <td colspan="7" style="text-align: center; padding: 56px 20px; color: var(--text-secondary);">
             <div style="font-size: 40px; margin-bottom: 8px;">🎉</div>
             <strong style="font-size: 16px; color: var(--text-primary); display: block;">Không có hồ sơ đăng ký nào đang chờ duyệt!</strong>
             <span style="font-size: 13px;">Mọi sinh viên đăng ký mới đã được xử lý xong.</span>
@@ -6483,33 +6589,40 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       `;
     }
 
-    return pendingUsers.map(u => `
-      <tr>
-        <td>
-          <div class="user-info-cell">
-            <div class="user-avatar-badge">${u.avatar || '👨‍🎓'}</div>
-            <div>
-              <div style="font-weight: 700; color: var(--text-primary);">${u.fullName}</div>
-              <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">MSSV: <strong>${u.studentId}</strong></div>
+    return pendingUsers.map(u => {
+      const isSelected = this.selectedUserIds && this.selectedUserIds.has(u.id);
+
+      return `
+        <tr style="${isSelected ? 'background:#fefce8;' : ''}">
+          <td style="text-align: center; width: 36px;">
+            <input type="checkbox" class="pending-user-checkbox" value="${u.id}" ${isSelected ? 'checked' : ''} onchange="App.toggleUserSelection('${u.id}', this.checked)">
+          </td>
+          <td>
+            <div class="user-info-cell">
+              <div class="user-avatar-badge">${u.avatar || '👨‍🎓'}</div>
+              <div>
+                <div style="font-weight: 700; color: var(--text-primary);">${u.fullName}</div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">MSSV: <strong>${u.studentId}</strong></div>
+              </div>
             </div>
-          </div>
-        </td>
-        <td style="font-size: 13px; color: var(--text-secondary);">${u.department || 'ĐH Đồng Tháp'}</td>
-        <td style="font-size: 13px; color: var(--text-secondary);"><code>${u.email || (u.studentId + '@dthu.edu.vn')}</code></td>
-        <td style="font-size: 12.5px; color: var(--text-tertiary);">${u.registeredAt ? new Date(u.registeredAt).toLocaleString('vi-VN') : 'Gần đây'}</td>
-        <td><span class="status-badge-pending">⏳ Chờ Phê Duyệt</span></td>
-        <td style="text-align: right;">
-          <div style="display: inline-flex; gap: 6px;">
-            <button class="btn btn-sm btn-primary" onclick="App.approveUserRegistrationAction('${u.id}')">
-              ✅ Phê Duyệt
-            </button>
-            <button class="btn btn-sm btn-danger" onclick="App.rejectUserRegistrationAction('${u.id}')">
-              ❌ Từ Chối
-            </button>
-          </div>
-        </td>
-      </tr>
-    `).join('');
+          </td>
+          <td style="font-size: 13px; color: var(--text-secondary);">${u.department || 'ĐH Đồng Tháp'}</td>
+          <td style="font-size: 13px; color: var(--text-secondary);"><code>${u.email || (u.studentId + '@dthu.edu.vn')}</code></td>
+          <td style="font-size: 12.5px; color: var(--text-tertiary);">${u.registeredAt ? new Date(u.registeredAt).toLocaleString('vi-VN') : 'Gần đây'}</td>
+          <td><span class="status-badge-pending">⏳ Chờ Phê Duyệt</span></td>
+          <td style="text-align: right;">
+            <div style="display: inline-flex; gap: 6px;">
+              <button class="btn btn-sm btn-primary" onclick="App.approveUserRegistrationAction('${u.id}')">
+                ✅ Phê Duyệt
+              </button>
+              <button class="btn btn-sm btn-danger" onclick="App.rejectUserRegistrationAction('${u.id}')">
+                ❌ Từ Chối
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
   },
 
   renderResetRequestsTableRows(requests) {
@@ -6602,7 +6715,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     if (!users || users.length === 0) {
       return `
         <tr>
-          <td colspan="7" style="text-align: center; padding: 48px; color: var(--text-tertiary);">
+          <td colspan="8" style="text-align: center; padding: 48px; color: var(--text-tertiary);">
             Không tìm thấy thành viên nào phù hợp.
           </td>
         </tr>
@@ -6613,6 +6726,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
 
     return users.map(u => {
       const isCurrent = currentProfile && currentProfile.id === u.id;
+      const isSelected = this.selectedUserIds && this.selectedUserIds.has(u.id);
       const perms = u.permissions || {};
 
       let roleBadge = `<span class="role-badge-student">👨‍🎓 Sinh Viên</span>`;
@@ -6623,7 +6737,10 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       }
 
       return `
-        <tr>
+        <tr style="${isSelected ? 'background:#f0f9ff;' : ''}">
+          <td style="text-align: center; width: 36px;">
+            <input type="checkbox" class="active-user-checkbox" value="${u.id}" ${isSelected ? 'checked' : ''} onchange="App.toggleUserSelection('${u.id}', this.checked)">
+          </td>
           <td>
             <div class="user-info-cell">
               <div class="user-avatar-badge">${u.avatar || '👨‍🎓'}</div>
@@ -6946,6 +7063,500 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       } catch (e) {
         this.showToast("❌ " + e.message, "danger", 3500);
       }
+    }
+  },
+
+  // ── Multi-Select & Bulk Actions Management (Quản Lý Tích Chọn Nhiều & Thao Tác Hàng Loạt) ──
+
+  // Selection handlers cho Users Management
+  toggleSelectAllUsers(checked, tab = 'active') {
+    if (!this.selectedUserIds) this.selectedUserIds = new Set();
+    const list = tab === 'active' ? StorageService.getActiveUsers() : StorageService.getPendingUsers();
+    if (checked) {
+      list.forEach(u => this.selectedUserIds.add(u.id));
+    } else {
+      list.forEach(u => this.selectedUserIds.delete(u.id));
+    }
+    const container = document.getElementById("mainContent");
+    if (container) this.renderUsersManagementView(container);
+  },
+
+  toggleUserSelection(userId, checked) {
+    if (!this.selectedUserIds) this.selectedUserIds = new Set();
+    if (checked) {
+      this.selectedUserIds.add(userId);
+    } else {
+      this.selectedUserIds.delete(userId);
+    }
+    const container = document.getElementById("mainContent");
+    if (container) this.renderUsersManagementView(container);
+  },
+
+  clearUserSelections() {
+    if (this.selectedUserIds) this.selectedUserIds.clear();
+    const container = document.getElementById("mainContent");
+    if (container) this.renderUsersManagementView(container);
+  },
+
+  // Selection handlers cho Leaderboard Admin Members Tab
+  toggleSelectAllAdminMembers(checked) {
+    if (!this.selectedAdminMemberIds) this.selectedAdminMemberIds = new Set();
+    const allUsers = StorageService.getAllUsers();
+    if (checked) {
+      allUsers.forEach(u => this.selectedAdminMemberIds.add(u.id));
+    } else {
+      this.selectedAdminMemberIds.clear();
+    }
+    const container = document.getElementById("mainContent");
+    if (container) this.renderLeaderboardAdminView(container);
+  },
+
+  toggleAdminMemberSelection(userId, checked) {
+    if (!this.selectedAdminMemberIds) this.selectedAdminMemberIds = new Set();
+    if (checked) {
+      this.selectedAdminMemberIds.add(userId);
+    } else {
+      this.selectedAdminMemberIds.delete(userId);
+    }
+    const container = document.getElementById("mainContent");
+    if (container) this.renderLeaderboardAdminView(container);
+  },
+
+  clearAdminMemberSelections() {
+    if (this.selectedAdminMemberIds) this.selectedAdminMemberIds.clear();
+    const container = document.getElementById("mainContent");
+    if (container) this.renderLeaderboardAdminView(container);
+  },
+
+  // Thao tác hàng loạt: Phê duyệt hồ sơ đăng ký (Bulk Approve)
+  async bulkApprovePendingUsersAction() {
+    if (!this.selectedUserIds || this.selectedUserIds.size === 0) {
+      this.showToast("⚠️ Vui lòng tích chọn ít nhất 1 hồ sơ!", "warning");
+      return;
+    }
+    const ids = Array.from(this.selectedUserIds);
+    const adminProfile = StorageService.getUserProfile();
+    const adminName = adminProfile.fullName || "Admin";
+
+    this.showToast(`⏳ Đang phê duyệt ${ids.length} hồ sơ...`, "info", 2000);
+    for (const id of ids) {
+      await StorageService.approveUserRegistration(id, adminName);
+    }
+    this.selectedUserIds.clear();
+    this.showToast(`🎉 Đã phê duyệt kích hoạt thành công ${ids.length} tài khoản sinh viên!`, "success", 4000);
+    this.renderHeader();
+    await this.renderUsersManagementView(document.getElementById("mainContent"));
+  },
+
+  // Thao tác hàng loạt: Từ chối hồ sơ đăng ký (Bulk Reject)
+  async bulkRejectPendingUsersAction() {
+    if (!this.selectedUserIds || this.selectedUserIds.size === 0) {
+      this.showToast("⚠️ Vui lòng tích chọn ít nhất 1 hồ sơ!", "warning");
+      return;
+    }
+    const ids = Array.from(this.selectedUserIds);
+    this.showConfirmDialog({
+      title: "Xác nhận từ chối hàng loạt",
+      message: `Bạn có chắc chắn muốn TỪ CHỐI <strong>${ids.length}</strong> hồ sơ đăng ký đã chọn không?`,
+      icon: "⚠️",
+      confirmText: `Từ chối ${ids.length} hồ sơ`,
+      isDanger: true,
+      onConfirm: async () => {
+        for (const id of ids) {
+          await StorageService.rejectUserRegistration(id);
+        }
+        this.selectedUserIds.clear();
+        this.showToast(`Đã từ chối ${ids.length} hồ sơ đăng ký!`, "info", 3000);
+        this.renderHeader();
+        await this.renderUsersManagementView(document.getElementById("mainContent"));
+      }
+    });
+  },
+
+  // Thao tác hàng loạt: Khóa / Mở khóa tài khoản (Bulk Toggle Status)
+  bulkToggleUserStatusAction(targetStatus) {
+    if (!this.selectedUserIds || this.selectedUserIds.size === 0) {
+      this.showToast("⚠️ Vui lòng tích chọn ít nhất 1 thành viên!", "warning");
+      return;
+    }
+    const ids = Array.from(this.selectedUserIds);
+    const users = StorageService.getAllUsers();
+    let count = 0;
+    users.forEach(u => {
+      if (ids.includes(u.id)) {
+        u.status = targetStatus;
+        count++;
+      }
+    });
+    StorageService.saveAllUsers(users);
+    this.showToast(`✅ Đã ${targetStatus === 'suspended' ? 'tạm khóa' : 'mở khóa'} thành công ${count} tài khoản!`, "success", 3000);
+    this.renderUsersManagementView(document.getElementById("mainContent"));
+  },
+
+  // Thao tác hàng loạt: Xóa tài khoản (Bulk Delete Users)
+  bulkDeleteUsersConfirm() {
+    if (!this.selectedUserIds || this.selectedUserIds.size === 0) {
+      this.showToast("⚠️ Vui lòng tích chọn ít nhất 1 thành viên!", "warning");
+      return;
+    }
+    const ids = Array.from(this.selectedUserIds);
+    this.showConfirmDialog({
+      title: "Xác nhận xóa hàng loạt thành viên",
+      message: `Bạn có chắc chắn muốn XÓA VĨNH VIỄN <strong>${ids.length}</strong> tài khoản đã chọn khỏi hệ thống không? Dữ liệu không thể khôi phục!`,
+      icon: "🗑️",
+      confirmText: `Xóa ${ids.length} tài khoản`,
+      isDanger: true,
+      onConfirm: () => {
+        let users = StorageService.getAllUsers();
+        users = users.filter(u => !ids.includes(u.id));
+        StorageService.saveAllUsers(users);
+        this.selectedUserIds.clear();
+        this.showToast(`🗑️ Đã xóa ${ids.length} tài khoản thành công!`, "info", 3500);
+        this.renderUsersManagementView(document.getElementById("mainContent"));
+      }
+    });
+  },
+
+  // Thao tác hàng loạt: Kick thành viên khỏi nhóm (Bulk Kick)
+  openBulkKickModal() {
+    if (!this.selectedAdminMemberIds || this.selectedAdminMemberIds.size === 0) {
+      this.showToast("⚠️ Vui lòng tích chọn ít nhất 1 thành viên!", "warning");
+      return;
+    }
+    const count = this.selectedAdminMemberIds.size;
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = `👢 Loại (Kick) Hàng Loạt: ${count} Thành Viên`;
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-sm); padding: 12px 16px; font-size: 13px; color: #991b1b;">
+          <strong>⚠️ Chú ý:</strong> Bạn đang chuẩn bị Kick <strong>${count} thành viên</strong> đã chọn ra khỏi nhóm thi đua. Họ sẽ bị ẩn khỏi Bảng Xếp Hạng công khai.
+        </div>
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-weight: 700;">Lý do loại (Kick) hàng loạt (*):</label>
+          <textarea id="bulkKickReason" class="form-control" style="min-height: 80px;" placeholder="Nhập lý do chung (VD: Vi phạm nội quy, Đã tốt nghiệp, Hoạt động không hợp lệ)..."></textarea>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Hủy</button>
+      <button class="btn btn-danger" onclick="App.confirmBulkKickAction()">👢 Xác Nhận Kick ${count} Thành Viên</button>
+    `;
+
+    this.openModal();
+  },
+
+  confirmBulkKickAction() {
+    const reason = document.getElementById("bulkKickReason")?.value.trim();
+    if (!reason) {
+      this.showToast("⚠️ Vui lòng nhập lý do kick để ghi nhận kiểm toán và gửi thông báo!", "warning");
+      return;
+    }
+    const ids = Array.from(this.selectedAdminMemberIds);
+    const adminProfile = StorageService.getUserProfile();
+    const adminName = adminProfile.fullName || "Quản trị viên";
+
+    ids.forEach(id => {
+      try {
+        StorageService.kickUserFromGroup(id, reason, adminName);
+      } catch (e) {}
+    });
+
+    this.clearAdminMemberSelections();
+    this.closeModal();
+    this.showToast(`👢 Đã kick thành công ${ids.length} thành viên khỏi nhóm!`, "info", 4000);
+    this.renderLeaderboardAdminView(document.getElementById("mainContent"));
+  },
+
+  // Thao tác hàng loạt: Khôi phục thành viên (Bulk Reinstate)
+  bulkReinstateUsersAction() {
+    if (!this.selectedAdminMemberIds || this.selectedAdminMemberIds.size === 0) {
+      this.showToast("⚠️ Vui lòng tích chọn ít nhất 1 thành viên!", "warning");
+      return;
+    }
+    const ids = Array.from(this.selectedAdminMemberIds);
+    const adminProfile = StorageService.getUserProfile();
+    const adminName = adminProfile.fullName || "Quản trị viên";
+
+    ids.forEach(id => {
+      try {
+        StorageService.reinstateUserToGroup(id, adminName);
+      } catch (e) {}
+    });
+
+    this.clearAdminMemberSelections();
+    this.showToast(`♻️ Đã khôi phục thành công ${ids.length} thành viên vào nhóm!`, "success", 4000);
+    this.renderLeaderboardAdminView(document.getElementById("mainContent"));
+  },
+
+  // Thao tác hàng loạt: Reset điểm mùa này (Bulk Reset Points)
+  openBulkResetPointsModal() {
+    if (!this.selectedAdminMemberIds || this.selectedAdminMemberIds.size === 0) {
+      this.showToast("⚠️ Vui lòng tích chọn ít nhất 1 thành viên!", "warning");
+      return;
+    }
+    const count = this.selectedAdminMemberIds.size;
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = `🔄 Đặt Lại Điểm Hàng Loạt: ${count} Thành Viên`;
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-sm); padding: 12px 16px; font-size: 13px; color: #92400e;">
+          Bạn đang chọn đặt lại điểm số về 0 cho <strong>${count} thành viên</strong>.
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight: 700;">Loại Điểm (*):</label>
+            <select id="bulkResetType" class="form-control" style="font-weight: 600;">
+              <option value="all">💥 Cả Điểm EXP và CP</option>
+              <option value="exp">⚡ Chỉ Điểm EXP</option>
+              <option value="cp">🌟 Chỉ Điểm CP</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight: 700;">Phạm Vi (*):</label>
+            <select id="bulkResetScope" class="form-control" style="font-weight: 600;">
+              <option value="season" selected>🗓️ Chỉ Điểm Mùa Này (Bảo lưu All-Time)</option>
+              <option value="both">🌐 Cả Mùa Này & Điểm Tổng All-Time</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-weight: 700;">Lý do giải trình (*):</label>
+          <textarea id="bulkResetReason" class="form-control" style="min-height: 70px;" placeholder="Nhập lý do đặt lại điểm cho danh sách sinh viên..."></textarea>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Hủy</button>
+      <button class="btn btn-danger" onclick="App.confirmBulkResetPointsAction()">🔄 Xác Nhận Reset ${count} Thành Viên</button>
+    `;
+
+    this.openModal();
+  },
+
+  confirmBulkResetPointsAction() {
+    const type = document.getElementById("bulkResetType")?.value || "all";
+    const scope = document.getElementById("bulkResetScope")?.value || "season";
+    const reason = document.getElementById("bulkResetReason")?.value.trim();
+
+    if (!reason) {
+      this.showToast("⚠️ Vui lòng nhập lý do đặt lại điểm để gửi thông báo minh bạch!", "warning");
+      return;
+    }
+
+    const ids = Array.from(this.selectedAdminMemberIds);
+    const adminProfile = StorageService.getUserProfile();
+    const adminName = adminProfile.fullName || "Quản trị viên";
+
+    ids.forEach(id => {
+      try {
+        StorageService.resetUserPoints(id, type, scope, reason, adminName);
+      } catch (e) {}
+    });
+
+    this.clearAdminMemberSelections();
+    this.closeModal();
+    this.showToast(`✅ Đã đặt lại điểm của ${ids.length} thành viên thành công!`, "success", 4000);
+    this.renderLeaderboardAdminView(document.getElementById("mainContent"));
+  },
+
+  // Thao tác hàng loạt: Ẩn/Hiện BXH công khai (Bulk Toggle Hide)
+  bulkToggleHideLeaderboardAction() {
+    if (!this.selectedAdminMemberIds || this.selectedAdminMemberIds.size === 0) {
+      this.showToast("⚠️ Vui lòng tích chọn ít nhất 1 thành viên!", "warning");
+      return;
+    }
+    const ids = Array.from(this.selectedAdminMemberIds);
+    const settings = StorageService.getLeaderboardSettings();
+    let hiddenIds = settings.hiddenUserIds || [];
+
+    // Nếu tất cả đã ẩn -> mở hiện tất cả. Ngược lại -> ẩn tất cả.
+    const allHidden = ids.every(id => hiddenIds.includes(id));
+    if (allHidden) {
+      hiddenIds = hiddenIds.filter(id => !ids.includes(id));
+    } else {
+      ids.forEach(id => {
+        if (!hiddenIds.includes(id)) hiddenIds.push(id);
+      });
+    }
+
+    settings.hiddenUserIds = hiddenIds;
+    StorageService.saveLeaderboardSettings(settings);
+    this.showToast(`👁️ Đã ${allHidden ? 'mở hiện' : 'ẩn'} ${ids.length} thành viên trên BXH công khai!`, "success", 3000);
+    this.renderLeaderboardAdminView(document.getElementById("mainContent"));
+  },
+
+  // Universal Bulk Modal: Điều Chỉnh Điểm Hàng Loạt (Bulk Adjust Points)
+  openBulkAdjustPointsModal(source = 'users') {
+    const idSet = (source === 'leaderboard') ? this.selectedAdminMemberIds : this.selectedUserIds;
+    if (!idSet || idSet.size === 0) {
+      this.showToast("⚠️ Vui lòng tích chọn ít nhất 1 thành viên!", "warning");
+      return;
+    }
+    const count = idSet.size;
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = `⚡/🌟 Điều Chỉnh Điểm Chung: ${count} Thành Viên`;
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 12px 16px; font-size: 13px; color: #166534;">
+          Bạn đang áp dụng cộng / trừ điểm hàng loạt cho <strong>${count} thành viên</strong> đã chọn.
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight: 700;">Loại Điểm (*):</label>
+            <select id="bulkAdjustPointType" class="form-control" style="font-weight: 600;">
+              <option value="EXP">⚡ Điểm EXP Học Tập</option>
+              <option value="CP">🌟 Điểm Cống Hiến (CP)</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight: 700;">Số điểm (+ Cộng / - Trừ) (*):</label>
+            <input type="number" id="bulkAdjustPointAmount" class="form-control" placeholder="VD: 100 hoặc -50" style="font-weight: 700;">
+          </div>
+        </div>
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-weight: 700;">Phạm Vi Áp Dụng (*):</label>
+          <select id="bulkAdjustPointScope" class="form-control" style="font-weight: 600;">
+            <option value="both">🌐 Cả Điểm Mùa Này & Điểm Tổng All-Time</option>
+            <option value="season">🗓️ Chỉ Điểm Mùa Này</option>
+            <option value="all_time">👑 Chỉ Điểm Tổng All-Time</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-weight: 700;">Lý do điều chỉnh (*):</label>
+          <textarea id="bulkAdjustPointReason" class="form-control" style="min-height: 70px;" placeholder="Nhập lý do gửi thông báo chung cho các thành viên..."></textarea>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Hủy</button>
+      <button class="btn btn-primary" onclick="App.confirmBulkAdjustPointsAction('${source}')">💾 Áp Dụng Cho ${count} Thành Viên</button>
+    `;
+
+    this.openModal();
+  },
+
+  confirmBulkAdjustPointsAction(source = 'users') {
+    const type = document.getElementById("bulkAdjustPointType")?.value || "EXP";
+    const scope = document.getElementById("bulkAdjustPointScope")?.value || "both";
+    const amountVal = document.getElementById("bulkAdjustPointAmount")?.value.trim();
+    const reasonVal = document.getElementById("bulkAdjustPointReason")?.value.trim();
+
+    const amount = parseInt(amountVal, 10);
+    if (isNaN(amount) || amount === 0) {
+      this.showToast("⚠️ Vui lòng nhập số điểm điều chỉnh hợp lệ (khác 0)!", "warning");
+      return;
+    }
+    if (!reasonVal) {
+      this.showToast("⚠️ Vui lòng nhập lý do điều chỉnh để gửi thông báo!", "warning");
+      return;
+    }
+
+    const idSet = (source === 'leaderboard') ? this.selectedAdminMemberIds : this.selectedUserIds;
+    const ids = Array.from(idSet || []);
+    const adminProfile = StorageService.getUserProfile();
+    const adminName = adminProfile.fullName || "Quản trị viên";
+
+    ids.forEach(id => {
+      try {
+        StorageService.adminAdjustUserPoints(id, type, amount, scope, reasonVal, adminName);
+      } catch (e) {}
+    });
+
+    this.closeModal();
+    this.showToast(`✅ Đã điều chỉnh ${amount > 0 ? '+' : ''}${amount} ${type} cho ${ids.length} thành viên thành công!`, "success", 4000);
+
+    const main = document.getElementById("mainContent");
+    if (source === 'leaderboard') {
+      this.clearAdminMemberSelections();
+      this.renderLeaderboardAdminView(main);
+    } else {
+      this.clearUserSelections();
+      this.renderUsersManagementView(main);
+    }
+  },
+
+  // Universal Bulk Modal: Trao Huy Hiệu Hàng Loạt (Bulk Award Badge)
+  openBulkAwardBadgeModal(source = 'users') {
+    const idSet = (source === 'leaderboard') ? this.selectedAdminMemberIds : this.selectedUserIds;
+    if (!idSet || idSet.size === 0) {
+      this.showToast("⚠️ Vui lòng tích chọn ít nhất 1 thành viên!", "warning");
+      return;
+    }
+    const count = idSet.size;
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = `🎖️ Trao Huy Hiệu Hàng Loạt: ${count} Thành Viên`;
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #fdf4ff; border: 1px solid #f0abfc; border-radius: var(--radius-sm); padding: 12px 16px; font-size: 13px; color: #86198f;">
+          Trao danh hiệu / huy hiệu đặc biệt hiển thị trên Bảng Vàng và hồ sơ cho <strong>${count} thành viên</strong>.
+        </div>
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-weight: 700;">Gợi ý huy hiệu nhanh:</label>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;">
+            <button class="btn btn-sm" type="button" onclick="document.getElementById('bulkBadgeInput').value = '🎖️ Kiện Tướng Trắc Nghiệm'">🎖️ Kiện Tướng Trắc Nghiệm</button>
+            <button class="btn btn-sm" type="button" onclick="document.getElementById('bulkBadgeInput').value = '🌟 Đại Sứ Học Thuật DTHU'">🌟 Đại Sứ Học Thuật</button>
+            <button class="btn btn-sm" type="button" onclick="document.getElementById('bulkBadgeInput').value = '🚀 Thủ Khoa Ôn Luyện'">🚀 Thủ Khoa Ôn Luyện</button>
+            <button class="btn btn-sm" type="button" onclick="document.getElementById('bulkBadgeInput').value = '💎 Cống Hiến Vàng'">💎 Cống Hiến Vàng</button>
+          </div>
+          <input type="text" id="bulkBadgeInput" class="form-control" placeholder="Nhập text huy hiệu (hoặc để trống để gỡ bỏ huy hiệu)..." style="font-weight: 700;">
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Hủy</button>
+      <button class="btn btn-primary" onclick="App.confirmBulkAwardBadgeAction('${source}')">🎖️ Xác Nhận Trao Cho ${count} Thành Viên</button>
+    `;
+
+    this.openModal();
+  },
+
+  confirmBulkAwardBadgeAction(source = 'users') {
+    const badgeText = document.getElementById("bulkBadgeInput")?.value.trim();
+    const idSet = (source === 'leaderboard') ? this.selectedAdminMemberIds : this.selectedUserIds;
+    const ids = Array.from(idSet || []);
+    const adminProfile = StorageService.getUserProfile();
+    const adminName = adminProfile.fullName || "Quản trị viên";
+
+    ids.forEach(id => {
+      try {
+        StorageService.setCustomUserBadge(id, badgeText, adminName);
+      } catch (e) {}
+    });
+
+    this.closeModal();
+    this.showToast(`🎖️ Đã ${badgeText ? `trao huy hiệu "${badgeText}"` : 'gỡ bỏ huy hiệu'} cho ${ids.length} thành viên thành công!`, "success", 4000);
+
+    const main = document.getElementById("mainContent");
+    if (source === 'leaderboard') {
+      this.clearAdminMemberSelections();
+      this.renderLeaderboardAdminView(main);
+    } else {
+      this.clearUserSelections();
+      this.renderUsersManagementView(main);
     }
   },
 
