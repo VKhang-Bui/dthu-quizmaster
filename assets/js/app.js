@@ -4262,14 +4262,17 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     const profile = StorageService.getUserProfile();
     const isAdmin = isLogged && (profile.role === "admin" || StorageService.hasPermission("canManageUsers"));
     const settings = StorageService.getLeaderboardSettings();
-    const stats = StorageService.getLeaderboardStats();
 
     if (!this.leaderboardTab) this.leaderboardTab = "exp";
+    if (!this.leaderboardScope) this.leaderboardScope = "season"; // 'season' | 'all_time'
     if (!this.leaderboardDept) this.leaderboardDept = "all";
     if (this.leaderboardSearch === undefined) this.leaderboardSearch = "";
 
     const activeTab = this.leaderboardTab;
+    const activeScope = this.leaderboardScope;
     const isCp = (activeTab === "cp");
+    const isSeason = (activeScope === "season");
+    const stats = StorageService.getLeaderboardStats(activeScope);
 
     // Lấy danh sách tất cả các khoa ngành duy nhất
     const allUsers = StorageService.getAllUsers();
@@ -4277,6 +4280,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
 
     // Lấy dữ liệu bảng xếp hạng công khai (không bao gồm tài khoản bị ẩn)
     const leaderboard = StorageService.getLeaderboardData(activeTab, {
+      scope: activeScope,
       department: this.leaderboardDept,
       search: this.leaderboardSearch,
       includeHidden: false
@@ -4306,6 +4310,16 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
           <p style="color: var(--text-secondary); margin-top: 6px; font-size: 13.5px; max-width: 680px; margin-left: auto; margin-right: auto;">
             Tôn vinh sinh viên có thành tích rèn luyện thi thử xuất sắc và đóng góp xây dựng ngân hàng tài liệu học tập toàn diện cho trường Đại học Đồng Tháp.
           </p>
+
+          <!-- Bộ Chọn Phạm Vi: Mùa Giải Hiện Tại vs Tổng Các Mùa (All-Time) -->
+          <div style="display: inline-flex; background: var(--surface-subtle); padding: 4px; border-radius: 24px; border: 1px solid var(--border); margin-top: 10px; gap: 4px;">
+            <button class="btn btn-sm ${isSeason ? 'btn-primary' : ''}" style="border-radius: 20px; font-size: 12.5px; font-weight: 700; padding: 5px 14px;" onclick="App.leaderboardScope = 'season'; App.renderLeaderboardView(document.getElementById('mainContent'));">
+              🗓️ Điểm Mùa Này (${settings.seasonName || 'Mùa Hiện Tại'})
+            </button>
+            <button class="btn btn-sm ${!isSeason ? 'btn-primary' : ''}" style="border-radius: 20px; font-size: 12.5px; font-weight: 700; padding: 5px 14px;" onclick="App.leaderboardScope = 'all_time'; App.renderLeaderboardView(document.getElementById('mainContent'));">
+              👑 Điểm Tổng Các Mùa (All-Time)
+            </button>
+          </div>
         </div>
 
         <!-- 📊 Ruy-băng Thống Kê Tổng Quan Toàn Trường -->
@@ -4321,14 +4335,14 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
             <div class="leaderboard-stat-icon" style="color: #b45309;">⚡</div>
             <div>
               <div class="leaderboard-stat-num" style="color: #b45309;">${stats.totalExp.toLocaleString()}</div>
-              <div class="leaderboard-stat-label">Tổng EXP tích lũy</div>
+              <div class="leaderboard-stat-label">Tổng EXP (${isSeason ? 'Mùa này' : 'All-Time'})</div>
             </div>
           </div>
           <div class="leaderboard-stat-item">
             <div class="leaderboard-stat-icon" style="color: #15803d;">🌟</div>
             <div>
               <div class="leaderboard-stat-num" style="color: #15803d;">${stats.totalCp.toLocaleString()}</div>
-              <div class="leaderboard-stat-label">Tổng CP cống hiến</div>
+              <div class="leaderboard-stat-label">Tổng CP (${isSeason ? 'Mùa này' : 'All-Time'})</div>
             </div>
           </div>
           <div class="leaderboard-stat-item">
@@ -4424,7 +4438,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                 <th>Sinh viên</th>
                 <th>Khoa / Ngành</th>
                 <th style="text-align: center;">${isCp ? 'Sản lượng cống hiến' : 'Số bài thi'}</th>
-                <th style="text-align: right;">${isCp ? 'Điểm Cống Hiến' : 'Điểm EXP'}</th>
+                <th style="text-align: right;">${isCp ? `Điểm CP (${isSeason ? 'Mùa này' : 'All-Time'})` : `Điểm EXP (${isSeason ? 'Mùa này' : 'All-Time'})`}</th>
                 <th style="text-align: center;">Danh hiệu / Huy hiệu</th>
               </tr>
             </thead>
@@ -4444,7 +4458,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                   <td>
                     <div>
                       <strong>${item.name}</strong>
-                      <div style="font-size: 11.5px; color: var(--text-tertiary);">MSSV: ${item.studentId || 'Chưa cập nhật'}</div>
+                      <div style="font-size: 11.5px; color: var(--text-tertiary);">MSSV: ${item.studentId || 'Chưa cập nhật'} · Lớp: ${item.className || 'Chưa cập nhật'}</div>
                     </div>
                   </td>
                   <td style="color: var(--text-secondary); font-size: 13px;">${item.department}</td>
@@ -4494,6 +4508,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
 
     if (!this.adminLeaderboardTab) this.adminLeaderboardTab = "settings";
     if (!this.adminMemberDept) this.adminMemberDept = "all";
+    if (!this.adminMemberStatus) this.adminMemberStatus = "all";
     if (this.adminMemberSearch === undefined) this.adminMemberSearch = "";
     if (this.adminMemberOnlyHidden === undefined) this.adminMemberOnlyHidden = false;
 
@@ -4504,7 +4519,15 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     const hiddenIds = settings.hiddenUserIds || [];
 
     // Lọc danh sách thành viên cho Tab Quản Trị Thành Viên
-    let memberList = allUsers.filter(u => u.status === "active");
+    let memberList = allUsers;
+    if (this.adminMemberStatus === "active") {
+      memberList = memberList.filter(u => u.status === "active");
+    } else if (this.adminMemberStatus === "kicked") {
+      memberList = memberList.filter(u => u.status === "kicked" || u.status === "suspended");
+    } else if (this.adminMemberStatus === "pending_approval") {
+      memberList = memberList.filter(u => u.status === "pending_approval");
+    }
+
     if (this.adminMemberOnlyHidden) {
       memberList = memberList.filter(u => hiddenIds.includes(u.id));
     }
@@ -4529,7 +4552,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
               <span>👑</span> <span>TRUNG TÂM QUẢN TRỊ ADMIN</span>
             </div>
             <h2 style="font-size: 24px; font-weight: 800; color: var(--text-primary); margin: 0;">Quản Trị Bảng Xếp Hạng & Mùa Giải Thi Đua</h2>
-            <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Toàn quyền cấu hình mùa giải, danh hiệu, lưu trữ lịch sử và quản lý hiển thị thành viên.</div>
+            <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Toàn quyền cấu hình mùa giải, danh hiệu, kick/khôi phục thành viên, reset điểm và lưu trữ lịch sử.</div>
           </div>
           <button class="btn btn-sm" onclick="App.navigateTo('leaderboard')">
             👁️ Xem Bảng Xếp Hạng Công Khai ➔
@@ -4594,9 +4617,9 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
               </div>
             </div>
           ` : this.adminLeaderboardTab === 'members' ? `
-            <!-- TAB 2: QUẢN TRỊ THÀNH VIÊN & THAO TÁC TRỰC TIẾP -->
+            <!-- TAB 2: QUẢN TRỊ THÀNH VIÊN, LỌC TRẠNG THÁI NHÓM & THAO TÁC CAO CẤP -->
             <div>
-              <!-- Toolbar Lọc & Tìm Kiếm & Xuất CSV -->
+              <!-- Toolbar Lọc Trạng Thái Nhóm, Tìm Kiếm & Xuất CSV -->
               <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 18px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
                 <div style="display: flex; gap: 10px; flex: 1; min-width: 280px; flex-wrap: wrap; align-items: center;">
                   <div class="search-input-wrapper" style="flex: 1; min-width: 180px;">
@@ -4607,9 +4630,15 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                     <option value="all" ${this.adminMemberDept === 'all' ? 'selected' : ''}>🏛️ Tất cả Khoa / Viện</option>
                     ${departments.map(d => `<option value="${d}" ${this.adminMemberDept === d ? 'selected' : ''}>${d}</option>`).join('')}
                   </select>
+                  <select class="form-control" style="width: auto; min-width: 170px;" onchange="App.adminMemberStatus = this.value; App.renderLeaderboardAdminView(document.getElementById('mainContent'));">
+                    <option value="all" ${this.adminMemberStatus === 'all' ? 'selected' : ''}>👥 Tất cả Trạng Thái</option>
+                    <option value="active" ${this.adminMemberStatus === 'active' ? 'selected' : ''}>🟢 Đang trong nhóm (Active)</option>
+                    <option value="kicked" ${this.adminMemberStatus === 'kicked' ? 'selected' : ''}>🔴 Đã bị Kick / Khóa (Kicked)</option>
+                    <option value="pending_approval" ${this.adminMemberStatus === 'pending_approval' ? 'selected' : ''}>🟡 Chờ duyệt (Pending)</option>
+                  </select>
                   <label style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-primary); cursor: pointer; background: var(--surface-subtle); padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
                     <input type="checkbox" ${this.adminMemberOnlyHidden ? 'checked' : ''} onchange="App.adminMemberOnlyHidden = this.checked; App.renderLeaderboardAdminView(document.getElementById('mainContent'));">
-                    <span>Chỉ hiện tài khoản bị ẩn (${hiddenIds.length})</span>
+                    <span>Chỉ hiện tài khoản ẩn BXH (${hiddenIds.length})</span>
                   </label>
                 </div>
 
@@ -4623,13 +4652,13 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                 <table class="leaderboard-table">
                   <thead>
                     <tr>
-                      <th>Sinh viên</th>
+                      <th>Sinh viên & Trạng thái nhóm</th>
                       <th>Khoa / Ngành</th>
-                      <th style="text-align: right;">Điểm EXP</th>
-                      <th style="text-align: right;">Điểm CP</th>
+                      <th style="text-align: right;">⚡ EXP (Mùa / Tổng)</th>
+                      <th style="text-align: right;">🌟 CP (Mùa / Tổng)</th>
                       <th style="text-align: center;">Trạng thái BXH</th>
-                      <th style="text-align: center;">Huy hiệu đặc cách</th>
-                      <th style="text-align: right; width: 220px;">Thao Tác Admin</th>
+                      <th style="text-align: center;">Huy hiệu</th>
+                      <th style="text-align: right; min-width: 260px;">Thao Tác Admin</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -4642,18 +4671,37 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                     ` : memberList.map(u => {
                       const isHidden = hiddenIds.includes(u.id);
                       const customBadge = (settings.customBadges && settings.customBadges[u.id]) || null;
+                      const isKicked = (u.status === "kicked" || u.status === "suspended");
+                      const isPending = (u.status === "pending_approval");
+                      const seasonExpVal = typeof u.seasonExp === "number" ? u.seasonExp : (u.totalExp || 0);
+                      const seasonCpVal = typeof u.seasonCp === "number" ? u.seasonCp : (u.contributionPoints || 0);
+
                       return `
-                        <tr>
+                        <tr style="${isKicked ? 'background:#fff1f2; opacity:0.85;' : ''}">
                           <td>
-                            <strong>${u.fullName}</strong>
-                            <div style="font-size: 11.5px; color: var(--text-tertiary);">MSSV: ${u.studentId || 'Chưa cập nhật'} · Lớp: ${u.className || 'Chưa cập nhật'}</div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                              <div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                  <strong>${u.fullName}</strong>
+                                  ${isKicked ? `<span class="badge" style="background:#fee2e2; color:#b91c1c; font-size:10.5px; font-weight:800;">🔴 Đã bị Kick</span>` : isPending ? `<span class="badge" style="background:#fef3c7; color:#b45309; font-size:10.5px;">🟡 Chờ duyệt</span>` : `<span class="badge" style="background:#dcfce7; color:#15803d; font-size:10.5px;">🟢 Đang trong nhóm</span>`}
+                                </div>
+                                <div style="font-size: 11.5px; color: var(--text-tertiary);">MSSV: ${u.studentId || 'Chưa cập nhật'} · Lớp: ${u.className || 'Chưa cập nhật'}</div>
+                                ${u.kickedReason ? `<div style="font-size: 11px; color: #b91c1c; margin-top: 2px;">⚠️ Lý do kick: <em>"${u.kickedReason}"</em></div>` : ''}
+                              </div>
+                            </div>
                           </td>
                           <td style="font-size: 13px; color: var(--text-secondary);">${u.department || 'ĐH Đồng Tháp'}</td>
-                          <td style="text-align: right; font-weight: 800; color: #b45309;">⚡ ${(u.totalExp || 0).toLocaleString()}</td>
-                          <td style="text-align: right; font-weight: 800; color: #15803d;">🌟 ${(u.contributionPoints || 0).toLocaleString()}</td>
+                          <td style="text-align: right; font-weight: 800; color: #b45309;">
+                            <div>⚡ ${seasonExpVal.toLocaleString()}</div>
+                            <div style="font-size: 11px; color: var(--text-tertiary); font-weight: 500;">Tổng: ${(u.totalExp || 0).toLocaleString()}</div>
+                          </td>
+                          <td style="text-align: right; font-weight: 800; color: #15803d;">
+                            <div>🌟 ${seasonCpVal.toLocaleString()}</div>
+                            <div style="font-size: 11px; color: var(--text-tertiary); font-weight: 500;">Tổng: ${(u.contributionPoints || 0).toLocaleString()}</div>
+                          </td>
                           <td style="text-align: center;">
                             ${isHidden ? `
-                              <span class="badge" style="background:#fee2e2; color:#b91c1c; font-weight:700;">🔴 Đã Ẩn BXH</span>
+                              <span class="badge" style="background:#fee2e2; color:#b91c1c; font-weight:700;">🔴 Đã Ẩn</span>
                             ` : `
                               <span class="badge badge-success">🟢 Đang Hiện</span>
                             `}
@@ -4663,14 +4711,26 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                           </td>
                           <td style="text-align: right;">
                             <div style="display: inline-flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end;">
-                              <button class="btn btn-sm" style="padding: 3px 8px; font-size: 11.5px;" onclick="App.toggleHideUserFromLeaderboardAdminAction('${u.id}')">
-                                ${isHidden ? '👁️ Cho Hiện' : '👁️ Ẩn Đi'}
+                              ${isKicked ? `
+                                <button class="btn btn-sm" style="padding: 3px 8px; font-size: 11.5px; background:#dcfce7; color:#15803d; border-color:#86efac; font-weight:700;" onclick="App.confirmReinstateUserAction('${u.id}')" title="Khôi phục thành viên vào nhóm">
+                                  ♻️ Khôi Phục
+                                </button>
+                              ` : `
+                                <button class="btn btn-sm" style="padding: 3px 8px; font-size: 11.5px; background:#fee2e2; color:#b91c1c; border-color:#fca5a5;" onclick="App.openKickUserModal('${u.id}')" title="Loại (Kick) thành viên khỏi nhóm">
+                                  👢 Kick
+                                </button>
+                              `}
+                              <button class="btn btn-sm" style="padding: 3px 8px; font-size: 11.5px; background:#f1f5f9; color:#334155; border-color:#cbd5e1;" onclick="App.openResetUserPointsModal('${u.id}')" title="Đặt lại điểm số thành viên về 0">
+                                🔄 Reset Điểm
                               </button>
-                              <button class="btn btn-sm" style="padding: 3px 8px; font-size: 11.5px; background:#fdf4ff; color:#86198f; border-color:#f0abfc;" onclick="App.openAwardBadgeModal('${u.id}')">
+                              <button class="btn btn-sm" style="padding: 3px 8px; font-size: 11.5px; background:#fdf4ff; color:#86198f; border-color:#f0abfc;" onclick="App.openAwardBadgeModal('${u.id}')" title="Trao danh hiệu / huy hiệu đặc cách">
                                 🎖️ Huy Hiệu
                               </button>
-                              <button class="btn btn-sm" style="padding: 3px 8px; font-size: 11.5px; background:#fef3c7; color:#b45309; border-color:#fde68a;" onclick="App.openAdminAdjustPointsModal('${u.id}')">
+                              <button class="btn btn-sm" style="padding: 3px 8px; font-size: 11.5px; background:#fef3c7; color:#b45309; border-color:#fde68a;" onclick="App.openAdminAdjustPointsModal('${u.id}')" title="Cộng / trừ điểm trực tiếp">
                                 ⚡ Điểm
+                              </button>
+                              <button class="btn btn-sm" style="padding: 3px 8px; font-size: 11.5px;" onclick="App.toggleHideUserFromLeaderboardAdminAction('${u.id}')" title="Ẩn/Hiện trên BXH công khai">
+                                ${isHidden ? '👁️ Hiện' : '👁️ Ẩn'}
                               </button>
                             </div>
                           </td>
@@ -4749,9 +4809,16 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                 </ul>
               </div>
 
-              <div class="form-group" style="margin-bottom: 20px;">
+              <div class="form-group" style="margin-bottom: 16px;">
                 <label class="form-label" style="font-weight: 700;">Tên Mùa Giải Mới (*):</label>
                 <input type="text" id="adminNewSeasonNameInput" class="form-control" placeholder="Ví dụ: Học Kỳ 2 (2026 - 2027) hoặc Cuộc Thi Mùa Thu 2026">
+              </div>
+
+              <div class="form-group" style="margin-bottom: 20px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; color: var(--text-primary); cursor: pointer;">
+                  <input type="checkbox" id="adminResetSeasonPointsCheckbox" checked style="width: 16px; height: 16px;">
+                  <span>Đặt lại (Reset) Điểm Mùa Này của toàn bộ sinh viên về 0 để mở chặng đua mới (Điểm Tổng All-Time vẫn được bảo lưu 100%)</span>
+                </label>
               </div>
 
               <button class="btn btn-danger" onclick="App.confirmAdminStartNewSeasonAction()">
@@ -4799,8 +4866,9 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       return;
     }
 
+    const shouldReset = document.getElementById("adminResetSeasonPointsCheckbox")?.checked ?? true;
     const adminProfile = StorageService.getUserProfile();
-    StorageService.startNewSeason(sName, adminProfile.fullName || "Admin");
+    StorageService.startNewSeason(sName, adminProfile.fullName || "Admin", shouldReset);
 
     this.showToast(`🎉 Đã mở mùa giải mới "${sName}" và lưu trữ mùa cũ thành công!`, "success", 4000);
     this.adminLeaderboardTab = "settings";
@@ -5863,15 +5931,22 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     const body = document.getElementById("modalBody");
     const footer = document.getElementById("modalFooter");
 
+    const seasonExpVal = typeof user.seasonExp === "number" ? user.seasonExp : (user.totalExp || 0);
+    const seasonCpVal = typeof user.seasonCp === "number" ? user.seasonCp : (user.contributionPoints || 0);
+
     title.textContent = `⚡/🌟 Điều Chỉnh Điểm: ${user.fullName}`;
 
     body.innerHTML = `
       <div style="display: flex; flex-direction: column; gap: 14px;">
         <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 16px; font-size: 13px;">
-          <div>👤 Sinh viên: <strong>${user.fullName}</strong> (MSSV: <code>${user.studentId}</code>)</div>
-          <div style="display: flex; gap: 16px; margin-top: 6px; font-weight: 700;">
-            <span style="color: #b45309;">⚡ EXP hiện tại: ${user.totalExp || 0}</span>
-            <span style="color: #15803d;">🌟 CP hiện tại: ${user.contributionPoints || 0}</span>
+          <div>👤 Sinh viên: <strong>${user.fullName}</strong> (MSSV: <code>${user.studentId}</code> · Lớp: <code>${user.className || 'N/A'}</code>)</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; font-size: 12.5px;">
+            <div style="background:#fffbeb; padding:6px 10px; border-radius:4px; border:1px solid #fde68a; color:#b45309;">
+              <strong>⚡ EXP Mùa Này:</strong> ${seasonExpVal.toLocaleString()} (Tổng: ${(user.totalExp || 0).toLocaleString()})
+            </div>
+            <div style="background:#f0fdf4; padding:6px 10px; border-radius:4px; border:1px solid #bbf7d0; color:#15803d;">
+              <strong>🌟 CP Mùa Này:</strong> ${seasonCpVal.toLocaleString()} (Tổng: ${(user.contributionPoints || 0).toLocaleString()})
+            </div>
           </div>
         </div>
 
@@ -5890,8 +5965,17 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
         </div>
 
         <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-weight: 700;">Phạm Vi Áp Dụng (*):</label>
+          <select id="adjustPointScope" class="form-control" style="font-weight: 600;">
+            <option value="both">🌐 Cả Điểm Mùa Này & Điểm Tổng All-Time (Khuyến nghị)</option>
+            <option value="season">🗓️ Chỉ Điểm Mùa Này</option>
+            <option value="all_time">👑 Chỉ Điểm Tổng All-Time</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin: 0;">
           <label class="form-label" style="font-weight: 700;">Lý do điều chỉnh (Bắt buộc để gửi thông báo minh bạch) (*):</label>
-          <textarea id="adjustPointReason" class="form-control" style="min-height: 80px;" placeholder="Nhập lý do cụ thể (VD: Thưởng thành tích top 1 thi thử tuần 3, hoặc Hiệu chỉnh do lỗi câu hỏi)..."></textarea>
+          <textarea id="adjustPointReason" class="form-control" style="min-height: 75px;" placeholder="Nhập lý do cụ thể (VD: Thưởng thành tích xuất sắc, hoặc Hiệu chỉnh kiểm toán điểm)..."></textarea>
         </div>
       </div>
     `;
@@ -5906,6 +5990,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
 
   saveAdminAdjustPoints(userId) {
     const type = document.getElementById("adjustPointType")?.value || "EXP";
+    const scope = document.getElementById("adjustPointScope")?.value || "both";
     const amountVal = document.getElementById("adjustPointAmount")?.value.trim();
     const reasonVal = document.getElementById("adjustPointReason")?.value.trim();
 
@@ -5924,12 +6009,176 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     const adminName = adminProfile.fullName || "Quản trị viên";
 
     try {
-      StorageService.adminAdjustUserPoints(userId, type, amount, reasonVal, adminName);
+      StorageService.adminAdjustUserPoints(userId, type, amount, scope, reasonVal, adminName);
       this.closeModal();
       this.showToast(`✅ Đã điều chỉnh ${amount > 0 ? '+' : ''}${amount} ${type} cho sinh viên thành công!`, "success", 4000);
-      this.renderUsersManagementView(document.getElementById("mainContent"));
+      
+      const main = document.getElementById("mainContent");
+      if (document.querySelector(".view-admin-leaderboard")) {
+        this.renderLeaderboardAdminView(main);
+      } else {
+        this.renderUsersManagementView(main);
+      }
     } catch (e) {
       this.showToast("❌ " + e.message, "danger", 3500);
+    }
+  },
+
+  openResetUserPointsModal(userId) {
+    const user = StorageService.getUserById(userId);
+    if (!user) return;
+
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    const seasonExpVal = typeof user.seasonExp === "number" ? user.seasonExp : (user.totalExp || 0);
+    const seasonCpVal = typeof user.seasonCp === "number" ? user.seasonCp : (user.contributionPoints || 0);
+
+    title.textContent = `🔄 Đặt Lại (Reset) Điểm: ${user.fullName}`;
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-sm); padding: 12px 16px; font-size: 13px; color: #991b1b;">
+          <div>👤 Sinh viên: <strong>${user.fullName}</strong> (MSSV: <code>${user.studentId}</code> · Lớp: <code>${user.className || 'N/A'}</code>)</div>
+          <div style="display: flex; gap: 16px; margin-top: 6px; font-weight: 700;">
+            <span>⚡ EXP Mùa: ${seasonExpVal} (Tổng: ${user.totalExp || 0})</span>
+            <span>🌟 CP Mùa: ${seasonCpVal} (Tổng: ${user.contributionPoints || 0})</span>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight: 700;">Loại Điểm Muốn Reset (*):</label>
+            <select id="resetUserPointType" class="form-control" style="font-weight: 600;">
+              <option value="all">💥 Reset Toàn Bộ (Cả EXP và CP)</option>
+              <option value="exp">⚡ Chỉ Reset Điểm EXP Học Tập</option>
+              <option value="cp">🌟 Chỉ Reset Điểm CP Cống Hiến</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight: 700;">Phạm Vi Reset (*):</label>
+            <select id="resetUserPointScope" class="form-control" style="font-weight: 600;">
+              <option value="season">🗓️ Chỉ Reset Điểm Mùa Này</option>
+              <option value="both">🌐 Reset Cả Mùa Này & Điểm Tổng All-Time</option>
+              <option value="all_time">👑 Chỉ Reset Điểm Tổng All-Time</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-weight: 700;">Lý do đặt lại điểm (Bắt buộc để gửi thông báo giải trình) (*):</label>
+          <textarea id="resetUserPointReason" class="form-control" style="min-height: 75px;" placeholder="Nhập lý do cụ thể (VD: Thành viên có nguyện vọng reset điểm để thi lại từ đầu, hoặc Xử lý vi phạm)..."></textarea>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Hủy</button>
+      <button class="btn btn-danger" onclick="App.saveResetUserPointsAction('${user.id}')">🔄 Xác Nhận Đặt Lại Điểm</button>
+    `;
+
+    this.openModal();
+  },
+
+  saveResetUserPointsAction(userId) {
+    const resetType = document.getElementById("resetUserPointType")?.value || "all";
+    const scope = document.getElementById("resetUserPointScope")?.value || "season";
+    const reasonVal = document.getElementById("resetUserPointReason")?.value.trim();
+
+    if (!reasonVal) {
+      this.showToast("⚠️ Vui lòng nhập lý do đặt lại điểm để gửi thông báo giải trình cho sinh viên!", "warning");
+      return;
+    }
+
+    const adminProfile = StorageService.getUserProfile();
+    const adminName = adminProfile.fullName || "Quản trị viên";
+
+    try {
+      StorageService.resetUserPoints(userId, resetType, scope, reasonVal, adminName);
+      this.closeModal();
+      this.showToast("✅ Đã đặt lại điểm của thành viên về 0 và gửi thông báo thành công!", "success", 4000);
+
+      const main = document.getElementById("mainContent");
+      if (document.querySelector(".view-admin-leaderboard")) {
+        this.renderLeaderboardAdminView(main);
+      } else {
+        this.renderUsersManagementView(main);
+      }
+    } catch (e) {
+      this.showToast("❌ " + e.message, "danger", 3500);
+    }
+  },
+
+  openKickUserModal(userId) {
+    const user = StorageService.getUserById(userId);
+    if (!user) return;
+
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = `👢 Loại (Kick) Thành Viên: ${user.fullName}`;
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-sm); padding: 12px 16px; font-size: 13px; color: #991b1b;">
+          <div>⚠️ Bạn đang thao tác loại thành viên <strong>${user.fullName}</strong> (MSSV: <code>${user.studentId}</code> · Lớp: <code>${user.className || 'N/A'}</code>) khỏi nhóm học tập.</div>
+          <div style="margin-top: 6px; font-size: 12px;">Tài khoản này sẽ bị chuyển sang trạng thái <strong>Đã bị Kick</strong>, bị ẩn khỏi Bảng Xếp Hạng và tạm ngưng thi thử.</div>
+        </div>
+
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-weight: 700;">Lý do loại khỏi nhóm (Bắt buộc để gửi thông báo chính thức) (*):</label>
+          <textarea id="kickUserReason" class="form-control" style="min-height: 80px;" placeholder="Nhập lý do cụ thể (VD: Vi phạm quy chế thi cử, spam đề thi, hoặc không còn thuộc danh sách lớp)..."></textarea>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Hủy</button>
+      <button class="btn btn-danger" onclick="App.confirmKickUserAction('${user.id}')">👢 Xác Nhận Kick Khỏi Nhóm</button>
+    `;
+
+    this.openModal();
+  },
+
+  confirmKickUserAction(userId) {
+    const reasonVal = document.getElementById("kickUserReason")?.value.trim();
+    if (!reasonVal) {
+      this.showToast("⚠️ Vui lòng nhập lý do kick để gửi thông báo chính thức!", "warning");
+      return;
+    }
+
+    const adminProfile = StorageService.getUserProfile();
+    const adminName = adminProfile.fullName || "Quản trị viên";
+
+    try {
+      StorageService.kickUserFromGroup(userId, reasonVal, adminName);
+      this.closeModal();
+      this.showToast("✅ Đã loại thành viên khỏi nhóm và gửi thông báo kỷ luật thành công!", "success", 4000);
+      this.renderLeaderboardAdminView(document.getElementById("mainContent"));
+    } catch (e) {
+      this.showToast("❌ " + e.message, "danger", 3500);
+    }
+  },
+
+  confirmReinstateUserAction(userId) {
+    const user = StorageService.getUserById(userId);
+    if (!user) return;
+
+    const adminProfile = StorageService.getUserProfile();
+    const adminName = adminProfile.fullName || "Quản trị viên";
+
+    if (confirm(`Bạn có chắc chắn muốn KHÔI PHỤC thành viên "${user.fullName}" (MSSV: ${user.studentId}) trở lại nhóm học tập và mở lại trên Bảng Xếp Hạng không?`)) {
+      try {
+        StorageService.reinstateUserToGroup(userId, adminName);
+        this.showToast(`🎉 Đã khôi phục thành viên "${user.fullName}" vào nhóm thành công!`, "success", 3500);
+        this.renderLeaderboardAdminView(document.getElementById("mainContent"));
+      } catch (e) {
+        this.showToast("❌ " + e.message, "danger", 3500);
+      }
     }
   },
 
@@ -8134,7 +8383,7 @@ D. Chức năng tâm lý</div>
         <div class="guide-section">
           <h3>⚡ 4. Hệ Thống Điểm Thưởng: EXP Học Tập & CP Cống Hiến Sản Lượng</h3>
           <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 16px;">
-            DThu QuizMaster áp dụng hệ thống phân định điểm số kép chặt chẽ, minh bạch và hoàn toàn dựa trên sản lượng thực tế:
+            DThu QuizMaster áp dụng hệ thống phân định điểm số kép chặt chẽ, minh bạch và tách bạch rõ ràng giữa <strong>Điểm Mùa Này</strong> và <strong>Điểm Tổng Các Mùa (All-Time)</strong>:
           </p>
 
           <div class="guide-step-item">
@@ -8167,6 +8416,17 @@ D. Chức năng tâm lý</div>
               </ul>
             </div>
           </div>
+
+          <div class="guide-step-item">
+            <div class="guide-step-num" style="background:#e0f2fe; color:#0369a1; border-color:#7dd3fc;">🗓️</div>
+            <div>
+              <strong>Điểm Mùa Này vs Điểm Tổng Các Mùa (All-Time):</strong>
+              <p style="font-size: 13.5px; margin-top: 4px;">
+                - <strong>Điểm Mùa Này (Season Points):</strong> Phản ánh thành tích thi đua trong học kỳ / mùa giải hiện tại. Khi khởi động mùa mới, điểm này có thể được đặt lại về 0 để mở chặng đua mới.<br>
+                - <strong>Điểm Tổng Các Mùa (All-Time):</strong> Điểm tích lũy trọn đời không bao giờ bị mất, ghi nhận toàn bộ thâm niên và đóng góp của sinh viên từ ngày đầu tham gia.
+              </p>
+            </div>
+          </div>
         </div>
 
         <!-- Section 5: Bảng Xếp Hạng & Vị Trí Của Tôi -->
@@ -8176,9 +8436,9 @@ D. Chức năng tâm lý</div>
           <div class="guide-step-item">
             <div class="guide-step-num">A</div>
             <div>
-              <strong>Chuyển đổi Top Học Tập (EXP) vs Top Cống Hiến (CP):</strong>
+              <strong>Chuyển đổi Top EXP / CP & Phạm vi Mùa này / All-Time:</strong>
               <p style="font-size: 13.5px; margin-top: 4px;">
-                Tại trang Bảng Xếp Hạng, bạn có thể dễ dàng chuyển đổi qua lại giữa 2 bảng thi đua để xem top sinh viên học chăm chỉ nhất hoặc top sinh viên đóng góp nhiều ngân hàng câu hỏi nhất.
+                Tại trang Bảng Xếp Hạng, bạn có thể dễ dàng chuyển đổi qua lại giữa <strong>⚡ Top Học Tập (EXP)</strong> và <strong>🌟 Top Cống Hiến (CP)</strong>, cũng như xem theo <strong>🗓️ Bảng Mùa Này</strong> hoặc <strong>👑 Bảng Tổng Các Mùa (All-Time)</strong>.
               </p>
             </div>
           </div>
@@ -8221,10 +8481,17 @@ D. Chức năng tâm lý</div>
           <div class="guide-step-item">
             <div class="guide-step-num">2</div>
             <div>
-              <strong>Trung Tâm Quản Trị Bảng Xếp Hạng & Mùa Giải:</strong>
+              <strong>Bộ Tính Năng Quản Trị Cao Cấp & Cơ Chế Thông Báo Tự Động 100%:</strong>
               <p style="font-size: 13.5px; margin-top: 4px;">
-                Quản trị viên có thể truy cập <strong>"👑 Quản Trị BXH & Mùa Giải"</strong> để cấu hình tên mùa thi đua, tùy biến danh hiệu Top 1/2/3, trao huy hiệu vinh danh đặc cách (Sinh viên 5 tốt, Chiến binh ôn thi...), đóng băng lưu trữ mùa cũ (Archive) và xuất file báo cáo thi đua CSV chuẩn hóa.
+                Tại <strong>"👑 Quản Trị BXH & Mùa Giải"</strong>, Quản trị viên được trang bị bộ công cụ kiểm toán toàn diện (mỗi thao tác đều bắt buộc nhập lý do và tự động gửi thông báo đến người dùng):
               </p>
+              <ul style="font-size: 13px; margin: 4px 0 0 0; padding-left: 18px; line-height: 1.6; color: var(--text-secondary);">
+                <li><strong>Lọc trạng thái nhóm</strong>: Xem nhanh thành viên <code>Đang trong nhóm</code>, <code>Đã bị Kick</code>, <code>Chờ duyệt</code>.</li>
+                <li><strong>👢 Kick / Khôi phục thành viên</strong>: Loại thành viên vi phạm khỏi nhóm (ẩn BXH, tạm ngưng thi) và khôi phục khi giải trình hợp lệ.</li>
+                <li><strong>🔄 Reset điểm cá nhân</strong>: Đặt lại điểm EXP hoặc CP về 0 (chọn phạm vi Mùa này hoặc All-Time) kèm lý do giải trình.</li>
+                <li><strong>⚡ Điều chỉnh điểm linh hoạt</strong>: Thưởng / phạt điểm trực tiếp với tùy chọn áp dụng cho Mùa này hoặc Toàn thời gian.</li>
+                <li><strong>🚀 Khởi động mùa mới</strong>: Tự động đóng băng kết quả mùa cũ vào Kho Lưu Trữ (Archives), tùy chọn reset điểm Mùa này về 0 và phát thông báo chúc mừng toàn trường.</li>
+              </ul>
             </div>
           </div>
         </div>

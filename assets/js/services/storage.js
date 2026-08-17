@@ -312,7 +312,9 @@ const StorageService = {
         canManageMaterials: true,
         canManageUsers: true
       },
+      seasonExp: 1000,
       totalExp: 1000,
+      seasonCp: 150,
       contributionPoints: 150,
       cumulativeQuestions: 150,
       cumulativeChars: 12000,
@@ -334,7 +336,9 @@ const StorageService = {
       avatar: "👩‍🎓",
       pinCode: "123456",
       permissions: { canApproveDrafts: false, canEditSubjects: false, canManageMaterials: false, canManageUsers: false },
+      seasonExp: 580,
       totalExp: 580,
+      seasonCp: 120,
       contributionPoints: 120,
       cumulativeQuestions: 1200,
       cumulativeChars: 45000,
@@ -356,7 +360,9 @@ const StorageService = {
       avatar: "👨‍🎓",
       pinCode: "123456",
       permissions: { canApproveDrafts: false, canEditSubjects: false, canManageMaterials: false, canManageUsers: false },
+      seasonExp: 420,
       totalExp: 420,
+      seasonCp: 85,
       contributionPoints: 85,
       cumulativeQuestions: 850,
       cumulativeChars: 25000,
@@ -378,7 +384,9 @@ const StorageService = {
       avatar: "👨‍💻",
       pinCode: "123456",
       permissions: { canApproveDrafts: false, canEditSubjects: false, canManageMaterials: false, canManageUsers: false },
+      seasonExp: 350,
       totalExp: 350,
+      seasonCp: 60,
       contributionPoints: 60,
       cumulativeQuestions: 600,
       cumulativeChars: 18000,
@@ -400,7 +408,9 @@ const StorageService = {
       avatar: "👩‍💼",
       pinCode: "123456",
       permissions: { canApproveDrafts: false, canEditSubjects: false, canManageMaterials: false, canManageUsers: false },
+      seasonExp: 290,
       totalExp: 290,
+      seasonCp: 45,
       contributionPoints: 45,
       cumulativeQuestions: 450,
       cumulativeChars: 12000,
@@ -422,7 +432,9 @@ const StorageService = {
       avatar: "👨‍🌾",
       pinCode: "123456",
       permissions: { canApproveDrafts: false, canEditSubjects: false, canManageMaterials: false, canManageUsers: false },
+      seasonExp: 210,
       totalExp: 210,
+      seasonCp: 30,
       contributionPoints: 30,
       cumulativeQuestions: 300,
       cumulativeChars: 8000,
@@ -440,8 +452,14 @@ const StorageService = {
       if (data) {
         let list = JSON.parse(data);
         if (Array.isArray(list) && list.length > 0) {
-          // Lọc bỏ triệt để các tài khoản đã bị từ chối / xóa (status === 'rejected')
+          // Lọc bỏ triệt để các tài khoản đã bị xóa (status === 'rejected')
           let validList = list.filter(u => u && u.status !== "rejected");
+
+          // Tự động chuẩn hóa seasonExp và seasonCp nếu chưa có
+          validList.forEach(u => {
+            if (typeof u.seasonExp !== "number") u.seasonExp = u.totalExp || 0;
+            if (typeof u.seasonCp !== "number") u.seasonCp = u.contributionPoints || 0;
+          });
 
           // Tự động đồng bộ hồ sơ Admin USR-01 nếu phát hiện thông tin cũ
           const adminIdx = validList.findIndex(u => u.id === "USR-01" || u.role === "admin");
@@ -1037,7 +1055,16 @@ const StorageService = {
     if (!this.isLoggedIn()) return 0; // Khách không tích lũy EXP
     const profile = this.getUserProfile();
     profile.totalExp = Math.max(0, (profile.totalExp || 0) + points);
+    profile.seasonExp = Math.max(0, (profile.seasonExp || 0) + points);
     this.saveUserProfile(profile);
+
+    const list = this.getAllUsers();
+    const idx = list.findIndex(u => u.id === profile.id);
+    if (idx !== -1) {
+      list[idx].totalExp = profile.totalExp;
+      list[idx].seasonExp = profile.seasonExp;
+      this.saveAllUsers(list);
+    }
 
     // Tự động gửi Thông Báo nếu không phải chế độ im lặng
     if (!silent && points !== 0) {
@@ -1055,14 +1082,23 @@ const StorageService = {
       SupabaseClient.updateUser(profile.id, { totalExp: profile.totalExp }).catch(() => {});
     }
 
-    return profile.totalExp;
+    return profile.seasonExp;
   },
 
   addContributionPoints(points, reason = "", silent = false) {
     if (!this.isLoggedIn()) return 0;
     const profile = this.getUserProfile();
     profile.contributionPoints = Math.max(0, (profile.contributionPoints || 0) + points);
+    profile.seasonCp = Math.max(0, (profile.seasonCp || 0) + points);
     this.saveUserProfile(profile);
+
+    const list = this.getAllUsers();
+    const idx = list.findIndex(u => u.id === profile.id);
+    if (idx !== -1) {
+      list[idx].contributionPoints = profile.contributionPoints;
+      list[idx].seasonCp = profile.seasonCp;
+      this.saveAllUsers(list);
+    }
 
     if (!silent && points !== 0) {
       this.addNotification(profile.id, {
@@ -1078,7 +1114,7 @@ const StorageService = {
       SupabaseClient.updateUser(profile.id, { contributionPoints: profile.contributionPoints }).catch(() => {});
     }
 
-    return profile.contributionPoints;
+    return profile.seasonCp;
   },
 
   // ── 3.3. Tích Lũy Sản Lượng Đóng Góp & Cộng Dồn Ngưỡng (Cumulative Volume) ──
@@ -1102,6 +1138,7 @@ const StorageService = {
     if (tiersGained > 0) {
       pointsAwarded = tiersGained * POINTS_PER_TIER;
       user.contributionPoints = (user.contributionPoints || 0) + pointsAwarded;
+      user.seasonCp = (user.seasonCp || 0) + pointsAwarded;
       this.addNotification(user.id, {
         type: "cp_reward",
         title: `🎉 Đạt mốc ${newTier * THRESHOLD} câu hỏi cống hiến (+${pointsAwarded} CP)`,
@@ -1121,7 +1158,8 @@ const StorageService = {
 
     this.updateUser(user.id, {
       cumulativeQuestions: user.cumulativeQuestions,
-      contributionPoints: user.contributionPoints
+      contributionPoints: user.contributionPoints,
+      seasonCp: user.seasonCp
     });
 
     return pointsAwarded;
@@ -1147,6 +1185,7 @@ const StorageService = {
     if (tiersGained > 0) {
       pointsAwarded = tiersGained * POINTS_PER_TIER;
       user.contributionPoints = (user.contributionPoints || 0) + pointsAwarded;
+      user.seasonCp = (user.seasonCp || 0) + pointsAwarded;
       this.addNotification(user.id, {
         type: "cp_reward",
         title: `📚 Đạt mốc ${newTier * THRESHOLD} ký tự tài liệu cống hiến (+${pointsAwarded} CP)`,
@@ -1166,7 +1205,8 @@ const StorageService = {
 
     this.updateUser(user.id, {
       cumulativeChars: user.cumulativeChars,
-      contributionPoints: user.contributionPoints
+      contributionPoints: user.contributionPoints,
+      seasonCp: user.seasonCp
     });
 
     return pointsAwarded;
@@ -1192,6 +1232,7 @@ const StorageService = {
     if (tiersGained > 0) {
       pointsAwarded = tiersGained * POINTS_PER_TIER;
       user.contributionPoints = (user.contributionPoints || 0) + pointsAwarded;
+      user.seasonCp = (user.seasonCp || 0) + pointsAwarded;
       this.addNotification(user.id, {
         type: "cp_reward",
         title: `🛡️ Đạt mốc ${newTier * THRESHOLD} câu hỏi kiểm duyệt (+${pointsAwarded} CP)`,
@@ -1203,37 +1244,165 @@ const StorageService = {
 
     this.updateUser(user.id, {
       cumulativeReviewed: user.cumulativeReviewed,
-      contributionPoints: user.contributionPoints
+      contributionPoints: user.contributionPoints,
+      seasonCp: user.seasonCp
     });
 
     return pointsAwarded;
   },
 
-  adminAdjustUserPoints(userId, pointType, amount, reason, adminName = "Quản trị viên") {
+  adminAdjustUserPoints(userId, pointType, amount, scope = "both", reason = "", adminName = "Quản trị viên") {
     const user = this.getUserById(userId);
     if (!user) throw new Error("Không tìm thấy người dùng này!");
     if (!amount || amount === 0) throw new Error("Số điểm điều chỉnh phải khác 0!");
     if (!reason || !reason.trim()) throw new Error("Vui lòng nhập lý do điều chỉnh điểm!");
 
     const cleanReason = reason.trim();
+    if (typeof user.seasonExp !== "number") user.seasonExp = user.totalExp || 0;
+    if (typeof user.seasonCp !== "number") user.seasonCp = user.contributionPoints || 0;
+
+    let scopeLabel = "Cả Mùa Này & Tổng Các Mùa";
+    if (scope === "season") scopeLabel = "Chỉ Điểm Mùa Này";
+    else if (scope === "all_time") scopeLabel = "Chỉ Điểm Tổng Các Mùa";
+
     if (pointType === "EXP") {
-      user.totalExp = Math.max(0, (user.totalExp || 0) + amount);
+      if (scope === "season" || scope === "both") {
+        user.seasonExp = Math.max(0, (user.seasonExp || 0) + amount);
+      }
+      if (scope === "all_time" || scope === "both") {
+        user.totalExp = Math.max(0, (user.totalExp || 0) + amount);
+      }
     } else {
-      user.contributionPoints = Math.max(0, (user.contributionPoints || 0) + amount);
+      if (scope === "season" || scope === "both") {
+        user.seasonCp = Math.max(0, (user.seasonCp || 0) + amount);
+      }
+      if (scope === "all_time" || scope === "both") {
+        user.contributionPoints = Math.max(0, (user.contributionPoints || 0) + amount);
+      }
     }
 
     this.updateUser(user.id, {
+      seasonExp: user.seasonExp,
       totalExp: user.totalExp,
+      seasonCp: user.seasonCp,
       contributionPoints: user.contributionPoints
     });
 
     // Tạo thông báo gửi cho User
     this.addNotification(user.id, {
       type: "admin_adjust",
-      title: amount > 0 ? `🛡️ ${adminName} đã cộng +${amount} ${pointType}` : `🛡️ ${adminName} đã khấu trừ ${Math.abs(amount)} ${pointType}`,
-      message: `Lý do: "${cleanReason}" (Thực hiện bởi: ${adminName}).`,
+      title: amount > 0 ? `🛡️ ${adminName} đã cộng +${amount} ${pointType} (${scopeLabel})` : `🛡️ ${adminName} đã khấu trừ ${Math.abs(amount)} ${pointType} (${scopeLabel})`,
+      message: `Lý do: "${cleanReason}" (Phạm vi: ${scopeLabel} · Thực hiện bởi: ${adminName}).`,
       pointsDelta: amount,
       pointType: pointType
+    });
+
+    return user;
+  },
+
+  resetUserPoints(userId, resetType = "all", scope = "both", reason = "", adminName = "Quản trị viên") {
+    const user = this.getUserById(userId);
+    if (!user) throw new Error("Không tìm thấy người dùng này!");
+    if (!reason || !reason.trim()) throw new Error("Vui lòng nhập lý do đặt lại (reset) điểm!");
+
+    const cleanReason = reason.trim();
+    if (typeof user.seasonExp !== "number") user.seasonExp = user.totalExp || 0;
+    if (typeof user.seasonCp !== "number") user.seasonCp = user.contributionPoints || 0;
+
+    let resetDesc = "";
+    let scopeDesc = (scope === "season") ? "Điểm Mùa Này" : (scope === "all_time") ? "Điểm Tổng Các Mùa" : "Cả Mùa Này & Tổng Các Mùa";
+
+    if (resetType === "exp" || resetType === "all") {
+      if (scope === "season" || scope === "both") user.seasonExp = 0;
+      if (scope === "all_time" || scope === "both") user.totalExp = 0;
+      resetDesc += "Điểm EXP Học Tập ";
+    }
+    if (resetType === "cp" || resetType === "all") {
+      if (scope === "season" || scope === "both") user.seasonCp = 0;
+      if (scope === "all_time" || scope === "both") user.contributionPoints = 0;
+      resetDesc += (resetDesc ? "& " : "") + "Điểm Cống Hiến (CP) ";
+    }
+
+    this.updateUser(user.id, {
+      seasonExp: user.seasonExp,
+      totalExp: user.totalExp,
+      seasonCp: user.seasonCp,
+      contributionPoints: user.contributionPoints
+    });
+
+    this.addNotification(user.id, {
+      type: "admin_adjust",
+      title: `🔄 Đặt Lại (Reset) ${resetDesc}Về 0 (${scopeDesc})`,
+      message: `Quản trị viên ${adminName} đã đặt lại ${resetDesc}về 0 (Phạm vi: ${scopeDesc}). Lý do: "${cleanReason}".`,
+      pointsDelta: 0,
+      pointType: resetType.toUpperCase()
+    });
+
+    return user;
+  },
+
+  kickUserFromGroup(userId, reason = "", adminName = "Quản trị viên") {
+    const user = this.getUserById(userId);
+    if (!user) throw new Error("Không tìm thấy người dùng này!");
+    if (!reason || !reason.trim()) throw new Error("Vui lòng nhập lý do loại (kick) thành viên khỏi nhóm!");
+
+    const cleanReason = reason.trim();
+    user.status = "kicked";
+    user.kickedReason = cleanReason;
+    user.kickedAt = new Date().toISOString();
+    user.kickedBy = adminName;
+
+    this.updateUser(user.id, {
+      status: "kicked",
+      kickedReason: cleanReason,
+      kickedAt: user.kickedAt,
+      kickedBy: user.kickedBy
+    });
+
+    // Tự động ẩn khỏi Bảng Xếp Hạng công khai
+    const settings = this.getLeaderboardSettings();
+    if (!settings.hiddenUserIds) settings.hiddenUserIds = [];
+    if (!settings.hiddenUserIds.includes(userId)) {
+      settings.hiddenUserIds.push(userId);
+      this.saveLeaderboardSettings(settings);
+    }
+
+    this.addNotification(user.id, {
+      type: "system",
+      title: `⚠️ Tài Khoản Đã Bị Loại Khỏi Nhóm Học Tập`,
+      message: `Tài khoản của bạn đã bị ${adminName} tạm ngưng quyền tham gia trong nhóm. Lý do: "${cleanReason}". Vui lòng liên hệ Admin nếu có khiếu nại.`,
+      pointsDelta: null,
+      pointType: null
+    });
+
+    return user;
+  },
+
+  reinstateUserToGroup(userId, adminName = "Quản trị viên") {
+    const user = this.getUserById(userId);
+    if (!user) throw new Error("Không tìm thấy người dùng này!");
+
+    user.status = "active";
+    user.kickedReason = null;
+
+    this.updateUser(user.id, {
+      status: "active",
+      kickedReason: null
+    });
+
+    // Mở lại trên Bảng Xếp Hạng
+    const settings = this.getLeaderboardSettings();
+    if (settings.hiddenUserIds) {
+      settings.hiddenUserIds = settings.hiddenUserIds.filter(id => id !== userId);
+      this.saveLeaderboardSettings(settings);
+    }
+
+    this.addNotification(user.id, {
+      type: "system",
+      title: `🎉 Tài Khoản Đã Được Khôi Phục Vào Nhóm Học Tập!`,
+      message: `Quản trị viên ${adminName} đã phê duyệt kích hoạt lại tài khoản của bạn vào nhóm. Chúc bạn học tập và thi thử hiệu quả!`,
+      pointsDelta: null,
+      pointType: null
     });
 
     return user;
@@ -1505,16 +1674,17 @@ const StorageService = {
     }
   },
 
-  startNewSeason(seasonName, adminName = "Admin") {
+  startNewSeason(seasonName, adminName = "Admin", resetSeasonPoints = true) {
     const currentSettings = this.getLeaderboardSettings();
-    const currentExpBoard = this.getLeaderboardData("exp", { includeHidden: true });
-    const currentCpBoard = this.getLeaderboardData("cp", { includeHidden: true });
+    const currentExpBoard = this.getLeaderboardData("exp", { scope: "season", includeHidden: true, statusFilter: "all" });
+    const currentCpBoard = this.getLeaderboardData("cp", { scope: "season", includeHidden: true, statusFilter: "all" });
 
     const archiveItem = {
       id: "season-" + Date.now(),
       seasonName: currentSettings.seasonName || "Mùa giải cũ",
       closedAt: new Date().toISOString(),
       closedBy: adminName,
+      wasSeasonReset: resetSeasonPoints,
       topExp: currentExpBoard.slice(0, 10),
       topCp: currentCpBoard.slice(0, 10)
     };
@@ -1527,13 +1697,30 @@ const StorageService = {
     currentSettings.seasonStartDate = new Date().toISOString();
     this.saveLeaderboardSettings(currentSettings);
 
-    // Gửi thông báo đến toàn bộ người dùng về mùa giải mới
     const allUsers = this.getAllUsers();
+
+    // Nếu chọn reset điểm mùa giải -> đặt seasonExp và seasonCp về 0 (Bảo lưu nguyên vẹn totalExp và contributionPoints)
+    if (resetSeasonPoints) {
+      allUsers.forEach(u => {
+        u.seasonExp = 0;
+        u.seasonCp = 0;
+      });
+      this.saveAllUsers(allUsers);
+
+      const active = this.getUserProfile();
+      if (active && active.id) {
+        active.seasonExp = 0;
+        active.seasonCp = 0;
+        this.saveUserProfile(active);
+      }
+    }
+
+    // Gửi thông báo đến toàn bộ người dùng về mùa giải mới
     allUsers.forEach(u => {
       this.addNotification(u.id, {
         type: "system_announcement",
         title: "🏆 Khởi Động Mùa Giải Mới: " + currentSettings.seasonName,
-        message: `Ban quản trị đã chính thức mở mùa giải xếp hạng mới "${currentSettings.seasonName}". Chúc bạn đạt được nhiều thành tích và điểm tích lũy xuất sắc!`,
+        message: `Ban quản trị đã chính thức mở mùa giải xếp hạng mới "${currentSettings.seasonName}". ${resetSeasonPoints ? 'Điểm Mùa Này đã được đặt lại về 0 để mở chặng đua mới (Điểm Tổng All-Time được bảo lưu 100%).' : 'Điểm tích lũy được bảo lưu tiếp tục.'} Chúc bạn thi đua xuất sắc!`,
         pointsDelta: null,
         pointType: null
       });
@@ -1542,7 +1729,7 @@ const StorageService = {
     return archiveItem;
   },
 
-  getLeaderboardStats() {
+  getLeaderboardStats(scope = "season") {
     const allUsers = this.getAllUsers().filter(u => u.status === "active");
     const subjects = this.getSubjects();
     const materials = this.getMaterials();
@@ -1552,8 +1739,8 @@ const StorageService = {
     let totalQuestions = 0;
 
     allUsers.forEach(u => {
-      totalExp += (u.totalExp || 0);
-      totalCp += (u.contributionPoints || 0);
+      totalExp += (scope === "all_time" ? (u.totalExp || 0) : (typeof u.seasonExp === "number" ? u.seasonExp : (u.totalExp || 0)));
+      totalCp += (scope === "all_time" ? (u.contributionPoints || 0) : (typeof u.seasonCp === "number" ? u.seasonCp : (u.contributionPoints || 0)));
     });
 
     subjects.forEach(s => {
@@ -1577,8 +1764,19 @@ const StorageService = {
     const includeHidden = options.includeHidden || false;
     const filterDept = options.department || "all";
     const searchQuery = (options.search || "").toLowerCase().trim();
+    const scope = options.scope || "season"; // 'season' | 'all_time'
+    const statusFilter = options.statusFilter || "active"; // 'active' | 'kicked' | 'pending_approval' | 'all'
 
-    let allUsers = this.getAllUsers().filter(u => u.status === "active");
+    let allUsers = this.getAllUsers();
+
+    // Lọc theo trạng thái nhóm / tài khoản
+    if (statusFilter === "active") {
+      allUsers = allUsers.filter(u => u.status === "active");
+    } else if (statusFilter === "kicked") {
+      allUsers = allUsers.filter(u => u.status === "kicked" || u.status === "suspended");
+    } else if (statusFilter === "pending_approval") {
+      allUsers = allUsers.filter(u => u.status === "pending_approval");
+    }
 
     if (!includeHidden) {
       allUsers = allUsers.filter(u => !hiddenIds.includes(u.id));
@@ -1598,20 +1796,30 @@ const StorageService = {
 
     if (type === "cp") {
       // Bảng xếp hạng Điểm Cống Hiến (Contribution Points - CP)
-      let list = allUsers.map(u => ({
-        id: u.id,
-        name: (profile.id === u.id) ? `${u.fullName} (Bạn)` : u.fullName,
-        rawName: u.fullName,
-        studentId: u.studentId || "Chưa cập nhật",
-        email: u.email || "",
-        department: u.department || "ĐH Đồng Tháp",
-        cp: u.contributionPoints || 0,
-        questions: u.cumulativeQuestions || 0,
-        chars: u.cumulativeChars || 0,
-        isHidden: hiddenIds.includes(u.id),
-        customBadge: customBadges[u.id] || null,
-        isCurrentUser: (profile.id === u.id)
-      }));
+      let list = allUsers.map(u => {
+        const cpVal = (scope === "all_time") ? (u.contributionPoints || 0) : (typeof u.seasonCp === "number" ? u.seasonCp : (u.contributionPoints || 0));
+        return {
+          id: u.id,
+          name: (profile.id === u.id) ? `${u.fullName} (Bạn)` : u.fullName,
+          rawName: u.fullName,
+          studentId: u.studentId || "Chưa cập nhật",
+          className: u.className || "Chưa cập nhật",
+          email: u.email || "",
+          department: u.department || "ĐH Đồng Tháp",
+          status: u.status || "active",
+          kickedReason: u.kickedReason || null,
+          cp: cpVal,
+          seasonCp: typeof u.seasonCp === "number" ? u.seasonCp : (u.contributionPoints || 0),
+          contributionPoints: u.contributionPoints || 0,
+          seasonExp: typeof u.seasonExp === "number" ? u.seasonExp : (u.totalExp || 0),
+          totalExp: u.totalExp || 0,
+          questions: u.cumulativeQuestions || 0,
+          chars: u.cumulativeChars || 0,
+          isHidden: hiddenIds.includes(u.id),
+          customBadge: customBadges[u.id] || null,
+          isCurrentUser: (profile.id === u.id)
+        };
+      });
 
       return list.sort((a, b) => b.cp - a.cp).map((item, index) => {
         let badge = customBadges[item.id] || (index === 0 ? (settings.top1Title || "🥇 Hạng 1") : (index === 1 ? (settings.top2Title || "🥈 Hạng 2") : (index === 2 ? (settings.top3Title || "🥉 Hạng 3") : "🌟 Đóng Góp")));
@@ -1624,19 +1832,29 @@ const StorageService = {
     }
 
     // Mặc định: Bảng xếp hạng Điểm Học Tập (EXP)
-    let list = allUsers.map(u => ({
-      id: u.id,
-      name: (profile.id === u.id) ? `${u.fullName} (Bạn)` : u.fullName,
-      rawName: u.fullName,
-      studentId: u.studentId || "Chưa cập nhật",
-      email: u.email || "",
-      department: u.department || "ĐH Đồng Tháp",
-      exp: u.totalExp || 0,
-      quizzes: u.quizzesCompleted || 0,
-      isHidden: hiddenIds.includes(u.id),
-      customBadge: customBadges[u.id] || null,
-      isCurrentUser: (profile.id === u.id)
-    }));
+    let list = allUsers.map(u => {
+      const expVal = (scope === "all_time") ? (u.totalExp || 0) : (typeof u.seasonExp === "number" ? u.seasonExp : (u.totalExp || 0));
+      return {
+        id: u.id,
+        name: (profile.id === u.id) ? `${u.fullName} (Bạn)` : u.fullName,
+        rawName: u.fullName,
+        studentId: u.studentId || "Chưa cập nhật",
+        className: u.className || "Chưa cập nhật",
+        email: u.email || "",
+        department: u.department || "ĐH Đồng Tháp",
+        status: u.status || "active",
+        kickedReason: u.kickedReason || null,
+        exp: expVal,
+        seasonExp: typeof u.seasonExp === "number" ? u.seasonExp : (u.totalExp || 0),
+        totalExp: u.totalExp || 0,
+        seasonCp: typeof u.seasonCp === "number" ? u.seasonCp : (u.contributionPoints || 0),
+        contributionPoints: u.contributionPoints || 0,
+        quizzes: u.quizzesCompleted || 0,
+        isHidden: hiddenIds.includes(u.id),
+        customBadge: customBadges[u.id] || null,
+        isCurrentUser: (profile.id === u.id)
+      };
+    });
 
     return list.sort((a, b) => b.exp - a.exp).map((item, index) => {
       let badge = customBadges[item.id] || (index === 0 ? (settings.top1Title || "🥇 Hạng 1") : (index === 1 ? (settings.top2Title || "🥈 Hạng 2") : (index === 2 ? (settings.top3Title || "🥉 Hạng 3") : "⭐ Chăm Chỉ")));
