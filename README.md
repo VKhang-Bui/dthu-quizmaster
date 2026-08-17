@@ -36,6 +36,11 @@
 ```text
 ├── index.html                   # Điểm vào chính của ứng dụng SPA
 ├── README.md                    # Tài liệu hướng dẫn sử dụng và triển khai
+├── CONTRIBUTING.md              # Hướng dẫn đóng góp ngân hàng đề thi
+│
+├── docs/                        # Tài liệu Kiến trúc & Thiết kế Database v2.0
+│   ├── ARCHITECTURE_ROADMAP.md  # Kế hoạch chi tiết kiến trúc Cloud-Native & Lộ trình
+│   └── DATABASE_SCHEMA.sql      # Script khởi tạo Database PostgreSQL/Supabase & RLS Policies
 │
 ├── assets/
 │   ├── css/
@@ -48,8 +53,10 @@
 │       ├── data/
 │       │   └── default-banks.js # Ngân hàng đề thi mặc định (CNXHKH, Triết học, Vi sinh...)
 │       ├── services/
+│       │   ├── api-config.js    # Cấu hình kết nối Cloud (Supabase / Storage)
 │       │   ├── storage.js       # Quản lý lưu trữ LocalStorage (Môn học, Điểm, Câu sai)
 │       │   ├── quiz-engine.js   # Thuật toán trộn đề, chấm thi và đồng hồ bấm giờ
+│       │   ├── parser.js        # Trình phân tích văn bản thô Word/PDF/ChatGPT thông minh
 │       │   └── import-export.js # Xử lý xuất và nhập file đề JSON
 │       └── app.js               # Controller & Router điều hướng Single Page App (SPA)
 │
