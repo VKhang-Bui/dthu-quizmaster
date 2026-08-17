@@ -259,7 +259,7 @@ const App = {
                     <button class="drawer-nav-btn" style="border-color: #3b82f6; background: #eff6ff; color: #1d4ed8;" onclick="App.closeUserDrawer(); App.navigateTo('users-management');">
                       <span class="drawer-icon">👥</span>
                       <span class="drawer-label"><strong>Quản Lý Người Dùng</strong></span>
-                      <span class="badge" style="background:#dbeafe; color:#1e40af; font-weight:700;">${StorageService.getAllUsers().length}</span>
+                      <span class="badge" style="background:#dbeafe; color:#1e40af; font-weight:700;">${StorageService.getActiveUsers().length}</span>
                     </button>
                   ` : ''}
                 </div>
@@ -952,6 +952,12 @@ const App = {
     if (this.timerInterval && view !== "quiz") {
       clearInterval(this.timerInterval);
       this.timerInterval = null;
+    }
+
+    // Hủy registration watcher nếu rời khỏi trang đăng ký
+    if (this.regWatcherInterval && view !== "register") {
+      clearInterval(this.regWatcherInterval);
+      this.regWatcherInterval = null;
     }
 
     const mainContainer = document.getElementById("mainContent");
@@ -3410,16 +3416,17 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     `).join('');
   },
 
-  approveUserRegistrationAction(userId) {
+  async approveUserRegistrationAction(userId) {
     const user = StorageService.getUserById(userId);
     if (!user) return;
     const current = StorageService.getUserProfile();
-    StorageService.approveUserRegistration(userId, current.fullName || "Admin");
+    await StorageService.approveUserRegistration(userId, current.fullName || "Admin Bùi Văn Khang");
     this.showToast(`🎉 Đã phê duyệt kích hoạt tài khoản cho sinh viên "${user.fullName}" (${user.studentId})!`, "success", 4000);
-    this.renderUsersManagementView(document.getElementById("mainContent"));
+    this.renderHeader();
+    await this.renderUsersManagementView(document.getElementById("mainContent"));
   },
 
-  rejectUserRegistrationAction(userId) {
+  async rejectUserRegistrationAction(userId) {
     const user = StorageService.getUserById(userId);
     if (!user) return;
     this.showConfirmDialog({
@@ -3428,10 +3435,11 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       icon: "⚠️",
       confirmText: "Từ chối hồ sơ",
       isDanger: true,
-      onConfirm: () => {
-        StorageService.rejectUserRegistration(userId);
+      onConfirm: async () => {
+        await StorageService.rejectUserRegistration(userId);
         this.showToast(`Đã từ chối hồ sơ đăng ký của "${user.fullName}"!`, "info", 3000);
-        this.renderUsersManagementView(document.getElementById("mainContent"));
+        this.renderHeader();
+        await this.renderUsersManagementView(document.getElementById("mainContent"));
       }
     });
   },
@@ -3900,11 +3908,12 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       icon: "🗑️",
       confirmText: "Xóa tài khoản",
       isDanger: true,
-      onConfirm: () => {
+      onConfirm: async () => {
         try {
-          StorageService.deleteUser(userId);
+          await StorageService.deleteUser(userId);
           this.showToast(`Đã xóa tài khoản "${user.fullName}" khỏi hệ thống!`, "success", 3000);
-          this.renderUsersManagementView(document.getElementById("mainContent"));
+          this.renderHeader();
+          await this.renderUsersManagementView(document.getElementById("mainContent"));
         } catch (err) {
           this.showToast("❌ " + err.message, "danger", 3500);
         }
@@ -4811,19 +4820,20 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
       if (formContainer) {
         formContainer.innerHTML = `
           <div style="text-align: center; padding: 24px 10px;">
-            <div style="font-size: 54px; margin-bottom: 12px; line-height: 1;">⏳</div>
+            <div style="font-size: 56px; margin-bottom: 14px; animation: pulse 1.8s infinite;">⏳</div>
             <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin: 0 0 8px 0;">Đăng Ký Thành Công!</h3>
-            <div style="background: #fefce8; border: 1px solid #fef08a; border-radius: var(--radius-sm); padding: 14px; margin: 16px 0; text-align: left; font-size: 13px; line-height: 1.6; color: #854d0e;">
+            <div style="background: #fefce8; border: 1.5px solid #fef08a; border-radius: var(--radius-sm); padding: 16px; margin: 16px 0; text-align: left; font-size: 13px; line-height: 1.6; color: #854d0e;">
               <div>👤 <strong>Họ tên:</strong> ${newUser.fullName}</div>
               <div>🆔 <strong>MSSV:</strong> ${newUser.studentId}</div>
               <div>🏛️ <strong>Khoa:</strong> ${newUser.department}</div>
               <div>📧 <strong>Email:</strong> ${newUser.email}</div>
-              <div style="margin-top: 6px; font-weight: 700; color: #b45309;">
-                Trạng thái: ⏳ Đang chờ Quản trị viên (Admin) xét duyệt.
+              <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #fde047; font-weight: 700; color: #b45309; display: flex; align-items: center; gap: 8px;">
+                <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #f59e0b; animation: pulse 1s infinite;"></span>
+                <span>Trạng thái: Đang chờ Quản trị viên (Bùi Văn Khang) phê duyệt...</span>
               </div>
             </div>
             <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px;">
-              Sau khi được Admin phê duyệt, bạn sẽ có thể đăng nhập bằng MSSV và mã PIN vừa tạo để bắt đầu ôn thi và tích lũy EXP.
+              ⚡ <strong>Tự Động Kết Nối Realtime:</strong> Khi Admin bấm phê duyệt, trang web này sẽ <strong>tự động đăng nhập và đưa bạn vào phòng thi ngay lập tức</strong> mà không cần tải lại trang.
             </p>
             <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
               <button class="btn btn-primary" onclick="App.navigateTo('home')">🏠 Về Trang Chủ</button>
@@ -4834,9 +4844,101 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
       }
 
       this.showToast(`🎉 Gửi yêu cầu đăng ký cho "${fullName}" thành công!`, "success", 4000);
+      
+      // Bắt đầu quét thời gian thực trạng thái phê duyệt từ Supabase Cloud
+      this.startRegistrationLiveWatcher(newUser.studentId);
     } catch (err) {
       this.showToast("❌ " + err.message, "danger", 4000);
     }
+  },
+
+  startRegistrationLiveWatcher(studentId) {
+    if (this.regWatcherInterval) {
+      clearInterval(this.regWatcherInterval);
+      this.regWatcherInterval = null;
+    }
+
+    if (!studentId || typeof SupabaseClient === "undefined" || !API_CONFIG.isCloudEnabled()) return;
+
+    this.regWatcherInterval = setInterval(async () => {
+      try {
+        const cloudUser = await SupabaseClient.getUserByStudentId(studentId);
+        if (!cloudUser) return;
+
+        if (cloudUser.status === "active") {
+          clearInterval(this.regWatcherInterval);
+          this.regWatcherInterval = null;
+
+          const mapped = {
+            id: cloudUser.id,
+            studentId: cloudUser.student_id,
+            className: cloudUser.class_name || "",
+            fullName: cloudUser.full_name,
+            email: cloudUser.email,
+            phone: cloudUser.phone || "",
+            department: cloudUser.department || "Khoa Kỹ thuật - Công nghệ",
+            role: cloudUser.role || "student",
+            pinCode: cloudUser.pin_code || "123456",
+            avatar: cloudUser.avatar || "👨‍🎓",
+            totalExp: cloudUser.total_exp || 50,
+            streakDays: 1,
+            quizzesCompleted: 0,
+            status: "active",
+            permissions: cloudUser.permissions || {},
+            approvedBy: cloudUser.approved_by || "Bùi Văn Khang",
+            approvedAt: cloudUser.approved_at,
+            createdAt: cloudUser.created_at
+          };
+          StorageService.updateUser(mapped.id, mapped);
+          StorageService.saveUserProfile(mapped);
+
+          const formContainer = document.getElementById("registerFormContainer");
+          if (formContainer) {
+            formContainer.innerHTML = `
+              <div style="text-align: center; padding: 32px 16px;">
+                <div style="font-size: 64px; margin-bottom: 12px; animation: bounce 1s infinite;">🎉</div>
+                <h3 style="font-size: 22px; font-weight: 800; color: #16a34a; margin-bottom: 8px;">Tài Khoản Đã Được Phê Duyệt!</h3>
+                <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 20px;">
+                  Chúc mừng <strong>${mapped.fullName}</strong> (MSSV: <strong>${mapped.studentId}</strong>) đã được Admin duyệt tham gia hệ thống!<br>
+                  Đang tự động đăng nhập và đưa bạn vào Trang chủ trong giây lát...
+                </p>
+                <button class="btn btn-primary" style="padding: 10px 24px; font-weight: 700;" onclick="App.navigateTo('home')">
+                  🚀 Vào Trang Chủ Ngay ➔
+                </button>
+              </div>
+            `;
+          }
+
+          App.renderHeader();
+          App.showToast(`🎉 Chúc mừng ${mapped.fullName}! Tài khoản của bạn đã được Admin phê duyệt!`, "success", 5000);
+
+          setTimeout(() => {
+            if (App.currentView === "register") {
+              App.navigateTo("home");
+            }
+          }, 1800);
+        } else if (cloudUser.status === "rejected") {
+          clearInterval(this.regWatcherInterval);
+          this.regWatcherInterval = null;
+          const formContainer = document.getElementById("registerFormContainer");
+          if (formContainer) {
+            formContainer.innerHTML = `
+              <div style="text-align: center; padding: 32px 16px;">
+                <div style="font-size: 54px; margin-bottom: 12px;">❌</div>
+                <h3 style="font-size: 20px; font-weight: 800; color: #dc2626; margin-bottom: 8px;">Hồ Sơ Không Được Phê Duyệt</h3>
+                <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 20px;">
+                  Rất tiếc, hồ sơ đăng ký của bạn không được Quản trị viên chấp thuận.
+                </p>
+                <button class="btn" onclick="App.navigateTo('register')">🔄 Thử Đăng Ký Lại</button>
+              </div>
+            `;
+          }
+          App.showToast("❌ Hồ sơ đăng ký của bạn không được Admin chấp thuận.", "danger", 4500);
+        }
+      } catch (e) {
+        console.warn("[Live Watcher Error]:", e);
+      }
+    }, 2500);
   },
 
   // ═════════════════════════════════════════════════════════════════════════

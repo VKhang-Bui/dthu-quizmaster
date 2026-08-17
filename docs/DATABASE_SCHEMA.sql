@@ -189,6 +189,7 @@ ALTER TABLE public.user_mistakes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public Read Users" ON public.users FOR SELECT USING (true);
 CREATE POLICY "Public Insert Users" ON public.users FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Update Users" ON public.users FOR UPDATE USING (true);
+CREATE POLICY "Public Delete Users" ON public.users FOR DELETE USING (true);
 
 CREATE POLICY "Public All Subjects" ON public.subjects FOR ALL USING (true);
 CREATE POLICY "Public All Drafts" ON public.draft_subjects FOR ALL USING (true);

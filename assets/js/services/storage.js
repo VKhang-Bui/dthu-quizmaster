@@ -212,69 +212,6 @@ const StorageService = {
       quizzesCompleted: 35,
       status: "active", // 'active' | 'pending_approval' | 'suspended'
       createdAt: "2026-01-01T08:00:00.000Z"
-    },
-    {
-      id: "USR-02",
-      fullName: "Nguyễn Thị Mai",
-      studentId: "220102045",
-      email: "ntmai.supham@dthu.edu.vn",
-      department: "Khoa Sư phạm Khoa học Xã hội",
-      role: "editor",
-      avatar: "👩‍🎓",
-      pinCode: "123456",
-      permissions: {
-        canApproveDrafts: true,
-        canEditSubjects: false,
-        canManageMaterials: true,
-        canManageUsers: false
-      },
-      totalExp: 380,
-      streakDays: 4,
-      quizzesCompleted: 12,
-      status: "active",
-      createdAt: "2026-01-15T09:30:00.000Z"
-    },
-    {
-      id: "USR-03",
-      fullName: "Trần Minh Hoàng",
-      studentId: "220103112",
-      email: "tmhoang.cntt@dthu.edu.vn",
-      department: "Khoa Kỹ thuật - Công nghệ",
-      role: "student",
-      avatar: "🧑‍💻",
-      pinCode: "123456",
-      permissions: {
-        canApproveDrafts: false,
-        canEditSubjects: false,
-        canManageMaterials: false,
-        canManageUsers: false
-      },
-      totalExp: 240,
-      streakDays: 3,
-      quizzesCompleted: 8,
-      status: "active",
-      createdAt: "2026-02-01T14:20:00.000Z"
-    },
-    {
-      id: "USR-04",
-      fullName: "Lê Văn Nam",
-      studentId: "220104089",
-      email: "lvnam.kinhte@dthu.edu.vn",
-      department: "Khoa Kinh tế - Quản trị",
-      role: "student",
-      avatar: "👨‍🎓",
-      pinCode: "123456",
-      permissions: {
-        canApproveDrafts: false,
-        canEditSubjects: false,
-        canManageMaterials: false,
-        canManageUsers: false
-      },
-      totalExp: 110,
-      streakDays: 1,
-      quizzesCompleted: 4,
-      status: "active",
-      createdAt: "2026-02-10T10:00:00.000Z"
     }
   ],
 
@@ -284,13 +221,15 @@ const StorageService = {
       if (data) {
         const list = JSON.parse(data);
         if (Array.isArray(list) && list.length > 0) {
+          // Lọc bỏ triệt để các tài khoản đã bị từ chối / xóa (status === 'rejected')
+          const validList = list.filter(u => u && u.status !== "rejected");
           // Tự động đồng bộ hồ sơ Admin USR-01 nếu phát hiện thông tin cũ
-          const adminIdx = list.findIndex(u => u.id === "USR-01" || u.role === "admin");
-          if (adminIdx !== -1 && list[adminIdx].studentId !== "0024418475") {
-            list[adminIdx] = Object.assign({}, list[adminIdx], this.DEFAULT_USERS[0]);
-            this.saveAllUsers(list);
+          const adminIdx = validList.findIndex(u => u.id === "USR-01" || u.role === "admin");
+          if (adminIdx !== -1 && validList[adminIdx].studentId !== "0024418475") {
+            validList[adminIdx] = Object.assign({}, validList[adminIdx], this.DEFAULT_USERS[0]);
+            this.saveAllUsers(validList);
           }
-          return list;
+          return validList;
         }
       }
     } catch (e) {}
@@ -300,7 +239,8 @@ const StorageService = {
   },
 
   saveAllUsers(users) {
-    localStorage.setItem(this.KEYS.USERS_LIST, JSON.stringify(users));
+    const valid = Array.isArray(users) ? users.filter(u => u && u.status !== "rejected") : [];
+    localStorage.setItem(this.KEYS.USERS_LIST, JSON.stringify(valid));
   },
 
   getUserById(id) {
@@ -333,29 +273,31 @@ const StorageService = {
   async syncWithCloud() {
     if (typeof SupabaseClient === "undefined" || !API_CONFIG.isCloudEnabled()) return false;
     try {
-      // 1. Đồng bộ người dùng từ Supabase
+      // 1. Đồng bộ người dùng từ Supabase (loại bỏ rejected)
       const cloudUsers = await SupabaseClient.getAllUsers();
       if (Array.isArray(cloudUsers) && cloudUsers.length > 0) {
-        const mappedUsers = cloudUsers.map(u => ({
-          id: u.id,
-          studentId: u.student_id,
-          className: u.class_name || "",
-          fullName: u.full_name,
-          email: u.email,
-          phone: u.phone || "",
-          department: u.department || "Khoa Kỹ thuật - Công nghệ",
-          role: u.role || "student",
-          pinCode: u.pin_code || "123456",
-          avatar: u.avatar || "👨‍🎓",
-          totalExp: u.total_exp || 0,
-          streakDays: u.streak_days || 1,
-          quizzesCompleted: u.quizzes_completed || 0,
-          status: u.status || "active",
-          permissions: u.permissions || {},
-          approvedBy: u.approved_by || "",
-          approvedAt: u.approved_at || null,
-          createdAt: u.created_at
-        }));
+        const mappedUsers = cloudUsers
+          .filter(u => u && u.status !== "rejected")
+          .map(u => ({
+            id: u.id,
+            studentId: u.student_id,
+            className: u.class_name || "",
+            fullName: u.full_name,
+            email: u.email,
+            phone: u.phone || "",
+            department: u.department || "Khoa Kỹ thuật - Công nghệ",
+            role: u.role || "student",
+            pinCode: u.pin_code || "123456",
+            avatar: u.avatar || "👨‍🎓",
+            totalExp: u.total_exp || 0,
+            streakDays: u.streak_days || 1,
+            quizzesCompleted: u.quizzes_completed || 0,
+            status: u.status || "active",
+            permissions: u.permissions || {},
+            approvedBy: u.approved_by || "",
+            approvedAt: u.approved_at || null,
+            createdAt: u.created_at
+          }));
         this.saveAllUsers(mappedUsers);
 
         // Đồng bộ lại hồ sơ đang đăng nhập nếu có cập nhật từ Admin
@@ -521,9 +463,8 @@ const StorageService = {
     });
   },
 
-  rejectUserRegistration(userId) {
-    this.updateUser(userId, { status: "rejected" });
-    return this.deleteUser(userId);
+  async rejectUserRegistration(userId) {
+    return await this.deleteUser(userId);
   },
 
   // ── 3.1. Quản lý Yêu Cầu Khôi Phục Mã PIN & CSKH ────────────
@@ -701,7 +642,7 @@ const StorageService = {
     return list[idx];
   },
 
-  deleteUser(id) {
+  async deleteUser(id) {
     const list = this.getAllUsers();
     const active = this.getUserProfile();
     if (active && active.id === id) {
@@ -711,10 +652,16 @@ const StorageService = {
     const filtered = list.filter(u => u.id !== id);
     this.saveAllUsers(filtered);
 
-    // Đồng bộ xóa trên Supabase Cloud
+    // Đồng bộ xóa triệt để trên Supabase Cloud
     if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
-      SupabaseClient.updateUser(id, { status: "rejected" }).catch(() => {});
-      SupabaseClient.deleteUser(id).catch(e => console.warn("Supabase deleteUser error:", e));
+      try {
+        await SupabaseClient.updateUser(id, { status: "rejected" });
+      } catch (e) {}
+      try {
+        await SupabaseClient.deleteUser(id);
+      } catch (e) {
+        console.warn("Supabase deleteUser error:", e);
+      }
     }
 
     return true;

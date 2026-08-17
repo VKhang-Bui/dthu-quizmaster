@@ -108,14 +108,15 @@ const SupabaseClient = {
     if (updates.approvedBy !== undefined) payload.approved_by = updates.approvedBy;
     if (updates.approvedAt !== undefined) payload.approved_at = updates.approvedAt;
 
-    return await this.request(`users?id=eq.${encodeURIComponent(userId)}`, {
+    return await this.request(`users?or=(id.eq.${encodeURIComponent(userId)},student_id.eq.${encodeURIComponent(userId)})`, {
       method: "PATCH",
       body: JSON.stringify(payload)
     });
   },
 
   async deleteUser(userId) {
-    return await this.request(`users?id=eq.${encodeURIComponent(userId)}`, {
+    if (!userId) return null;
+    return await this.request(`users?or=(id.eq.${encodeURIComponent(userId)},student_id.eq.${encodeURIComponent(userId)})`, {
       method: "DELETE"
     });
   },
