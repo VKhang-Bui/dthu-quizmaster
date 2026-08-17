@@ -17,62 +17,85 @@ const CONFIG = {
 };
 
 /**
+ * Xử lý yêu cầu GET (Kiểm tra trạng thái máy chủ hoặc gửi OTP dạng URL Parameters)
+ */
+function doGet(e) {
+  try {
+    let data = (e && e.parameter) ? e.parameter : {};
+    if (data.action) {
+      return handleAction(data);
+    }
+    return createJsonResponse({
+      success: true,
+      service: "DThu QuizMaster Email Gateway",
+      status: "online",
+      admin: CONFIG.ADMIN_EMAIL,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    return createJsonResponse({
+      success: false,
+      error: err.toString(),
+      message: "Lỗi xử lý yêu cầu GET: " + err.message
+    });
+  }
+}
+
+/**
  * Xử lý yêu cầu POST từ Frontend DThu QuizMaster
  */
 function doPost(e) {
   try {
     let data = {};
     if (e && e.postData && e.postData.contents) {
-      data = JSON.parse(e.postData.contents);
+      try {
+        data = JSON.parse(e.postData.contents);
+      } catch (pErr) {
+        data = e.parameter || {};
+      }
     } else if (e && e.parameter) {
       data = e.parameter;
     }
 
-    const action = data.action || "health-check";
-    let response = { success: false, message: "Hành động không xác định." };
-
-    switch (action) {
-      // 1. Kiểm tra tính hợp lệ của email
-      case "verify-email":
-        response = handleVerifyEmail(data);
-        break;
-
-      // 2. Gửi mã OTP xác thực khôi phục PIN (Hiệu lực 300s)
-      case "send-otp":
-        response = handleSendOtp(data);
-        break;
-
-      // 3. Gửi phiếu báo cáo sự cố / ý kiến đóng góp đến Admin & CSKH
-      case "send-cskh-ticket":
-        response = handleSendCskhTicket(data);
-        break;
-
-      default:
-        response = { success: true, message: "DThu QuizMaster Serverless API đang hoạt động tốt!" };
-    }
-
-    return createJsonResponse(response);
+    return handleAction(data);
 
   } catch (err) {
     return createJsonResponse({
       success: false,
       error: err.toString(),
-      message: "Lỗi xử lý yêu cầu trên máy chủ Google Apps Script: " + err.message
+      message: "Lỗi xử lý yêu cầu POST: " + err.message
     });
   }
 }
 
 /**
- * Xử lý yêu cầu GET (Kiểm tra trạng thái máy chủ)
+ * Điều phối các hành động nghiệp vụ
  */
-function doGet(e) {
-  return createJsonResponse({
-    success: true,
-    service: "DThu QuizMaster Email Gateway",
-    status: "online",
-    admin: CONFIG.ADMIN_EMAIL,
-    timestamp: new Date().toISOString()
-  });
+function handleAction(data) {
+  const action = data.action || "health-check";
+  let response = { success: false, message: "Hành động không xác định." };
+
+  switch (action) {
+    // 1. Kiểm tra tính hợp lệ của email
+    case "verify-email":
+      response = handleVerifyEmail(data);
+      break;
+
+    // 2. Gửi mã OTP xác thực khôi phục PIN (Hiệu lực 300s)
+    case "send-otp":
+      response = handleSendOtp(data);
+      break;
+
+    // 3. Gửi phiếu báo cáo sự cố / ý kiến đóng góp đến Admin & CSKH
+    case "send-cskh-ticket":
+      response = handleSendCskhTicket(data);
+      break;
+
+    default:
+      response = { success: true, message: "DThu QuizMaster Serverless API đang hoạt động tốt!" };
+  }
+
+  return createJsonResponse(response);
 }
 
 /**

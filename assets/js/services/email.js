@@ -5,11 +5,12 @@
  */
 const EmailService = {
   STORAGE_KEY_URL: "dthu_quiz_apps_script_url",
+  DEFAULT_APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbw5INBlFEEhIeQkgRzPkc5ZGtsZkMKrjaXVfRnlXqpdRMemyW4DTUwA-sKE3GGQVWXLtA/exec",
   ADMIN_EMAIL: "bvkhang.cnsh@dthu.edu.vn",
   DEFAULT_EXPIRY_SECONDS: 300, // 300 giây (5 phút)
 
   getAppsScriptUrl() {
-    return localStorage.getItem(this.STORAGE_KEY_URL) || "";
+    return localStorage.getItem(this.STORAGE_KEY_URL) || this.DEFAULT_APPS_SCRIPT_URL;
   },
 
   setAppsScriptUrl(url) {
@@ -60,35 +61,38 @@ const EmailService = {
     const url = this.getAppsScriptUrl();
     const expirySeconds = this.DEFAULT_EXPIRY_SECONDS;
 
-    // Nếu đã cấu hình Google Apps Script URL -> Gửi qua API thật
+    // Nếu đã có Google Apps Script URL -> Gửi qua API thật
     if (url) {
+      const payload = {
+        action: "send-otp",
+        email: email,
+        fullName: fullName || "Sinh viên DThu",
+        studentId: studentId || "",
+        otp: otpCode,
+        expirySeconds: expirySeconds
+      };
+
       try {
-        const payload = {
-          action: "send-otp",
-          email: email,
-          fullName: fullName || "Sinh viên DThu",
-          studentId: studentId || "",
+        // Gửi qua POST no-cors
+        await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload),
+          mode: "no-cors"
+        });
+
+        return {
+          success: true,
+          isRealEmail: true,
+          message: `Đã gửi mã OTP thật đến hộp thư ${email}`,
           otp: otpCode,
           expirySeconds: expirySeconds
         };
-
-        // Dùng fetch POST text/plain để tránh preflight CORS phức tạp
-        const response = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify(payload)
-        });
-
+      } catch (networkErr) {
+        console.warn("Lỗi fetch POST, thử fallback GET:", networkErr);
         try {
-          const resJson = await response.json();
-          return {
-            success: true,
-            isRealEmail: true,
-            message: resJson.message || `Đã gửi mã OTP thật đến hộp thư ${email}`,
-            otp: otpCode,
-            expirySeconds: expirySeconds
-          };
-        } catch (parseErr) {
+          const params = new URLSearchParams(payload);
+          await fetch(`${url}?${params.toString()}`, { mode: "no-cors" });
           return {
             success: true,
             isRealEmail: true,
@@ -96,17 +100,17 @@ const EmailService = {
             otp: otpCode,
             expirySeconds: expirySeconds
           };
+        } catch (getErr) {
+          console.warn("Lỗi kết nối tới Google Apps Script:", getErr);
         }
-      } catch (networkErr) {
-        console.warn("Lỗi kết nối tới Google Apps Script, fallback sang mô phỏng:", networkErr);
       }
     }
 
-    // Fallback: Chế độ mô phỏng khi chưa gắn Web App URL
+    // Fallback: Chế độ mô phỏng khi không có mạng hoặc chưa gắn URL
     return {
       success: true,
       isRealEmail: false,
-      message: `[Mô phỏng Email DThu] Mã OTP: ${otpCode} (Chưa cấu hình Google Apps Script URL)`,
+      message: `[Mô phỏng Email DThu] Mã OTP: ${otpCode}`,
       otp: otpCode,
       expirySeconds: expirySeconds
     };
@@ -119,22 +123,23 @@ const EmailService = {
     const url = this.getAppsScriptUrl();
 
     if (url) {
-      try {
-        const payload = {
-          action: "send-cskh-ticket",
-          ticketId: ticketData.ticketId || ("TICKET-" + Date.now()),
-          fullName: ticketData.fullName,
-          studentId: ticketData.studentId,
-          contact: ticketData.contact || ticketData.email || ticketData.phone,
-          issueType: ticketData.issueType,
-          title: ticketData.title,
-          content: ticketData.content
-        };
+      const payload = {
+        action: "send-cskh-ticket",
+        ticketId: ticketData.ticketId || ("TICKET-" + Date.now()),
+        fullName: ticketData.fullName,
+        studentId: ticketData.studentId,
+        contact: ticketData.contact || ticketData.email || ticketData.phone,
+        issueType: ticketData.issueType,
+        title: ticketData.title,
+        content: ticketData.content
+      };
 
+      try {
         await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
+          mode: "no-cors"
         });
 
         return {
@@ -143,7 +148,18 @@ const EmailService = {
           message: `Đã gửi email thông báo sự cố trực tiếp đến hòm thư Admin (${this.ADMIN_EMAIL})!`
         };
       } catch (err) {
-        console.warn("Không thể gửi email CSKH qua Google Apps Script:", err);
+        console.warn("Không thể gửi email CSKH qua Google Apps Script POST, thử GET:", err);
+        try {
+          const params = new URLSearchParams(payload);
+          await fetch(`${url}?${params.toString()}`, { mode: "no-cors" });
+          return {
+            success: true,
+            isRealEmail: true,
+            message: `Đã gửi email thông báo sự cố trực tiếp đến hòm thư Admin (${this.ADMIN_EMAIL})!`
+          };
+        } catch (e) {
+          console.warn("Lỗi kết nối CSKH:", e);
+        }
       }
     }
 
