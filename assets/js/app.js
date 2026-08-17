@@ -9694,136 +9694,193 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
           </div>
         </div>
 
-        <!-- Khối Danh Sách Câu Hỏi & Inline Edit -->
+        <!-- Khối Danh Sách Câu Hỏi: Hỗ Trợ 2 Tabs (Xem Trực Quan vs Soạn Thảo Văn Bản Thô) -->
         <div style="margin-bottom: 24px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
-            <div>
-              <h3 style="font-size: 17px; font-weight: 800; color: var(--text-primary);">
-                📝 Danh Sách Câu Hỏi Trong Đề (${questions.length} câu)
-              </h3>
-              <p style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">
-                Đọc soát từng câu hỏi. Bấm <strong>"✏️ Sửa câu này"</strong> để chỉnh sửa nội dung hoặc đáp án trực tiếp tại chỗ.
-              </p>
+          
+          <!-- Thanh Tab Chuyển Đổi -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; border-bottom: 2px solid var(--border); padding-bottom: 0;">
+            <div style="display: flex; gap: 6px; margin-bottom: -2px;">
+              <button 
+                class="btn ${(!this.draftReviewTab || this.draftReviewTab === 'cards') ? 'btn-primary' : ''}" 
+                style="border-bottom-left-radius: 0; border-bottom-right-radius: 0; padding: 9px 16px; font-weight: 700; font-size: 13.5px; ${this.draftReviewTab === 'text' ? 'background: #f8fafc; border: 1px solid var(--border); border-bottom: none; color: var(--text-secondary);' : 'border-bottom: none;'}"
+                onclick="App.switchDraftReviewTab('${draft.id}', 'cards')">
+                👁️ Xem Trực Quan & Sửa Theo Thẻ (${questions.length})
+              </button>
+              <button 
+                class="btn ${this.draftReviewTab === 'text' ? 'btn-primary' : ''}" 
+                style="border-bottom-left-radius: 0; border-bottom-right-radius: 0; padding: 9px 16px; font-weight: 700; font-size: 13.5px; ${(!this.draftReviewTab || this.draftReviewTab === 'cards') ? 'background: #f8fafc; border: 1px solid var(--border); border-bottom: none; color: var(--text-secondary);' : 'border-bottom: none;'}"
+                onclick="App.switchDraftReviewTab('${draft.id}', 'text')">
+                📝 Soạn Thảo Văn Bản Thô / Word (Dạng Text)
+              </button>
             </div>
-            <button class="btn btn-primary btn-sm" onclick="App.addNewDraftQuestion('${draft.id}')">
-              ➕ Thêm câu hỏi mới
-            </button>
+
+            ${(!this.draftReviewTab || this.draftReviewTab === 'cards') ? `
+              <button class="btn btn-primary btn-sm" style="margin-bottom: 8px;" onclick="App.addNewDraftQuestion('${draft.id}')">
+                ➕ Thêm câu hỏi mới
+              </button>
+            ` : ''}
           </div>
 
-          ${questions.length === 0 ? `
-            <div style="text-align: center; padding: 48px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);">
-              <div style="font-size: 40px; margin-bottom: 10px;">📭</div>
-              <h3>Bộ đề này chưa có câu hỏi nào!</h3>
-              <p style="margin-top: 6px; color: var(--text-secondary);">Bấm nút "➕ Thêm câu hỏi mới" bên trên để bắt đầu soạn câu hỏi.</p>
-            </div>
-          ` : `
-            <div style="display: flex; flex-direction: column; gap: 16px;">
-              ${questions.map((q, qIdx) => {
-                const isEditing = (editIdx === qIdx);
+          ${(!this.draftReviewTab || this.draftReviewTab === 'cards') ? `
+            <!-- ── TAB 1: THẺ CÂU HỎI TRỰC QUAN & INLINE EDIT ─────────────── -->
+            <p style="font-size: 13px; color: var(--text-secondary); margin: 0 0 14px 0;">
+              Đọc soát từng câu hỏi. Bấm <strong>"✏️ Sửa câu này"</strong> để chỉnh sửa nội dung hoặc đáp án trực tiếp tại chỗ.
+            </p>
 
-                if (isEditing) {
-                  // FORM CHỈNH SỬA TRỰC TIẾP (INLINE EDITOR)
+            ${questions.length === 0 ? `
+              <div style="text-align: center; padding: 48px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);">
+                <div style="font-size: 40px; margin-bottom: 10px;">📭</div>
+                <h3>Bộ đề này chưa có câu hỏi nào!</h3>
+                <p style="margin-top: 6px; color: var(--text-secondary);">Bấm nút "➕ Thêm câu hỏi mới" bên trên hoặc chuyển sang Tab "Soạn thảo văn bản" để nhập đề.</p>
+              </div>
+            ` : `
+              <div style="display: flex; flex-direction: column; gap: 16px;">
+                ${questions.map((q, qIdx) => {
+                  const isEditing = (editIdx === qIdx);
+
+                  if (isEditing) {
+                    // FORM CHỈNH SỬA TRỰC TIẾP (INLINE EDITOR)
+                    return `
+                      <div style="background: #ffffff; border: 2px solid var(--brand-primary); border-radius: var(--radius-md); padding: 20px; box-shadow: 0 4px 12px rgba(59,130,246,0.12);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                          <span class="badge" style="background:#dbeafe; color:#1e40af; font-weight:700;">✏️ Đang sửa Câu ${qIdx + 1}</span>
+                          <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-primary btn-sm" onclick="App.saveDraftQuestionEdit('${draft.id}', ${qIdx})">
+                              ✔️ Hoàn tất sửa câu này
+                            </button>
+                            <button class="btn btn-sm" onclick="App.cancelDraftQuestionEdit('${draft.id}')">
+                              Hủy
+                            </button>
+                          </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 14px;">
+                          <label class="form-label" style="font-size: 13px; font-weight:700;">Nội dung câu hỏi (*):</label>
+                          <textarea id="editDraftQText_${qIdx}" class="form-control" style="min-height: 80px; font-size: 14px;">${q.question || ''}</textarea>
+                        </div>
+
+                        <div style="margin-bottom: 14px;">
+                          <label class="form-label" style="font-size: 13px; font-weight:700; margin-bottom: 8px; display:block;">
+                            Các phương án lựa chọn (Tích chọn nút tròn để đổi đáp án đúng):
+                          </label>
+                          <div style="display: flex; flex-direction: column; gap: 10px;">
+                            ${[0, 1, 2, 3].map(oi => {
+                              const opt = (q.options && q.options[oi]) ? q.options[oi] : { text: '', note: '' };
+                              const isCorrect = (q.answerIndex === oi || (opt.isCorrect && q.answerIndex === undefined));
+                              return `
+                                <div style="display: flex; gap: 10px; align-items: flex-start; background: ${isCorrect ? '#f0fdf4' : '#f8fafc'}; border: 1px solid ${isCorrect ? '#86efac' : 'var(--border)'}; border-radius: var(--radius-sm); padding: 10px 12px;">
+                                  <div style="display: flex; align-items: center; gap: 6px; padding-top: 6px;">
+                                    <input type="radio" name="editDraftAnswer_${qIdx}" id="editDraftAns_${qIdx}_${oi}" value="${oi}" ${isCorrect ? 'checked' : ''} style="transform: scale(1.2); cursor: pointer;">
+                                    <label for="editDraftAns_${qIdx}_${oi}" style="font-weight: 800; font-size: 14px; cursor: pointer; color: ${isCorrect ? '#166534' : 'inherit'};">
+                                      ${App.letters[oi]}.
+                                    </label>
+                                  </div>
+                                  <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+                                    <input type="text" id="editDraftOpt_${qIdx}_${oi}" class="form-control" value="${(opt.text || '').replace(/"/g, '&quot;')}" placeholder="Nội dung phương án ${App.letters[oi]}..." style="font-size: 13.5px;">
+                                    <input type="text" id="editDraftNote_${qIdx}_${oi}" class="form-control" value="${(opt.note || '').replace(/"/g, '&quot;')}" placeholder="Giải thích cho phương án ${App.letters[oi]} (tùy chọn)..." style="font-size: 12px; color: var(--text-secondary);">
+                                  </div>
+                                </div>
+                              `;
+                            }).join('')}
+                          </div>
+                        </div>
+                      </div>
+                    `;
+                  }
+
+                  // THẺ REVIEW TRỰC QUAN (READ-ONLY VIEW)
                   return `
-                    <div style="background: #ffffff; border: 2px solid var(--brand-primary); border-radius: var(--radius-md); padding: 20px; box-shadow: 0 4px 12px rgba(59,130,246,0.12);">
-                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <span class="badge" style="background:#dbeafe; color:#1e40af; font-weight:700;">✏️ Đang sửa Câu ${qIdx + 1}</span>
-                        <div style="display: flex; gap: 8px;">
-                          <button class="btn btn-primary btn-sm" onclick="App.saveDraftQuestionEdit('${draft.id}', ${qIdx})">
-                            ✔️ Hoàn tất sửa câu này
+                    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 18px 20px; transition: var(--transition-fast);">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                          <span class="badge badge-gray" style="font-weight: 700;">Câu ${qIdx + 1}</span>
+                          <span class="badge" style="background:#dcfce7; color:#15803d; font-weight:700;">
+                            Đáp án: ${App.letters[q.answerIndex] || 'A'}
+                          </span>
+                        </div>
+                        <div style="display: flex; gap: 6px;">
+                          <button class="btn btn-sm btn-primary" onclick="App.toggleEditDraftQuestion('${draft.id}', ${qIdx})">
+                            ✏️ Sửa câu này
                           </button>
-                          <button class="btn btn-sm" onclick="App.cancelDraftQuestionEdit('${draft.id}')">
-                            Hủy
+                          <button class="btn btn-sm btn-danger" onclick="App.deleteDraftQuestion('${draft.id}', ${qIdx})">
+                            🗑️ Xóa
                           </button>
                         </div>
                       </div>
 
-                      <div class="form-group" style="margin-bottom: 14px;">
-                        <label class="form-label" style="font-size: 13px; font-weight:700;">Nội dung câu hỏi (*):</label>
-                        <textarea id="editDraftQText_${qIdx}" class="form-control" style="min-height: 80px; font-size: 14px;">${q.question || ''}</textarea>
+                      <div style="font-weight: 700; font-size: 14.5px; line-height: 1.5; margin-bottom: 12px; color: var(--text-primary);">
+                        ${SmartParserService.formatRichText(q.question)}
                       </div>
 
-                      <div style="margin-bottom: 14px;">
-                        <label class="form-label" style="font-size: 13px; font-weight:700; margin-bottom: 8px; display:block;">
-                          Các phương án lựa chọn (Tích chọn nút tròn để đổi đáp án đúng):
-                        </label>
-                        <div style="display: flex; flex-direction: column; gap: 10px;">
-                          ${[0, 1, 2, 3].map(oi => {
-                            const opt = (q.options && q.options[oi]) ? q.options[oi] : { text: '', note: '' };
-                            const isCorrect = (q.answerIndex === oi || (opt.isCorrect && q.answerIndex === undefined));
-                            return `
-                              <div style="display: flex; gap: 10px; align-items: flex-start; background: ${isCorrect ? '#f0fdf4' : '#f8fafc'}; border: 1px solid ${isCorrect ? '#86efac' : 'var(--border)'}; border-radius: var(--radius-sm); padding: 10px 12px;">
-                                <div style="display: flex; align-items: center; gap: 6px; padding-top: 6px;">
-                                  <input type="radio" name="editDraftAnswer_${qIdx}" id="editDraftAns_${qIdx}_${oi}" value="${oi}" ${isCorrect ? 'checked' : ''} style="transform: scale(1.2); cursor: pointer;">
-                                  <label for="editDraftAns_${qIdx}_${oi}" style="font-weight: 800; font-size: 14px; cursor: pointer; color: ${isCorrect ? '#166534' : 'inherit'};">
-                                    ${App.letters[oi]}.
-                                  </label>
-                                </div>
-                                <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
-                                  <input type="text" id="editDraftOpt_${qIdx}_${oi}" class="form-control" value="${(opt.text || '').replace(/"/g, '&quot;')}" placeholder="Nội dung phương án ${App.letters[oi]}..." style="font-size: 13.5px;">
-                                  <input type="text" id="editDraftNote_${qIdx}_${oi}" class="form-control" value="${(opt.note || '').replace(/"/g, '&quot;')}" placeholder="Giải thích cho phương án ${App.letters[oi]} (tùy chọn)..." style="font-size: 12px; color: var(--text-secondary);">
-                                </div>
+                      <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; width: 100%;">
+                        ${(q.options || []).map((opt, optIdx) => {
+                          const isAns = (optIdx === q.answerIndex);
+                          return `
+                            <div style="display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px; padding: 10px 14px; border-radius: 6px; border: ${isAns ? '1.5px solid #16a34a' : '1px solid #cbd5e1'}; background: ${isAns ? '#dcfce7' : '#ffffff'}; box-shadow: ${isAns ? '0 1px 3px rgba(22, 163, 74, 0.15)' : 'none'}; width: 100%; box-sizing: border-box;">
+                              <span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; min-width: 24px; background: ${isAns ? '#16a34a' : '#f1f5f9'}; color: ${isAns ? '#ffffff' : '#475569'}; border: ${isAns ? 'none' : '1px solid #cbd5e1'}; border-radius: 4px; font-weight: 800; font-size: 12.5px; flex-shrink: 0; margin-top: 1px;">
+                                ${App.letters[optIdx]}
+                              </span>
+                              <div style="font-weight: ${isAns ? '700' : '400'}; color: ${isAns ? '#14532d' : '#334155'}; flex: 1; min-width: 0; word-break: break-word; overflow-wrap: break-word; line-height: 1.5;">
+                                ${SmartParserService.formatRichText(opt.text || '')}
                               </div>
-                            `;
-                          }).join('')}
-                        </div>
+                              ${isAns ? `
+                                <span style="margin-left: 8px; background: #16a34a; color: #ffffff; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 10px; display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0;">
+                                  ✓ Đúng
+                                </span>
+                              ` : ''}
+                            </div>
+                          `;
+                        }).join('')}
                       </div>
+
+                      ${(q.options && q.options[q.answerIndex] && q.options[q.answerIndex].note) ? `
+                        <div style="font-size: 13px; color: #14532d; background: #f0fdf4; padding: 10px 14px; border-radius: 6px; border: 1.5px dashed #22c55e; margin-top: 8px;">
+                          💡 <strong>Giải thích:</strong> ${SmartParserService.formatRichText(q.options[q.answerIndex].note)}
+                        </div>
+                      ` : ''}
                     </div>
                   `;
-                }
+                }).join('')}
+              </div>
+            `}
+          ` : `
+            <!-- ── TAB 2: SOẠN THẢO VĂN BẢN THÔ / WORD STYLE (DẠNG TEXT) ── -->
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 22px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+                <div>
+                  <h3 style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin: 0 0 4px 0;">
+                    📝 Soạn Thảo & Hiệu Chỉnh Văn Bản Thô (Word Style)
+                  </h3>
+                  <p style="font-size: 12.5px; color: var(--text-secondary); margin: 0;">
+                    Chỉnh sửa nhanh toàn bộ câu hỏi và đáp án đúng bằng cú pháp <code>> Đúng</code>, <code>*</code> hoặc <code>Đáp án: A</code>.
+                  </p>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                  <button class="btn btn-sm" onclick="App.copyDraftRawText('${draft.id}')">
+                    📋 Sao chép Text
+                  </button>
+                  <button class="btn btn-sm" onclick="App.downloadDraftRawText('${draft.id}')">
+                    📥 Tải file .txt
+                  </button>
+                  <button class="btn btn-sm btn-primary" onclick="App.applyDraftRawTextChanges('${draft.id}')">
+                    ⚡ Cập Nhật Câu Hỏi
+                  </button>
+                </div>
+              </div>
 
-                // THẺ REVIEW TRỰC QUAN (READ-ONLY VIEW)
-                return `
-                  <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 18px 20px; transition: var(--transition-fast);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
-                      <div style="display: flex; align-items: center; gap: 8px;">
-                        <span class="badge badge-gray" style="font-weight: 700;">Câu ${qIdx + 1}</span>
-                        <span class="badge" style="background:#dcfce7; color:#15803d; font-weight:700;">
-                          Đáp án: ${App.letters[q.answerIndex] || 'A'}
-                        </span>
-                      </div>
-                      <div style="display: flex; gap: 6px;">
-                        <button class="btn btn-sm btn-primary" onclick="App.toggleEditDraftQuestion('${draft.id}', ${qIdx})">
-                          ✏️ Sửa câu này
-                        </button>
-                        <button class="btn btn-sm btn-danger" onclick="App.deleteDraftQuestion('${draft.id}', ${qIdx})">
-                          🗑️ Xóa
-                        </button>
-                      </div>
-                    </div>
+              <!-- Khung Textarea lớn -->
+              <textarea 
+                id="draftRawTextarea" 
+                class="form-control" 
+                style="width: 100%; min-height: 480px; font-family: 'JetBrains Mono', Consolas, Monaco, monospace; font-size: 13.5px; line-height: 1.65; padding: 16px; background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius-sm);" 
+                placeholder="Dán hoặc chỉnh sửa đề thi theo định dạng:&#10;Câu 1: Nội dung câu hỏi...&#10;A. Đáp án 1&#10;B. Đáp án 2 > Đúng&#10;C. Đáp án 3&#10;D. Đáp án 4"
+                oninput="App.onDraftRawTextInput('${draft.id}')">${SmartParserService.questionsToRawText(questions)}</textarea>
 
-                    <div style="font-weight: 700; font-size: 14.5px; line-height: 1.5; margin-bottom: 12px; color: var(--text-primary);">
-                      ${SmartParserService.formatRichText(q.question)}
-                    </div>
-
-                    <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; width: 100%;">
-                      ${(q.options || []).map((opt, optIdx) => {
-                        const isAns = (optIdx === q.answerIndex);
-                        return `
-                          <div style="display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px; padding: 10px 14px; border-radius: 6px; border: ${isAns ? '1.5px solid #16a34a' : '1px solid #cbd5e1'}; background: ${isAns ? '#dcfce7' : '#ffffff'}; box-shadow: ${isAns ? '0 1px 3px rgba(22, 163, 74, 0.15)' : 'none'}; width: 100%; box-sizing: border-box;">
-                            <span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; min-width: 24px; background: ${isAns ? '#16a34a' : '#f1f5f9'}; color: ${isAns ? '#ffffff' : '#475569'}; border: ${isAns ? 'none' : '1px solid #cbd5e1'}; border-radius: 4px; font-weight: 800; font-size: 12.5px; flex-shrink: 0; margin-top: 1px;">
-                              ${App.letters[optIdx]}
-                            </span>
-                            <div style="font-weight: ${isAns ? '700' : '400'}; color: ${isAns ? '#14532d' : '#334155'}; flex: 1; min-width: 0; word-break: break-word; overflow-wrap: break-word; line-height: 1.5;">
-                              ${SmartParserService.formatRichText(opt.text || '')}
-                            </div>
-                            ${isAns ? `
-                              <span style="margin-left: 8px; background: #16a34a; color: #ffffff; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 10px; display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0;">
-                                ✓ Đúng
-                              </span>
-                            ` : ''}
-                          </div>
-                        `;
-                      }).join('')}
-                    </div>
-
-                    ${(q.options && q.options[q.answerIndex] && q.options[q.answerIndex].note) ? `
-                      <div style="font-size: 13px; color: #14532d; background: #f0fdf4; padding: 10px 14px; border-radius: 6px; border: 1.5px dashed #22c55e; margin-top: 8px;">
-                        💡 <strong>Giải thích:</strong> ${SmartParserService.formatRichText(q.options[q.answerIndex].note)}
-                      </div>
-                    ` : ''}
-                  </div>
-                `;
-              }).join('')}
+              <!-- Real-time Live Badge & Warnings -->
+              <div id="draftRawCounterBadge" style="margin-top: 12px; font-size: 13px; font-weight: 700; color: var(--brand-primary); display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-circle-check"></i> ${questions.length} câu hỏi hợp lệ
+              </div>
+              <div id="draftRawWarningBanner" style="margin-top: 10px;"></div>
             </div>
           `}
         </div>
@@ -9834,9 +9891,15 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
             ← Quay lại Quản lý bộ đề
           </button>
           <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <button class="btn btn-primary" onclick="App.addNewDraftQuestion('${draft.id}')">
-              ➕ Thêm câu hỏi
-            </button>
+            ${(!this.draftReviewTab || this.draftReviewTab === 'cards') ? `
+              <button class="btn btn-primary" onclick="App.addNewDraftQuestion('${draft.id}')">
+                ➕ Thêm câu hỏi
+              </button>
+            ` : `
+              <button class="btn btn-primary" onclick="App.applyDraftRawTextChanges('${draft.id}')">
+                ⚡ Cập Nhật Văn Bản
+              </button>
+            `}
             <button class="btn btn-primary" onclick="App.saveDraftFullChanges('${draft.id}')">
               💾 Lưu Thay Đổi
             </button>
@@ -9847,6 +9910,94 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
         </div>
       </div>
     `;
+  },
+
+  switchDraftReviewTab(draftId, tabName) {
+    if (this.draftReviewTab === "text" && tabName === "cards") {
+      // Tự động đồng bộ text đang sửa sang questions khi rời khỏi tab text
+      this.applyDraftRawTextChanges(draftId, false);
+    }
+    this.draftReviewTab = tabName;
+    const main = document.getElementById("mainContent");
+    if (main) this.renderDraftReviewView(main, draftId);
+  },
+
+  onDraftRawTextInput(draftId) {
+    const raw = document.getElementById("draftRawTextarea")?.value || "";
+    const draft = StorageService.getDraftById(draftId);
+    const chapterId = draft ? (draft.targetChapterId || "c1") : "c1";
+    const { questions, warnings, errors, totalParsed } = SmartParserService.parseRawText(raw, chapterId);
+
+    const badge = document.getElementById("draftRawCounterBadge");
+    const warnContainer = document.getElementById("draftRawWarningBanner");
+
+    if (badge) {
+      if (warnings && warnings.length > 0) {
+        badge.innerHTML = `<span style="color: #f59e0b; font-weight: 700;"><i class="fa-solid fa-triangle-exclamation"></i> ${totalParsed} câu (${warnings.length} cần chú ý)</span>`;
+      } else {
+        badge.innerHTML = `<span style="color: var(--success); font-weight: 700;"><i class="fa-solid fa-circle-check"></i> ${totalParsed} câu hỏi hợp lệ</span>`;
+      }
+    }
+
+    if (warnContainer) {
+      if (warnings && warnings.length > 0) {
+        warnContainer.innerHTML = `
+          <div style="padding: 10px 14px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 6px; color: #b45309; font-size: 12px; line-height: 1.5;">
+            <div style="font-weight: 700; margin-bottom: 2px;"><i class="fa-solid fa-triangle-exclamation"></i> Cảnh báo kiểm tra (${warnings.length} câu):</div>
+            <div style="max-height: 60px; overflow-y: auto;">${warnings.map(w => `<div>• ${w}</div>`).join('')}</div>
+          </div>
+        `;
+      } else {
+        warnContainer.innerHTML = "";
+      }
+    }
+  },
+
+  applyDraftRawTextChanges(draftId, showToastNotice = true) {
+    const raw = document.getElementById("draftRawTextarea")?.value;
+    if (raw === undefined) return;
+
+    const draft = StorageService.getDraftById(draftId);
+    if (!draft) return;
+
+    const chapterId = draft.targetChapterId || "c1";
+    const { questions, totalParsed } = SmartParserService.parseRawText(raw, chapterId);
+
+    draft.questions = questions;
+    StorageService.saveDraftSubject(draft);
+
+    if (showToastNotice) {
+      this.showToast(`⚡ Đã cập nhật thành công ${totalParsed} câu hỏi vào bộ đề chờ duyệt!`, "success", 3000);
+      const main = document.getElementById("mainContent");
+      if (main) this.renderDraftReviewView(main, draftId);
+    }
+  },
+
+  copyDraftRawText(draftId) {
+    const raw = document.getElementById("draftRawTextarea")?.value;
+    if (!raw) return;
+    navigator.clipboard.writeText(raw).then(() => {
+      this.showToast("📋 Đã sao chép toàn bộ văn bản câu hỏi vào Clipboard!", "success", 2500);
+    }).catch(err => {
+      this.showToast("Không thể sao chép: " + err, "danger");
+    });
+  },
+
+  downloadDraftRawText(draftId) {
+    const draft = StorageService.getDraftById(draftId);
+    const raw = document.getElementById("draftRawTextarea")?.value || (draft ? SmartParserService.questionsToRawText(draft.questions) : "");
+    if (!raw) return;
+
+    const blob = new Blob([raw], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `de-thi-${draft ? (draft.code || draft.id) : 'draft'}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    this.showToast("📥 Đã tải file .txt thành công!", "success", 2500);
   },
 
   onReviewTargetSubjectChange(draftId) {
@@ -9983,6 +10134,11 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
   saveDraftFullChanges(draftId) {
     const draft = StorageService.getDraftById(draftId);
     if (!draft) return;
+
+    // Nếu đang ở Tab Văn bản, tự động áp dụng text trước
+    if (this.draftReviewTab === "text") {
+      this.applyDraftRawTextChanges(draftId, false);
+    }
 
     const nameVal = document.getElementById("reviewDraftName")?.value.trim();
     const codeVal = document.getElementById("reviewDraftCode")?.value.trim();

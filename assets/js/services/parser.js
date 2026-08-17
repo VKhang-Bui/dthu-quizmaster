@@ -781,5 +781,67 @@ const SmartParserService = {
       reader.onerror = (err) => reject(err);
       reader.readAsArrayBuffer(file);
     });
+  },
+
+  /**
+   * Chuyển đổi mảng đối tượng câu hỏi thành chuỗi văn bản thô (Word/Text style)
+   * Định dạng chuẩn:
+   * Câu 1: Nội dung câu hỏi...
+   * A. Phương án 1
+   * B. Phương án 2 > Đúng
+   * C. Phương án 3
+   * D. Phương án 4
+   * Giải thích: Ghi chú giải thích nếu có
+   */
+  questionsToRawText(questions) {
+    if (!questions || !Array.isArray(questions) || questions.length === 0) return "";
+    const letters = ["A", "B", "C", "D", "E", "F", "G", "H"];
+
+    return questions.map((q, idx) => {
+      let lines = [];
+      const qNum = idx + 1;
+      const qText = (q.question || "").trim();
+      lines.push(`Câu ${qNum}: ${qText}`);
+
+      const options = q.options || [];
+      const answerIndex = (typeof q.answerIndex === "number") ? q.answerIndex : 0;
+      let noteFound = "";
+
+      options.forEach((opt, oi) => {
+        const letter = letters[oi] || "A";
+        let optText = "";
+        let optNote = "";
+        let isCorrect = false;
+
+        if (typeof opt === "string") {
+          optText = opt.trim();
+          isCorrect = (oi === answerIndex);
+        } else if (opt && typeof opt === "object") {
+          optText = (opt.text || "").trim();
+          optNote = (opt.note || "").trim();
+          isCorrect = (oi === answerIndex || opt.isCorrect === true);
+          if (optNote && (oi === answerIndex || !noteFound)) {
+            noteFound = optNote;
+          }
+        }
+
+        // Khử dấu > đúng thừa nếu đã có sẵn trong text
+        optText = optText.replace(/\s*>\s*(?:đúng|dung|chính xác|chinh xac)/gi, "").trim();
+
+        if (isCorrect) {
+          lines.push(`${letter}. ${optText} > Đúng`);
+        } else {
+          lines.push(`${letter}. ${optText}`);
+        }
+      });
+
+      if (noteFound) {
+        lines.push(`Giải thích: ${noteFound}`);
+      } else if (q.explanation) {
+        lines.push(`Giải thích: ${q.explanation.trim()}`);
+      }
+
+      return lines.join("\n");
+    }).join("\n\n");
   }
 };
