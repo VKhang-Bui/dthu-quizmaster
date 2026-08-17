@@ -18,7 +18,8 @@ const SupabaseClient = {
     const url = `${API_CONFIG.SUPABASE_URL}/rest/v1/${endpoint}`;
     const defaultOptions = {
       headers: this.getHeaders(),
-      mode: "cors"
+      mode: "cors",
+      cache: "no-store"
     };
     const merged = Object.assign({}, defaultOptions, options);
     if (options.headers) {

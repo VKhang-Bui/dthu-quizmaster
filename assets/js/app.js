@@ -5375,6 +5375,31 @@ Câu 2: Nội dung câu hỏi số 2 ở đây?
         this.closeUserDrawer();
       }
     });
+
+    // Tự động đồng bộ Supabase khi chuyển tab / mở lại màn hình điện thoại (Real-time auto sync)
+    window.addEventListener("focus", () => {
+      if (typeof StorageService !== "undefined" && typeof StorageService.syncWithCloud === "function") {
+        StorageService.syncWithCloud().then(() => {
+          App.renderHeader();
+          if (App.currentView === "users-management") {
+            App.renderUsersManagementView(document.getElementById("mainContent"));
+          }
+        }).catch(() => {});
+      }
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        if (typeof StorageService !== "undefined" && typeof StorageService.syncWithCloud === "function") {
+          StorageService.syncWithCloud().then(() => {
+            App.renderHeader();
+            if (App.currentView === "users-management") {
+              App.renderUsersManagementView(document.getElementById("mainContent"));
+            }
+          }).catch(() => {});
+        }
+      }
+    });
   }
 };
 

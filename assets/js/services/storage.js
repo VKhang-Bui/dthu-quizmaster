@@ -522,6 +522,7 @@ const StorageService = {
   },
 
   rejectUserRegistration(userId) {
+    this.updateUser(userId, { status: "rejected" });
     return this.deleteUser(userId);
   },
 
@@ -712,6 +713,7 @@ const StorageService = {
 
     // Đồng bộ xóa trên Supabase Cloud
     if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+      SupabaseClient.updateUser(id, { status: "rejected" }).catch(() => {});
       SupabaseClient.deleteUser(id).catch(e => console.warn("Supabase deleteUser error:", e));
     }
 
