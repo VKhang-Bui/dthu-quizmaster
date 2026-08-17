@@ -127,6 +127,12 @@ const StorageService = {
 
     drafts.unshift(newDraft);
     this.saveDraftSubjects(drafts);
+
+    // Đồng bộ lên Supabase Cloud
+    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+      SupabaseClient.createDraftSubject(newDraft).catch(e => console.warn("Supabase createDraftSubject error:", e));
+    }
+
     return newDraft;
   },
 
@@ -161,6 +167,11 @@ const StorageService = {
     this.saveSubject(officialSubject);
     drafts.splice(idx, 1);
     this.saveDraftSubjects(drafts);
+
+    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+      SupabaseClient.deleteDraftSubject(draftId).catch(e => console.warn("Supabase deleteDraftSubject error:", e));
+    }
+
     this.addExp(50, `Phê duyệt bộ đề: ${draft.name}`);
     return officialSubject;
   },
@@ -169,6 +180,11 @@ const StorageService = {
     let drafts = this.getDraftSubjects();
     drafts = drafts.filter(d => d.id !== draftId);
     this.saveDraftSubjects(drafts);
+
+    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+      SupabaseClient.deleteDraftSubject(draftId).catch(e => console.warn("Supabase deleteDraftSubject error:", e));
+    }
+
     return true;
   },
 
@@ -314,6 +330,78 @@ const StorageService = {
     ) || null;
   },
 
+  async syncWithCloud() {
+    if (typeof SupabaseClient === "undefined" || !API_CONFIG.isCloudEnabled()) return false;
+    try {
+      // 1. Đồng bộ người dùng từ Supabase
+      const cloudUsers = await SupabaseClient.getAllUsers();
+      if (Array.isArray(cloudUsers) && cloudUsers.length > 0) {
+        const mappedUsers = cloudUsers.map(u => ({
+          id: u.id,
+          studentId: u.student_id,
+          className: u.class_name || "",
+          fullName: u.full_name,
+          email: u.email,
+          phone: u.phone || "",
+          department: u.department || "Khoa Kỹ thuật - Công nghệ",
+          role: u.role || "student",
+          pinCode: u.pin_code || "123456",
+          avatar: u.avatar || "👨‍🎓",
+          totalExp: u.total_exp || 0,
+          streakDays: u.streak_days || 1,
+          quizzesCompleted: u.quizzes_completed || 0,
+          status: u.status || "active",
+          permissions: u.permissions || {},
+          approvedBy: u.approved_by || "",
+          approvedAt: u.approved_at || null,
+          createdAt: u.created_at
+        }));
+        this.saveAllUsers(mappedUsers);
+
+        // Đồng bộ lại hồ sơ đang đăng nhập nếu có cập nhật từ Admin
+        const currentProfile = this.getUserProfile();
+        if (currentProfile && currentProfile.id && currentProfile.role !== "guest") {
+          const fresh = mappedUsers.find(u => u.id === currentProfile.id || (u.studentId && u.studentId === currentProfile.studentId));
+          if (fresh) {
+            this.saveUserProfile(fresh);
+          }
+        }
+      }
+
+      // 2. Đồng bộ đề thi đóng góp (Drafts)
+      const cloudDrafts = await SupabaseClient.getAllDraftSubjects();
+      if (Array.isArray(cloudDrafts)) {
+        this.saveDraftSubjects(cloudDrafts);
+      }
+
+      // 3. Đồng bộ phiếu hỗ trợ CSKH
+      const cloudTickets = await SupabaseClient.getAllSupportTickets();
+      if (Array.isArray(cloudTickets) && cloudTickets.length > 0) {
+        const mappedTickets = cloudTickets.map(t => ({
+          id: t.id,
+          ticketId: t.ticket_id,
+          userId: t.user_id,
+          fullName: t.full_name,
+          studentId: t.student_id,
+          contact: t.contact,
+          email: t.email,
+          phone: t.phone,
+          issueType: t.issue_type,
+          title: t.title,
+          content: t.content,
+          status: t.status,
+          createdAt: t.created_at
+        }));
+        this.saveResetRequests(mappedTickets);
+      }
+
+      return true;
+    } catch (err) {
+      console.warn("[Cloud Sync Error]:", err);
+      return false;
+    }
+  },
+
   createUser(userData) {
     const list = this.getAllUsers();
     const existing = this.getUserByStudentId(userData.studentId);
@@ -335,7 +423,9 @@ const StorageService = {
       id: "USR-" + Date.now(),
       fullName: userData.fullName || "Sinh viên DThu",
       studentId: userData.studentId || "",
+      className: userData.className || "",
       email: userData.email || "",
+      phone: userData.phone || "",
       department: userData.department || "Đại học Đồng Tháp",
       role: userData.role || "student",
       avatar: userData.avatar || "👨‍🎓",
@@ -350,6 +440,12 @@ const StorageService = {
 
     list.push(newUser);
     this.saveAllUsers(list);
+
+    // Đồng bộ lên Supabase Cloud
+    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+      SupabaseClient.createUser(newUser).catch(e => console.warn("Supabase createUser error:", e));
+    }
+
     return newUser;
   },
 
@@ -373,8 +469,10 @@ const StorageService = {
       id: "USR-" + Date.now(),
       fullName: userData.fullName.trim(),
       studentId: userData.studentId.trim(),
+      className: userData.className ? userData.className.trim() : "",
       email: userData.email ? userData.email.trim().toLowerCase() : `${userData.studentId.trim()}@dthu.edu.vn`,
-      department: userData.department ? userData.department.trim() : "Đại học Đồng Tháp",
+      phone: userData.phone ? userData.phone.trim() : "",
+      department: userData.department ? userData.department.trim() : "Khoa Kỹ thuật - Công nghệ",
       role: "student",
       avatar: userData.avatar || "👨‍🎓",
       pinCode: userData.pinCode || "123456",
@@ -394,6 +492,12 @@ const StorageService = {
 
     list.push(newUser);
     this.saveAllUsers(list);
+
+    // Bắn dữ liệu lên Supabase Cloud
+    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+      SupabaseClient.createUser(newUser).catch(e => console.warn("Supabase createUser error:", e));
+    }
+
     return newUser;
   },
 
@@ -454,6 +558,12 @@ const StorageService = {
     };
     requests.unshift(newReq);
     this.saveResetRequests(requests);
+
+    // Đồng bộ lên Supabase Cloud
+    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+      SupabaseClient.createSupportTicket(newReq).catch(e => console.warn("Supabase createSupportTicket error:", e));
+    }
+
     return newReq;
   },
 
@@ -478,6 +588,12 @@ const StorageService = {
         this.updateUser(user.id, { pinCode: newPin });
       }
     }
+
+    // Đồng bộ trạng thái phiếu trên Supabase Cloud
+    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+      SupabaseClient.updateSupportTicket(req.ticketId, { status: "resolved", resolved_by: "Admin Bùi Văn Khang", resolved_at: new Date().toISOString() }).catch(e => console.warn("Supabase updateSupportTicket error:", e));
+    }
+
     return req;
   },
 
@@ -576,6 +692,11 @@ const StorageService = {
       this.saveUserProfile(list[idx]);
     }
 
+    // Đồng bộ lên Supabase Cloud
+    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+      SupabaseClient.updateUser(id, updates).catch(e => console.warn("Supabase updateUser error:", e));
+    }
+
     return list[idx];
   },
 
@@ -588,6 +709,12 @@ const StorageService = {
 
     const filtered = list.filter(u => u.id !== id);
     this.saveAllUsers(filtered);
+
+    // Đồng bộ xóa trên Supabase Cloud
+    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+      SupabaseClient.deleteUser(id).catch(e => console.warn("Supabase deleteUser error:", e));
+    }
+
     return true;
   },
 
@@ -745,6 +872,11 @@ const StorageService = {
       this.addExp(10, "Hoàn thành bài thi đạt yêu cầu (+10 EXP)");
     } else {
       this.addExp(5, "Chăm chỉ làm bài ôn tập (+5 EXP)");
+    }
+
+    // Đồng bộ lên Supabase Cloud
+    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+      SupabaseClient.saveQuizHistory(attempt).catch(e => console.warn("Supabase saveQuizHistory error:", e));
     }
   },
 

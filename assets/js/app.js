@@ -24,6 +24,10 @@ const App = {
     if (typeof DataLoader !== "undefined") {
       await DataLoader.init();
     }
+    // Tự động đồng bộ CSDL đám mây Supabase Cloud (chạy nền)
+    if (typeof StorageService !== "undefined" && typeof StorageService.syncWithCloud === "function") {
+      StorageService.syncWithCloud().catch(e => console.warn("Supabase background sync:", e));
+    }
     this.renderHeader();
     this.navigateTo("home");
     this.bindGlobalEvents();
@@ -3906,59 +3910,56 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
   // MODAL ĐĂNG NHẬP & CHUYỂN ĐỔI TÀI KHOẢN (ACCOUNT SWITCHER & LOGIN)
   // ═════════════════════════════════════════════════════════════════════════
   openAccountSwitcherModal() {
-    const allUsers = StorageService.getActiveUsers();
     const currentProfile = StorageService.getUserProfile();
+    const isLogged = StorageService.isLoggedIn();
 
     const modal = document.getElementById("globalModal");
     const title = document.getElementById("modalTitle");
     const body = document.getElementById("modalBody");
     const footer = document.getElementById("modalFooter");
 
-    title.textContent = "🔑 Đăng Nhập & Chuyển Đổi Tài Khoản";
+    title.textContent = "🔑 Đăng Nhập & Xác Thực Tài Khoản";
 
     body.innerHTML = `
       <div style="display: flex; flex-direction: column; gap: 16px;">
-        <!-- Phần 1: Chọn Nhanh Tài Khoản Trên Máy -->
+        ${isLogged ? `
+          <!-- Phần 1: Tài khoản đang kích hoạt trên thiết bị này -->
+          <div style="background: var(--brand-light); border: 1.5px solid var(--brand-primary); padding: 12px 16px; border-radius: var(--radius-sm);">
+            <div style="font-size: 11.5px; font-weight: 800; text-transform: uppercase; color: var(--brand-primary); letter-spacing: 0.04em; margin-bottom: 6px;">
+              📱 Tài khoản đang đăng nhập trên thiết bị:
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="font-size: 26px;">${currentProfile.avatar || '👨‍🎓'}</div>
+                <div>
+                  <strong style="font-size: 14px; color: var(--text-primary); display: block;">${currentProfile.fullName}</strong>
+                  <span style="font-size: 12px; color: var(--text-secondary);">MSSV: <strong>${currentProfile.studentId}</strong> · ${currentProfile.role.toUpperCase()}</span>
+                </div>
+              </div>
+              <button class="btn btn-sm btn-danger" style="font-size: 12px;" onclick="App.logoutUser(); App.closeModal();">
+                🚪 Đăng Xuất
+              </button>
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Phần 2: Đăng Nhập Với MSSV & Mã PIN (Đồng bộ Cloud & Phân biệt từng máy) -->
         <div>
           <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 8px; display: block;">
-            1. Chọn nhanh tài khoản có sẵn trên thiết bị:
+            ${isLogged ? 'Chuyển sang tài khoản khác (Yêu cầu nhập mã PIN):' : 'Nhập thông tin sinh viên để đăng nhập:'}
           </label>
-          <div style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto;">
-            ${allUsers.map(u => {
-              const isCurrent = currentProfile && currentProfile.id === u.id;
-              let roleStr = "👨‍🎓 Sinh Viên";
-              if (u.role === "admin") roleStr = "👑 Quản Trị Viên";
-              else if (u.role === "editor") roleStr = "🛡️ Ban Biên Tập";
-
-              return `
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border: 1.5px solid ${isCurrent ? 'var(--brand-primary)' : 'var(--border)'}; background: ${isCurrent ? 'var(--brand-light)' : 'var(--surface)'}; border-radius: var(--radius-sm); cursor: pointer;" onclick="App.switchAccountTo('${u.id}'); App.closeModal();">
-                  <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="font-size: 24px;">${u.avatar || '👨‍🎓'}</div>
-                    <div>
-                      <strong style="font-size: 13.5px; color: var(--text-primary); display: block;">${u.fullName} ${isCurrent ? '(Đang dùng)' : ''}</strong>
-                      <span style="font-size: 11.5px; color: var(--text-secondary);">MSSV: ${u.studentId} · ${roleStr}</span>
-                    </div>
-                  </div>
-                  <button class="btn btn-sm ${isCurrent ? 'btn-primary' : ''}" style="font-size: 12px;">
-                    ${isCurrent ? '✓ Đang bật' : 'Chọn ➔'}
-                  </button>
-                </div>
-              `;
-            }).join('')}
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+            <div class="form-group" style="margin: 0;">
+              <label style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; display: block;">Mã số sinh viên (MSSV):</label>
+              <input type="text" id="loginStudentId" class="form-control" placeholder="Ví dụ: 0024418475">
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; display: block;">Mã PIN bảo mật:</label>
+              <input type="password" id="loginPinCode" class="form-control" placeholder="Mã PIN (Mặc định: 123456)">
+            </div>
           </div>
-        </div>
-
-        <!-- Phần 2: Đăng Nhập Với MSSV & Mã PIN -->
-        <div style="border-top: 1px dashed var(--border); padding-top: 14px;">
-          <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 8px; display: block;">
-            2. Hoặc Đăng nhập bằng MSSV & Mã PIN:
-          </label>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-            <input type="text" id="loginStudentId" class="form-control" placeholder="Nhập MSSV (Ví dụ: 220101001)">
-            <input type="password" id="loginPinCode" class="form-control" placeholder="Mã PIN (Mặc định: 123456)">
-          </div>
-          <button class="btn btn-primary" style="width: 100%;" onclick="App.loginWithCredentials()">
-            🚀 Xác Thực & Đăng Nhập
+          <button class="btn btn-primary" style="width: 100%; font-weight: 700; padding: 11px;" onclick="App.loginWithCredentials()">
+            🚀 Xác Thực & Đăng Nhập ➔
           </button>
         </div>
 
@@ -3981,7 +3982,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     modal.classList.add("active");
   },
 
-  loginWithCredentials() {
+  async loginWithCredentials() {
     const mssv = document.getElementById("loginStudentId")?.value.trim();
     const pin = document.getElementById("loginPinCode")?.value.trim();
 
@@ -3990,7 +3991,55 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       return;
     }
 
+    this.showToast("⏳ Đang xác thực với CSDL Đám Mây Supabase...", "info", 1500);
+
     try {
+      // 1. Kiểm tra trên Supabase Cloud trước để lấy trạng thái duyệt mới nhất
+      if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+        const cloudUser = await SupabaseClient.getUserByStudentId(mssv);
+        if (cloudUser) {
+          if (cloudUser.status === "pending_approval") {
+            throw new Error("Tài khoản của bạn đang trong trạng thái CHỜ ADMIN DUYỆT!");
+          }
+          if (cloudUser.status === "suspended") {
+            throw new Error("Tài khoản của bạn đã bị tạm khóa bởi Quản trị viên!");
+          }
+          if (cloudUser.pin_code && pin && cloudUser.pin_code !== pin) {
+            throw new Error("Mã PIN bảo mật không chính xác!");
+          }
+          
+          const mapped = {
+            id: cloudUser.id,
+            studentId: cloudUser.student_id,
+            className: cloudUser.class_name || "",
+            fullName: cloudUser.full_name,
+            email: cloudUser.email,
+            phone: cloudUser.phone || "",
+            department: cloudUser.department || "Khoa Kỹ thuật - Công nghệ",
+            role: cloudUser.role || "student",
+            pinCode: cloudUser.pin_code || "123456",
+            avatar: cloudUser.avatar || "👨‍🎓",
+            totalExp: cloudUser.total_exp || 0,
+            streakDays: cloudUser.streak_days || 1,
+            quizzesCompleted: cloudUser.quizzes_completed || 0,
+            status: cloudUser.status || "active",
+            permissions: cloudUser.permissions || {},
+            approvedBy: cloudUser.approved_by || "",
+            approvedAt: cloudUser.approved_at || null,
+            createdAt: cloudUser.created_at
+          };
+          StorageService.updateUser(mapped.id, mapped);
+          StorageService.saveUserProfile(mapped);
+
+          this.closeModal();
+          this.renderHeader();
+          this.showToast(`🎉 Đăng nhập thành công! Chào mừng ${mapped.fullName} (${mapped.role.toUpperCase()})`, "success", 3500);
+          this.navigateTo("home");
+          return;
+        }
+      }
+
+      // 2. Xác thực cục bộ (Offline fallback)
       const user = StorageService.authenticateUser(mssv, pin);
       this.closeModal();
       this.renderHeader();

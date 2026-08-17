@@ -10,9 +10,9 @@
  */
 
 const API_CONFIG = {
-  // Cấu hình Supabase Cloud (Để trống nếu chạy chế độ Offline / LocalStorage thuần)
-  SUPABASE_URL: "",      // Ví dụ: "https://xyzcompany.supabase.co"
-  SUPABASE_ANON_KEY: "", // Khóa công khai Anon Key từ Project Settings > API
+  // Cấu hình Supabase Cloud (Đã kích hoạt CSDL đám mây PostgreSQL DThu QuizMaster)
+  SUPABASE_URL: "https://bpntyxetofyqchlmoaua.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_XDlDvMS7oPEA-Xm3l-SpTg_YLQaPTpZ",
 
   // Cờ kiểm tra trạng thái kết nối Cloud
   isCloudEnabled() {
