@@ -680,3 +680,12 @@
   padding: 5px 14px;
   transition: var(--transition-fast);
 }
+
+.season-item-card {
+  transition: var(--transition-fast);
+}
+
+.season-item-card:hover {
+  border-color: var(--brand-primary);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}

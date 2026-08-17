@@ -19,7 +19,9 @@ const StorageService = {
     NOTIFICATIONS: "dthu_quiz_notifications_v2",
     CONTRIBUTION_PROGRESS: "dthu_quiz_contrib_progress_v2",
     LEADERBOARD_SETTINGS: "dthu_quiz_leaderboard_settings_v2",
-    LEADERBOARD_ARCHIVES: "dthu_quiz_leaderboard_archives_v2"
+    LEADERBOARD_ARCHIVES: "dthu_quiz_leaderboard_archives_v2",
+    SEASONS_LIST: "dthu_quiz_seasons_list_v2",
+    AUDIT_LOGS: "dthu_quiz_audit_logs_v2"
   },
 
   // Danh mục tất cả các loại cảnh báo hệ thống hỗ trợ ẩn/bật
@@ -1053,9 +1055,15 @@ const StorageService = {
   // ── 3.2. Quản lý Thang Điểm Học Tập (EXP) & Điểm Cống Hiến (CP) ──
   addExp(points, reason = "", source = "study", silent = false) {
     if (!this.isLoggedIn()) return 0; // Khách không tích lũy EXP
+    
+    // Tự động áp dụng hệ số nhân EXP của mùa giải đang hoạt động (nếu có)
+    const activeSeason = this.getActiveSeason ? this.getActiveSeason() : null;
+    const multiplier = (activeSeason && typeof activeSeason.expMultiplier === 'number') ? activeSeason.expMultiplier : 1.0;
+    const finalPoints = (points > 0 && multiplier !== 1.0) ? Math.round(points * multiplier) : points;
+
     const profile = this.getUserProfile();
-    profile.totalExp = Math.max(0, (profile.totalExp || 0) + points);
-    profile.seasonExp = Math.max(0, (profile.seasonExp || 0) + points);
+    profile.totalExp = Math.max(0, (profile.totalExp || 0) + finalPoints);
+    profile.seasonExp = Math.max(0, (profile.seasonExp || 0) + finalPoints);
     this.saveUserProfile(profile);
 
     const list = this.getAllUsers();
@@ -1067,12 +1075,13 @@ const StorageService = {
     }
 
     // Tự động gửi Thông Báo nếu không phải chế độ im lặng
-    if (!silent && points !== 0) {
+    if (!silent && finalPoints !== 0) {
+      const bonusText = multiplier > 1.0 ? ` (Thưởng hệ số x${multiplier})` : '';
       this.addNotification(profile.id, {
-        type: points > 0 ? "exp_reward" : "admin_adjust",
-        title: points > 0 ? `⚡ Nhận được +${points} EXP Học Tập` : `⚡ Bị khấu trừ ${Math.abs(points)} EXP`,
+        type: finalPoints > 0 ? "exp_reward" : "admin_adjust",
+        title: finalPoints > 0 ? `⚡ Nhận được +${finalPoints} EXP Học Tập${bonusText}` : `⚡ Bị khấu trừ ${Math.abs(finalPoints)} EXP`,
         message: reason || "Rèn luyện và tích cực học tập trên hệ thống.",
-        pointsDelta: points,
+        pointsDelta: finalPoints,
         pointType: "EXP"
       });
     }
@@ -1297,6 +1306,8 @@ const StorageService = {
       pointType: pointType
     });
 
+    this.addAuditLog("ADJUST_POINTS", user.fullName, `${amount > 0 ? 'Cộng' : 'Khấu trừ'} ${Math.abs(amount)} ${pointType} (${scopeLabel}). Lý do: "${cleanReason}"`, adminName);
+
     return user;
   },
 
@@ -1338,6 +1349,8 @@ const StorageService = {
       pointType: resetType.toUpperCase()
     });
 
+    this.addAuditLog("RESET_USER_POINTS", user.fullName, `Đặt lại ${resetDesc}về 0 (${scopeDesc}). Lý do: "${cleanReason}"`, adminName);
+
     return user;
   },
 
@@ -1375,6 +1388,8 @@ const StorageService = {
       pointType: null
     });
 
+    this.addAuditLog("KICK_USER", user.fullName, `Loại (Kick) thành viên khỏi nhóm. Lý do: "${cleanReason}"`, adminName);
+
     return user;
   },
 
@@ -1404,6 +1419,8 @@ const StorageService = {
       pointsDelta: null,
       pointType: null
     });
+
+    this.addAuditLog("REINSTATE_USER", user.fullName, `Khôi phục thành viên vào nhóm học tập và mở lại BXH`, adminName);
 
     return user;
   },
@@ -1615,16 +1632,348 @@ const StorageService = {
   },
 
   // ═════════════════════════════════════════════════════════════════════════
-  // 5.1. QUẢN TRỊ & CẤU HÌNH BẢNG XẾP HẠNG (LEADERBOARD MANAGEMENT)
+  // 5.1. QUẢN TRỊ & CẤU HÌNH BẢNG XẾP HẠNG & MÙA GIẢI (SEASONS & LEADERBOARD)
   // ═════════════════════════════════════════════════════════════════════════
+  DEFAULT_SEASONS: [
+    {
+      id: "season-2026-hk1",
+      code: "HK1-2026",
+      name: "Học Kỳ 1 (2026 - 2027)",
+      description: "Mùa thi đua rèn luyện học kỳ 1 năm học 2026 - 2027 dành cho toàn thể sinh viên Trường Đại học Đồng Tháp.",
+      startDate: "2026-08-01T00:00:00.000Z",
+      endDate: "2026-12-31T23:59:59.000Z",
+      status: "active", // 'active' | 'upcoming' | 'completed'
+      expMultiplier: 1.0,
+      top1Title: "🥇 Hạng 1 (Top 1)",
+      top2Title: "🥈 Hạng 2 (Top 2)",
+      top3Title: "🥉 Hạng 3 (Top 3)",
+      createdAt: "2026-08-01T00:00:00.000Z",
+      createdBy: "Bùi Văn Khang"
+    }
+  ],
+
+  getSeasons() {
+    try {
+      const data = localStorage.getItem(this.KEYS.SEASONS_LIST);
+      if (data) {
+        const list = JSON.parse(data);
+        if (Array.isArray(list) && list.length > 0) return list;
+      }
+    } catch (e) {}
+    this.saveSeasons(this.DEFAULT_SEASONS);
+    return this.DEFAULT_SEASONS;
+  },
+
+  saveSeasons(seasons) {
+    localStorage.setItem(this.KEYS.SEASONS_LIST, JSON.stringify(seasons));
+  },
+
+  getActiveSeason() {
+    const seasons = this.getSeasons();
+    return seasons.find(s => s.status === "active") || seasons[0];
+  },
+
+  createSeason(data, adminName = "Quản trị viên") {
+    const seasons = this.getSeasons();
+    const newId = "season-" + Date.now();
+    const code = (data.code || "SEASON-" + Date.now().toString().slice(-4)).toUpperCase();
+
+    const newSeason = {
+      id: newId,
+      code: code,
+      name: data.name || "Mùa giải mới",
+      description: data.description || "",
+      startDate: data.startDate || new Date().toISOString(),
+      endDate: data.endDate || new Date(Date.now() + 90 * 86400000).toISOString(),
+      status: data.status || "upcoming",
+      expMultiplier: parseFloat(data.expMultiplier) || 1.0,
+      top1Title: data.top1Title || "🥇 Hạng 1 (Top 1)",
+      top2Title: data.top2Title || "🥈 Hạng 2 (Top 2)",
+      top3Title: data.top3Title || "🥉 Hạng 3 (Top 3)",
+      createdAt: new Date().toISOString(),
+      createdBy: adminName
+    };
+
+    if (newSeason.status === "active") {
+      seasons.forEach(s => {
+        if (s.status === "active") s.status = "completed";
+      });
+      if (data.resetPoints) {
+        const allUsers = this.getAllUsers();
+        allUsers.forEach(u => {
+          u.seasonExp = 0;
+          u.seasonCp = 0;
+        });
+        this.saveAllUsers(allUsers);
+        const active = this.getUserProfile();
+        if (active && active.id) {
+          active.seasonExp = 0;
+          active.seasonCp = 0;
+          this.saveUserProfile(active);
+        }
+      }
+      const settings = this.getLeaderboardSettings();
+      settings.seasonName = newSeason.name;
+      settings.seasonStartDate = newSeason.startDate;
+      settings.top1Title = newSeason.top1Title;
+      settings.top2Title = newSeason.top2Title;
+      settings.top3Title = newSeason.top3Title;
+      this.saveLeaderboardSettings(settings);
+    }
+
+    seasons.unshift(newSeason);
+    this.saveSeasons(seasons);
+
+    this.addAuditLog("CREATE_SEASON", newSeason.name, `Tạo mùa giải mới [${newSeason.code}] với trạng thái: ${newSeason.status}`, adminName);
+
+    if (newSeason.status === "active") {
+      const allUsers = this.getAllUsers();
+      allUsers.forEach(u => {
+        this.addNotification(u.id, {
+          type: "system_announcement",
+          title: `🏆 Khởi Động Mùa Giải: ${newSeason.name}`,
+          message: `Quản trị viên đã chính thức khởi động mùa thi đua "${newSeason.name}". Chúc bạn đạt được nhiều thành tích cao!`,
+          pointsDelta: null,
+          pointType: null
+        });
+      });
+    }
+
+    return newSeason;
+  },
+
+  updateSeason(id, updates, adminName = "Quản trị viên") {
+    const seasons = this.getSeasons();
+    const idx = seasons.findIndex(s => s.id === id);
+    if (idx === -1) throw new Error("Không tìm thấy mùa giải này!");
+
+    const oldName = seasons[idx].name;
+    seasons[idx] = Object.assign({}, seasons[idx], updates);
+    this.saveSeasons(seasons);
+
+    if (seasons[idx].status === "active") {
+      const settings = this.getLeaderboardSettings();
+      if (updates.name) settings.seasonName = updates.name;
+      if (updates.top1Title) settings.top1Title = updates.top1Title;
+      if (updates.top2Title) settings.top2Title = updates.top2Title;
+      if (updates.top3Title) settings.top3Title = updates.top3Title;
+      this.saveLeaderboardSettings(settings);
+    }
+
+    this.addAuditLog("UPDATE_SEASON", seasons[idx].name, `Cập nhật thông số mùa giải "${oldName}"`, adminName);
+    return seasons[idx];
+  },
+
+  resetActiveSeason(seasonId, reason = "", adminName = "Quản trị viên") {
+    const seasons = this.getSeasons();
+    const season = seasons.find(s => s.id === seasonId);
+    if (!season) throw new Error("Không tìm thấy mùa giải!");
+    if (!reason || !reason.trim()) throw new Error("Vui lòng nhập lý do đặt lại mùa giải để gửi thông báo!");
+
+    const allUsers = this.getAllUsers();
+    allUsers.forEach(u => {
+      u.seasonExp = 0;
+      u.seasonCp = 0;
+    });
+    this.saveAllUsers(allUsers);
+
+    const active = this.getUserProfile();
+    if (active && active.id) {
+      active.seasonExp = 0;
+      active.seasonCp = 0;
+      this.saveUserProfile(active);
+    }
+
+    this.addAuditLog("RESET_SEASON", season.name, `Đặt lại toàn bộ điểm thi đua Mùa Này về 0. Lý do: "${reason.trim()}"`, adminName);
+
+    allUsers.forEach(u => {
+      this.addNotification(u.id, {
+        type: "system_announcement",
+        title: `🔄 Đặt Lại Điểm Thi Đua Mùa Giải: ${season.name}`,
+        message: `Quản trị viên ${adminName} đã đặt lại điểm Mùa Này về 0. Lý do: "${reason.trim()}". (Điểm Tổng All-Time được bảo lưu 100%).`,
+        pointsDelta: null,
+        pointType: null
+      });
+    });
+
+    return true;
+  },
+
+  freezeAndEndSeason(seasonId, adminName = "Quản trị viên") {
+    const seasons = this.getSeasons();
+    const season = seasons.find(s => s.id === seasonId);
+    if (!season) throw new Error("Không tìm thấy mùa giải!");
+
+    const currentExpBoard = this.getLeaderboardData("exp", { scope: "season", includeHidden: true, statusFilter: "all" });
+    const currentCpBoard = this.getLeaderboardData("cp", { scope: "season", includeHidden: true, statusFilter: "all" });
+
+    season.status = "completed";
+    season.closedAt = new Date().toISOString();
+    season.closedBy = adminName;
+    season.frozenStandings = {
+      topExp: currentExpBoard.slice(0, 50),
+      topCp: currentCpBoard.slice(0, 50)
+    };
+
+    this.saveSeasons(seasons);
+
+    const archiveItem = {
+      id: season.id,
+      seasonName: season.name,
+      closedAt: season.closedAt,
+      closedBy: adminName,
+      wasSeasonReset: true,
+      topExp: currentExpBoard.slice(0, 20),
+      topCp: currentCpBoard.slice(0, 20)
+    };
+    const archives = this.getLeaderboardArchives().filter(a => a.id !== season.id);
+    archives.unshift(archiveItem);
+    localStorage.setItem(this.KEYS.LEADERBOARD_ARCHIVES, JSON.stringify(archives));
+
+    this.addAuditLog("FREEZE_SEASON", season.name, `Đóng băng và kết thúc mùa giải "${season.name}" (Lưu Top 50 EXP & CP)`, adminName);
+
+    const top1Exp = currentExpBoard[0] ? currentExpBoard[0].name : "N/A";
+    const top1Cp = currentCpBoard[0] ? currentCpBoard[0].name : "N/A";
+
+    const allUsers = this.getAllUsers();
+    allUsers.forEach(u => {
+      this.addNotification(u.id, {
+        type: "system_announcement",
+        title: `🏆 Bế Mạc & Vinh Danh Mùa Giải: ${season.name}`,
+        message: `Mùa thi đua "${season.name}" đã chính thức kết thúc và đóng băng bảng vàng! Vinh danh Top 1 EXP: ${top1Exp} & Top 1 CP: ${top1Cp}. Chúc mừng tất cả các bạn!`,
+        pointsDelta: null,
+        pointType: null
+      });
+    });
+
+    return season;
+  },
+
+  activateSeason(seasonId, adminName = "Quản trị viên", resetPoints = false) {
+    const seasons = this.getSeasons();
+    const target = seasons.find(s => s.id === seasonId);
+    if (!target) throw new Error("Không tìm thấy mùa giải!");
+
+    seasons.forEach(s => {
+      if (s.id === seasonId) {
+        s.status = "active";
+      } else if (s.status === "active") {
+        s.status = "completed";
+      }
+    });
+
+    if (resetPoints) {
+      const allUsers = this.getAllUsers();
+      allUsers.forEach(u => {
+        u.seasonExp = 0;
+        u.seasonCp = 0;
+      });
+      this.saveAllUsers(allUsers);
+      const active = this.getUserProfile();
+      if (active && active.id) {
+        active.seasonExp = 0;
+        active.seasonCp = 0;
+        this.saveUserProfile(active);
+      }
+    }
+
+    this.saveSeasons(seasons);
+
+    const settings = this.getLeaderboardSettings();
+    settings.seasonName = target.name;
+    settings.seasonStartDate = target.startDate || new Date().toISOString();
+    settings.top1Title = target.top1Title || settings.top1Title;
+    settings.top2Title = target.top2Title || settings.top2Title;
+    settings.top3Title = target.top3Title || settings.top3Title;
+    this.saveLeaderboardSettings(settings);
+
+    this.addAuditLog("ACTIVATE_SEASON", target.name, `Kích hoạt mùa giải "${target.name}" làm mùa hiện tại ${resetPoints ? '(Có reset điểm mùa)' : ''}`, adminName);
+
+    const allUsers = this.getAllUsers();
+    allUsers.forEach(u => {
+      this.addNotification(u.id, {
+        type: "system_announcement",
+        title: `🏆 Kích Hoạt Mùa Giải: ${target.name}`,
+        message: `Hệ thống đã kích hoạt mùa thi đua "${target.name}". ${resetPoints ? 'Điểm Mùa Này đã được làm mới.' : 'Điểm tích lũy được bảo lưu.'} Chúc bạn học tập và thi thử hiệu quả!`,
+        pointsDelta: null,
+        pointType: null
+      });
+    });
+
+    return target;
+  },
+
+  reopenSeason(seasonId, adminName = "Quản trị viên") {
+    return this.activateSeason(seasonId, adminName, false);
+  },
+
+  deleteSeason(seasonId, adminName = "Quản trị viên") {
+    const seasons = this.getSeasons();
+    const season = seasons.find(s => s.id === seasonId);
+    if (!season) throw new Error("Không tìm thấy mùa giải để xóa!");
+
+    const activeCount = seasons.filter(s => s.status === "active").length;
+    if (season.status === "active" && seasons.length > 1 && activeCount === 1) {
+      throw new Error("Không thể xóa mùa giải đang hoạt động duy nhất! Vui lòng kích hoạt một mùa khác trước khi xóa.");
+    }
+
+    const filtered = seasons.filter(s => s.id !== seasonId);
+    this.saveSeasons(filtered);
+
+    const archives = this.getLeaderboardArchives().filter(a => a.id !== seasonId);
+    localStorage.setItem(this.KEYS.LEADERBOARD_ARCHIVES, JSON.stringify(archives));
+
+    this.addAuditLog("DELETE_SEASON", season.name, `Xóa mùa giải [${season.code}] khỏi hệ thống`, adminName);
+    return true;
+  },
+
+  // ── 5.2. Nhật Ký Kiểm Toán Quản Trị (Admin Audit Logs) ────────
+  getAuditLogs() {
+    try {
+      const data = localStorage.getItem(this.KEYS.AUDIT_LOGS);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      return [];
+    }
+  },
+
+  addAuditLog(action, target, details, adminName = "Quản trị viên") {
+    const logs = this.getAuditLogs();
+    const newLog = {
+      id: "audit-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6),
+      timestamp: new Date().toISOString(),
+      adminName: adminName || "Quản trị viên",
+      action: action,
+      target: target || "Hệ thống",
+      details: details || ""
+    };
+    logs.unshift(newLog);
+    if (logs.length > 200) logs.length = 200;
+    localStorage.setItem(this.KEYS.AUDIT_LOGS, JSON.stringify(logs));
+    return newLog;
+  },
+
+  clearAuditLogs(adminName = "Quản trị viên") {
+    localStorage.removeItem(this.KEYS.AUDIT_LOGS);
+    this.addAuditLog("CLEAR_LOGS", "Audit Logs", "Xóa toàn bộ lịch sử nhật ký kiểm toán", adminName);
+  },
+
   getLeaderboardSettings() {
     try {
       const data = localStorage.getItem(this.KEYS.LEADERBOARD_SETTINGS);
-      if (data) return JSON.parse(data);
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (typeof parsed.isPublic !== "boolean") parsed.isPublic = true;
+        if (!parsed.maxDisplayCount) parsed.maxDisplayCount = "all";
+        return parsed;
+      }
     } catch (e) {}
+    const activeSeason = this.getActiveSeason ? this.getActiveSeason() : null;
     return {
-      seasonName: "Học Kỳ 1 (2026 - 2027)",
+      seasonName: (activeSeason && activeSeason.name) || "Học Kỳ 1 (2026 - 2027)",
       isPublic: true,
+      maxDisplayCount: "all",
+      expMultiplier: 1.0,
       top1Title: "🥇 Hạng 1 (Top 1)",
       top2Title: "🥈 Hạng 2 (Top 2)",
       top3Title: "🥉 Hạng 3 (Top 3)",
@@ -1651,82 +2000,66 @@ const StorageService = {
       isHidden = true;
     }
     this.saveLeaderboardSettings(settings);
+    const user = this.getUserById(userId);
+    const uName = user ? user.fullName : userId;
+    this.addAuditLog("TOGGLE_HIDE_LEADERBOARD", uName, `${isHidden ? 'Ẩn' : 'Cho hiện'} trên Bảng Xếp Hạng công khai`);
     return isHidden;
   },
 
-  setCustomUserBadge(userId, badgeText) {
+  setCustomUserBadge(userId, badgeText, adminName = "Quản trị viên") {
     const settings = this.getLeaderboardSettings();
     if (!settings.customBadges) settings.customBadges = {};
+    const oldBadge = settings.customBadges[userId] || "(Không có)";
     if (!badgeText || !badgeText.trim()) {
       delete settings.customBadges[userId];
     } else {
       settings.customBadges[userId] = badgeText.trim();
     }
     this.saveLeaderboardSettings(settings);
+
+    const user = this.getUserById(userId);
+    const uName = user ? user.fullName : userId;
+    this.addAuditLog("AWARD_BADGE", uName, badgeText ? `Trao huy hiệu đặc cách "${badgeText.trim()}"` : `Gỡ huy hiệu đặc cách "${oldBadge}"`, adminName);
+
+    if (badgeText && badgeText.trim()) {
+      this.addNotification(userId, {
+        type: "system",
+        title: `🎖️ Bạn Đã Được Trao Danh Hiệu Đặc Cách: "${badgeText.trim()}"`,
+        message: `Quản trị viên ${adminName} đã trao tặng bạn danh hiệu vinh danh "${badgeText.trim()}" hiển thị trên Bảng Xếp Hạng toàn trường!`,
+        pointsDelta: null,
+        pointType: null
+      });
+    }
   },
 
   getLeaderboardArchives() {
     try {
       const data = localStorage.getItem(this.KEYS.LEADERBOARD_ARCHIVES);
-      return data ? JSON.parse(data) : [];
-    } catch (e) {
-      return [];
+      if (data) return JSON.parse(data);
+    } catch (e) {}
+
+    const seasons = this.getSeasons ? this.getSeasons().filter(s => s.status === "completed") : [];
+    if (seasons.length > 0) {
+      const converted = seasons.map(s => ({
+        id: s.id,
+        seasonName: s.name,
+        closedAt: s.closedAt || s.endDate || s.createdAt,
+        closedBy: s.closedBy || s.createdBy || "Admin",
+        wasSeasonReset: true,
+        topExp: (s.frozenStandings && s.frozenStandings.topExp) || [],
+        topCp: (s.frozenStandings && s.frozenStandings.topCp) || []
+      }));
+      return converted;
     }
+    return [];
   },
 
   startNewSeason(seasonName, adminName = "Admin", resetSeasonPoints = true) {
-    const currentSettings = this.getLeaderboardSettings();
-    const currentExpBoard = this.getLeaderboardData("exp", { scope: "season", includeHidden: true, statusFilter: "all" });
-    const currentCpBoard = this.getLeaderboardData("cp", { scope: "season", includeHidden: true, statusFilter: "all" });
-
-    const archiveItem = {
-      id: "season-" + Date.now(),
-      seasonName: currentSettings.seasonName || "Mùa giải cũ",
-      closedAt: new Date().toISOString(),
-      closedBy: adminName,
-      wasSeasonReset: resetSeasonPoints,
-      topExp: currentExpBoard.slice(0, 10),
-      topCp: currentCpBoard.slice(0, 10)
-    };
-
-    const archives = this.getLeaderboardArchives();
-    archives.unshift(archiveItem);
-    localStorage.setItem(this.KEYS.LEADERBOARD_ARCHIVES, JSON.stringify(archives));
-
-    currentSettings.seasonName = seasonName || `Mùa giải mới (${new Date().toLocaleDateString('vi-VN')})`;
-    currentSettings.seasonStartDate = new Date().toISOString();
-    this.saveLeaderboardSettings(currentSettings);
-
-    const allUsers = this.getAllUsers();
-
-    // Nếu chọn reset điểm mùa giải -> đặt seasonExp và seasonCp về 0 (Bảo lưu nguyên vẹn totalExp và contributionPoints)
-    if (resetSeasonPoints) {
-      allUsers.forEach(u => {
-        u.seasonExp = 0;
-        u.seasonCp = 0;
-      });
-      this.saveAllUsers(allUsers);
-
-      const active = this.getUserProfile();
-      if (active && active.id) {
-        active.seasonExp = 0;
-        active.seasonCp = 0;
-        this.saveUserProfile(active);
-      }
-    }
-
-    // Gửi thông báo đến toàn bộ người dùng về mùa giải mới
-    allUsers.forEach(u => {
-      this.addNotification(u.id, {
-        type: "system_announcement",
-        title: "🏆 Khởi Động Mùa Giải Mới: " + currentSettings.seasonName,
-        message: `Ban quản trị đã chính thức mở mùa giải xếp hạng mới "${currentSettings.seasonName}". ${resetSeasonPoints ? 'Điểm Mùa Này đã được đặt lại về 0 để mở chặng đua mới (Điểm Tổng All-Time được bảo lưu 100%).' : 'Điểm tích lũy được bảo lưu tiếp tục.'} Chúc bạn thi đua xuất sắc!`,
-        pointsDelta: null,
-        pointType: null
-      });
-    });
-
-    return archiveItem;
+    return this.createSeason({
+      name: seasonName,
+      status: "active",
+      resetPoints: resetSeasonPoints
+    }, adminName);
   },
 
   getLeaderboardStats(scope = "season") {

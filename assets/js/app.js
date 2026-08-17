@@ -4263,6 +4263,26 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     const isAdmin = isLogged && (profile.role === "admin" || StorageService.hasPermission("canManageUsers"));
     const settings = StorageService.getLeaderboardSettings();
 
+    // Nếu BXH đang ở chế độ Tạm Ẩn và người xem không phải Admin
+    if (settings.isPublic === false && !isAdmin) {
+      container.innerHTML = `
+        <div style="max-width: 650px; margin: 60px auto; text-align: center; padding: 40px 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);">
+          <div style="font-size: 54px; margin-bottom: 16px;">⏳</div>
+          <h2 style="font-size: 22px; font-weight: 800; color: var(--text-primary); margin-bottom: 10px;">
+            Bảng Xếp Hạng Đang Tạm Đóng Để Tổng Hợp Điểm
+          </h2>
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px;">
+            Ban Quản Trị đang tiến hành kiểm toán dữ liệu và chốt kết quả thi đua mùa giải <strong>"${settings.seasonName || 'Hiện tại'}"</strong>. Vui lòng quay lại sau ít phút!
+          </p>
+          <div style="display: flex; gap: 10px; justify-content: center;">
+            <button class="btn btn-primary" onclick="App.navigateTo('home')">🏠 Về Trang Chủ</button>
+            <button class="btn" onclick="App.navigateTo('quiz')">📝 Tiếp Tục Thi Thử</button>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
     if (!this.leaderboardTab) this.leaderboardTab = "exp";
     if (!this.leaderboardScope) this.leaderboardScope = "season"; // 'season' | 'all_time'
     if (!this.leaderboardDept) this.leaderboardDept = "all";
@@ -4279,12 +4299,20 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     const departments = Array.from(new Set(allUsers.map(u => u.department).filter(Boolean)));
 
     // Lấy dữ liệu bảng xếp hạng công khai (không bao gồm tài khoản bị ẩn)
-    const leaderboard = StorageService.getLeaderboardData(activeTab, {
+    let leaderboard = StorageService.getLeaderboardData(activeTab, {
       scope: activeScope,
       department: this.leaderboardDept,
       search: this.leaderboardSearch,
       includeHidden: false
     });
+
+    // Giới hạn hiển thị theo cài đặt nếu không phải đang tìm kiếm
+    if (!this.leaderboardSearch && settings.maxDisplayCount && settings.maxDisplayCount !== "all") {
+      const maxCount = parseInt(settings.maxDisplayCount, 10);
+      if (!isNaN(maxCount) && maxCount > 0) {
+        leaderboard = leaderboard.slice(0, maxCount);
+      }
+    }
 
     const top1 = leaderboard[0];
     const top2 = leaderboard[1];
@@ -4506,14 +4534,16 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
       return;
     }
 
-    if (!this.adminLeaderboardTab) this.adminLeaderboardTab = "settings";
+    if (!this.adminLeaderboardTab) this.adminLeaderboardTab = "seasons";
     if (!this.adminMemberDept) this.adminMemberDept = "all";
     if (!this.adminMemberStatus) this.adminMemberStatus = "all";
     if (this.adminMemberSearch === undefined) this.adminMemberSearch = "";
     if (this.adminMemberOnlyHidden === undefined) this.adminMemberOnlyHidden = false;
 
+    const seasons = StorageService.getSeasons();
     const settings = StorageService.getLeaderboardSettings();
     const archives = StorageService.getLeaderboardArchives();
+    const auditLogs = StorageService.getAuditLogs();
     const allUsers = StorageService.getAllUsers();
     const departments = Array.from(new Set(allUsers.map(u => u.department).filter(Boolean)));
     const hiddenIds = settings.hiddenUserIds || [];
@@ -4544,50 +4574,176 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     }
 
     container.innerHTML = `
-      <div class="view-admin-leaderboard" style="max-width: 1080px; margin: 0 auto; padding: 24px 16px;">
+      <div class="view-admin-leaderboard" style="max-width: 1120px; margin: 0 auto; padding: 24px 16px;">
         <!-- Header & Back Button -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid var(--border); padding-bottom: 16px;">
           <div>
             <div style="display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; background: #fef08a; color: #854d0e; border-radius: 12px; font-size: 12px; font-weight: 800; margin-bottom: 6px;">
-              <span>👑</span> <span>TRUNG TÂM QUẢN TRỊ ADMIN</span>
+              <span>👑</span> <span>TRUNG TÂM QUẢN TRỊ ADMIN TOÀN DIỆN</span>
             </div>
-            <h2 style="font-size: 24px; font-weight: 800; color: var(--text-primary); margin: 0;">Quản Trị Bảng Xếp Hạng & Mùa Giải Thi Đua</h2>
-            <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Toàn quyền cấu hình mùa giải, danh hiệu, kick/khôi phục thành viên, reset điểm và lưu trữ lịch sử.</div>
+            <h2 style="font-size: 24px; font-weight: 800; color: var(--text-primary); margin: 0;">Quản Trị Bảng Xếp Hạng & Vòng Đời Mùa Giải</h2>
+            <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Toàn quyền tạo mùa, sửa mùa, reset điểm, đóng băng, phân quyền, kiểm toán và quản trị thành viên.</div>
           </div>
-          <button class="btn btn-sm" onclick="App.navigateTo('leaderboard')">
-            👁️ Xem Bảng Xếp Hạng Công Khai ➔
-          </button>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-sm" onclick="App.navigateTo('leaderboard')">
+              👁️ Xem BXH Công Khai ➔
+            </button>
+          </div>
         </div>
 
-        <!-- 4 Tab Chức Năng Quản Trị Chuyên Sâu -->
+        <!-- 5 Tab Chức Năng Quản Trị Chuyên Sâu -->
         <div class="hub-tabs" style="margin-bottom: 24px; flex-wrap: wrap;">
+          <button class="hub-tab-btn ${this.adminLeaderboardTab === 'seasons' ? 'active' : ''}" onclick="App.adminLeaderboardTab = 'seasons'; App.renderLeaderboardAdminView(document.getElementById('mainContent'));">
+            🏆 Quản Lý Mùa Giải (${seasons.length})
+          </button>
           <button class="hub-tab-btn ${this.adminLeaderboardTab === 'settings' ? 'active' : ''}" onclick="App.adminLeaderboardTab = 'settings'; App.renderLeaderboardAdminView(document.getElementById('mainContent'));">
-            ⚙️ Cài Đặt Mùa & Podium
+            ⚙️ Cài Đặt Thể Lệ & BXH
           </button>
           <button class="hub-tab-btn ${this.adminLeaderboardTab === 'members' ? 'active' : ''}" onclick="App.adminLeaderboardTab = 'members'; App.renderLeaderboardAdminView(document.getElementById('mainContent'));">
             👥 Quản Trị Thành Viên (${allUsers.length})
           </button>
           <button class="hub-tab-btn ${this.adminLeaderboardTab === 'archives' ? 'active' : ''}" onclick="App.adminLeaderboardTab = 'archives'; App.renderLeaderboardAdminView(document.getElementById('mainContent'));">
-            📜 Kho Lưu Trữ Mùa Cũ (${archives.length})
+            📜 Bảng Vàng Archives (${archives.length})
           </button>
-          <button class="hub-tab-btn ${this.adminLeaderboardTab === 'new_season' ? 'active' : ''}" onclick="App.adminLeaderboardTab = 'new_season'; App.renderLeaderboardAdminView(document.getElementById('mainContent'));">
-            🔄 Khởi Động Mùa Mới
+          <button class="hub-tab-btn ${this.adminLeaderboardTab === 'audit_logs' ? 'active' : ''}" onclick="App.adminLeaderboardTab = 'audit_logs'; App.renderLeaderboardAdminView(document.getElementById('mainContent'));">
+            📋 Nhật Ký Kiểm Toán (${auditLogs.length})
           </button>
         </div>
 
         <!-- NỘI DUNG CHI TIẾT TỪNG TAB -->
         <div class="admin-tab-content">
-          ${this.adminLeaderboardTab === 'settings' ? `
-            <!-- TAB 1: CÀI ĐẶT MÙA GIẢI & DANH HIỆU PODIUM -->
-            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px; max-width: 680px;">
+          ${this.adminLeaderboardTab === 'seasons' ? `
+            <!-- TAB 1: QUẢN LÝ VÒNG ĐỜI MÙA GIẢI (SEASONS LIFECYCLE) -->
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px;">
+                <div>
+                  <h3 style="font-size: 17px; font-weight: 800; margin: 0; color: var(--text-primary);">
+                    Danh Sách Mùa Giải Thi Đua
+                  </h3>
+                  <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">Quản lý toàn bộ các mùa giải: Đang diễn ra, Sắp tới và Đã đóng băng.</div>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="App.openCreateSeasonModal()" style="display: inline-flex; align-items: center; gap: 6px;">
+                  <span>➕</span> <span>Tạo Mùa Giải Mới</span>
+                </button>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 16px;">
+                ${seasons.map(s => {
+                  const isActive = (s.status === "active");
+                  const isUpcoming = (s.status === "upcoming");
+                  const isCompleted = (s.status === "completed");
+                  const sStartDate = s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : 'N/A';
+                  const sEndDate = s.endDate ? new Date(s.endDate).toLocaleDateString('vi-VN') : 'N/A';
+
+                  return `
+                    <div class="season-item-card" style="background: var(--surface); border: 1.5px solid ${isActive ? 'var(--brand-primary)' : 'var(--border)'}; border-radius: var(--radius-md); padding: 18px 20px; box-shadow: ${isActive ? '0 4px 14px rgba(2, 132, 199, 0.08)' : 'none'};">
+                      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+                        <div>
+                          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <span class="badge" style="background: var(--surface-subtle); color: var(--text-primary); border: 1px solid var(--border); font-weight: 800; font-family: monospace; font-size: 12px;">${s.code || 'MÙA'}</span>
+                            <strong style="font-size: 17px; color: var(--text-primary);">${s.name}</strong>
+                            ${isActive ? `
+                              <span class="badge" style="background:#dcfce7; color:#15803d; border:1px solid #86efac; font-weight:800; font-size:11.5px;">🟢 Đang Diễn Ra (Active)</span>
+                            ` : isUpcoming ? `
+                              <span class="badge" style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-weight:800; font-size:11.5px;">🟡 Sắp Diễn Ra (Upcoming)</span>
+                            ` : `
+                              <span class="badge" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; font-weight:700; font-size:11.5px;">🔒 Đã Đóng Băng (Completed)</span>
+                            `}
+                          </div>
+                          ${s.description ? `<div style="font-size: 13px; color: var(--text-secondary); margin-top: 6px;">${s.description}</div>` : ''}
+                        </div>
+
+                        <!-- Cụm Nút Thao Tác Cho Mùa Giải -->
+                        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                          ${isActive ? `
+                            <button class="btn btn-sm" style="background:#fffbeb; color:#b45309; border:1px solid #fde68a; font-weight:700;" onclick="App.openResetSeasonModal('${s.id}')" title="Đặt lại điểm mùa này về 0 mà không đổi mùa">
+                              🔄 Reset Mùa Này
+                            </button>
+                            <button class="btn btn-sm" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; font-weight:700;" onclick="App.openFreezeSeasonModal('${s.id}')" title="Đóng băng và kết thúc mùa thi đua này">
+                              🔒 Đóng Băng & Kết Thúc
+                            </button>
+                          ` : isUpcoming ? `
+                            <button class="btn btn-sm btn-primary" onclick="App.confirmActivateSeasonAction('${s.id}')" title="Kích hoạt mùa giải này làm mùa thi đấu chính thức">
+                              ▶️ Kích Hoạt Ngay
+                            </button>
+                          ` : `
+                            <button class="btn btn-sm" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-weight:700;" onclick="App.openViewSeasonStandingsModal('${s.id}')" title="Xem kết quả đóng băng của mùa này">
+                              🔍 Xem Bảng Vàng
+                            </button>
+                            <button class="btn btn-sm" style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; font-weight:700;" onclick="App.confirmReopenSeasonAction('${s.id}')" title="Mở lại mùa giải này">
+                              ♻️ Mở Lại Mùa
+                            </button>
+                          `}
+                          <button class="btn btn-sm" onclick="App.openEditSeasonModal('${s.id}')" title="Chỉnh sửa thông số mùa giải">
+                            ✏️ Sửa
+                          </button>
+                          <button class="btn btn-sm" style="background:#15803d; color:#fff; font-weight:700;" onclick="App.exportSeasonCSV('${s.id}')" title="Xuất báo cáo bảng điểm CSV">
+                            📥 CSV
+                          </button>
+                          ${!isActive ? `
+                            <button class="btn btn-sm" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;" onclick="App.confirmDeleteSeasonAction('${s.id}')" title="Xóa mùa giải khỏi hệ thống">
+                              🗑️ Xóa
+                            </button>
+                          ` : ''}
+                        </div>
+                      </div>
+
+                      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; background: var(--surface-subtle); padding: 10px 14px; border-radius: var(--radius-sm); font-size: 12.5px; border: 1px solid var(--border);">
+                        <div>📅 <strong>Thời gian:</strong> ${sStartDate} ➔ ${sEndDate}</div>
+                        <div>⚡ <strong>Hệ số EXP:</strong> <span class="badge" style="background:#e0f2fe; color:#0369a1; font-weight:800;">${(s.expMultiplier || 1.0).toFixed(1)}x</span></div>
+                        <div>👤 <strong>Khởi tạo bởi:</strong> ${s.createdBy || 'Admin'}</div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          ` : this.adminLeaderboardTab === 'settings' ? `
+            <!-- TAB 2: CÀI ĐẶT THỂ LỆ & GIAO DIỆN BẢNG XẾP HẠNG -->
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px; max-width: 720px;">
               <h3 style="font-size: 17px; font-weight: 800; margin-bottom: 16px; color: var(--text-primary);">
-                ⚙️ Cấu Hình Mùa Giải & Tùy Biến Podium
+                ⚙️ Cấu Hình Thể Lệ & Hiển Thị Bảng Xếp Hạng
               </h3>
 
+              <!-- Cấu hình Công Khai / Tạm Ẩn BXH -->
+              <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 20px;">
+                <label style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; color: var(--text-primary); cursor: pointer;">
+                  <input type="checkbox" id="adminLeaderboardIsPublicCheckbox" ${settings.isPublic !== false ? 'checked' : ''} style="width: 18px; height: 18px;">
+                  <span>Cho phép sinh viên xem Bảng Xếp Hạng công khai</span>
+                </label>
+                <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 4px; margin-left: 28px;">
+                  Nếu bỏ chọn, chỉ Quản trị viên mới xem được BXH. Sinh viên truy cập sẽ thấy thông báo tạm đóng để kiểm toán/bảo trì điểm.
+                </div>
+              </div>
+
+              <!-- Cấu hình Giới Hạn Hiển Thị & Hệ Số EXP -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px;">
+                <div class="form-group" style="margin: 0;">
+                  <label class="form-label" style="font-weight: 700;">Giới Hạn Hiển Thị Công Khai (*):</label>
+                  <select id="adminMaxDisplaySelect" class="form-control" style="font-weight: 600;">
+                    <option value="all" ${settings.maxDisplayCount === 'all' ? 'selected' : ''}>Toàn bộ sinh viên</option>
+                    <option value="100" ${settings.maxDisplayCount === '100' ? 'selected' : ''}>Top 100 sinh viên</option>
+                    <option value="50" ${settings.maxDisplayCount === '50' ? 'selected' : ''}>Top 50 sinh viên</option>
+                    <option value="20" ${settings.maxDisplayCount === '20' ? 'selected' : ''}>Top 20 sinh viên</option>
+                    <option value="10" ${settings.maxDisplayCount === '10' ? 'selected' : ''}>Top 10 sinh viên</option>
+                  </select>
+                </div>
+
+                <div class="form-group" style="margin: 0;">
+                  <label class="form-label" style="font-weight: 700;">Hệ Số Thưởng EXP Mùa Thi (*):</label>
+                  <select id="adminExpMultiplierSelect" class="form-control" style="font-weight: 600;">
+                    <option value="1.0" ${(settings.expMultiplier || 1.0) == 1.0 ? 'selected' : ''}>1.0x (Tiêu chuẩn)</option>
+                    <option value="1.25" ${(settings.expMultiplier || 1.0) == 1.25 ? 'selected' : ''}>1.25x (Khích lệ ôn tập)</option>
+                    <option value="1.5" ${(settings.expMultiplier || 1.0) == 1.5 ? 'selected' : ''}>1.5x (Mùa thi cao điểm)</option>
+                    <option value="2.0" ${(settings.expMultiplier || 1.0) == 2.0 ? 'selected' : ''}>2.0x (Sự kiện đặc biệt)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Cấu hình Tên Mùa & Danh Xưng Podium -->
               <div class="form-group" style="margin-bottom: 16px;">
-                <label class="form-label" style="font-weight: 700;">Tên Mùa Giải / Học Kỳ Hiện Tại (*):</label>
+                <label class="form-label" style="font-weight: 700;">Tên Mùa Giải / Học Kỳ Đang Hoạt Động (*):</label>
                 <input type="text" id="adminSeasonNameInput" class="form-control" value="${settings.seasonName || ''}" placeholder="Ví dụ: Học Kỳ 1 (2026 - 2027)">
-                <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 4px;">Tên này sẽ hiển thị trang trọng trên đầu Bảng Xếp Hạng của toàn trường.</div>
               </div>
 
               <div style="border-top: 1px dashed var(--border); padding-top: 16px; margin-top: 16px;">
@@ -4612,12 +4768,12 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
 
               <div style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px; display: flex; justify-content: flex-end;">
                 <button class="btn btn-primary" onclick="App.saveAdminLeaderboardSettingsAction()">
-                  💾 Lưu Cấu Hình Mùa Giải
+                  💾 Lưu Cấu Hình Thể Lệ & BXH
                 </button>
               </div>
             </div>
           ` : this.adminLeaderboardTab === 'members' ? `
-            <!-- TAB 2: QUẢN TRỊ THÀNH VIÊN, LỌC TRẠNG THÁI NHÓM & THAO TÁC CAO CẤP -->
+            <!-- TAB 3: QUẢN TRỊ THÀNH VIÊN, LỌC TRẠNG THÁI NHÓM & THAO TÁC CAO CẤP -->
             <div>
               <!-- Toolbar Lọc Trạng Thái Nhóm, Tìm Kiếm & Xuất CSV -->
               <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 18px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
@@ -4742,7 +4898,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
               </div>
             </div>
           ` : this.adminLeaderboardTab === 'archives' ? `
-            <!-- TAB 3: KHO LƯU TRỮ MÙA GIẢI CŨ -->
+            <!-- TAB 4: KHO LƯU TRỮ MÙA GIẢI CŨ -->
             <div>
               <div style="margin-bottom: 16px; color: var(--text-secondary); font-size: 13.5px;">
                 Danh sách các mùa giải thi đua đã đóng băng và lưu trữ an toàn trong lịch sử hệ thống:
@@ -4752,7 +4908,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                 <div style="text-align: center; padding: 48px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text-secondary);">
                   <div style="font-size: 40px; margin-bottom: 10px;">📜</div>
                   <strong>Chưa có mùa giải cũ nào được lưu trữ!</strong>
-                  <div style="font-size: 13px; margin-top: 4px;">Khi bạn khởi động mùa giải mới, kết quả của mùa hiện tại sẽ được tự động đóng băng và lưu tại đây.</div>
+                  <div style="font-size: 13px; margin-top: 4px;">Khi bạn đóng băng hoặc tạo mùa mới, kết quả của mùa hiện tại sẽ được tự động lưu tại đây.</div>
                 </div>
               ` : archives.map(arc => `
                 <div class="season-archive-card">
@@ -4763,7 +4919,14 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                         Khóa ngày: ${new Date(arc.closedAt).toLocaleString('vi-VN')} · Bởi: <strong>${arc.closedBy || 'Admin'}</strong>
                       </div>
                     </div>
-                    <span class="badge badge-gray">Đã Lưu Trữ (Archived)</span>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                      <button class="btn btn-sm" style="background:#15803d; color:#fff; font-weight:700;" onclick="App.exportSeasonCSV('${arc.id}')">
+                        📥 Tải CSV
+                      </button>
+                      <button class="btn btn-sm" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;" onclick="App.confirmDeleteSeasonAction('${arc.id}')">
+                        🗑️ Xóa Bản Lưu
+                      </button>
+                    </div>
                   </div>
 
                   <!-- Danh sách Top 3 của mùa giải đó -->
@@ -4774,7 +4937,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                       ${(arc.topExp || []).slice(0, 3).map((item, i) => `
                         <div style="display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 4px;">
                           <span>${i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'} <strong>${item.name || item.rawName}</strong> (${item.department || ''})</span>
-                          <strong style="color: #b45309;">${item.exp} EXP</strong>
+                          <strong style="color: #b45309;">${item.exp || item.seasonExp || 0} EXP</strong>
                         </div>
                       `).join('')}
                     </div>
@@ -4785,7 +4948,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
                       ${(arc.topCp || []).slice(0, 3).map((item, i) => `
                         <div style="display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 4px;">
                           <span>${i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'} <strong>${item.name || item.rawName}</strong> (${item.department || ''})</span>
-                          <strong style="color: #15803d;">${item.cp} CP</strong>
+                          <strong style="color: #15803d;">${item.cp || item.seasonCp || 0} CP</strong>
                         </div>
                       `).join('')}
                     </div>
@@ -4794,36 +4957,62 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
               `).join('')}
             </div>
           ` : `
-            <!-- TAB 4: KHỞI ĐỘNG MÙA GIẢI MỚI -->
-            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px; max-width: 680px;">
-              <h3 style="font-size: 17px; font-weight: 800; margin-bottom: 16px; color: #b91c1c;">
-                🔄 Khởi Động Mùa Giải Mới & Đóng Băng Mùa Cũ
-              </h3>
-
-              <div style="background: #fef2f2; border: 1px solid #fca5a5; border-radius: var(--radius-sm); padding: 14px 16px; font-size: 13px; color: #991b1b; margin-bottom: 20px;">
-                <strong>⚠️ Lưu ý cơ chế hoạt động của hệ thống:</strong>
-                <ul style="margin: 6px 0 0 0; padding-left: 18px; line-height: 1.6;">
-                  <li>Kết quả xếp hạng của mùa <strong>"${settings.seasonName}"</strong> sẽ được đóng băng và chuyển vào kho Lưu Trữ Mùa Cũ.</li>
-                  <li>Hệ thống sẽ tự động phát thông báo chúc mừng mùa giải mới tới toàn bộ sinh viên.</li>
-                  <li>Tổng điểm tích lũy All-Time của các tài khoản vẫn được <strong>bảo lưu 100%</strong>.</li>
-                </ul>
+            <!-- TAB 5: NHẬT KÝ KIỂM TOÁN QUẢN TRỊ (ADMIN AUDIT LOGS) -->
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                <div>
+                  <h3 style="font-size: 17px; font-weight: 800; margin: 0; color: var(--text-primary);">
+                    📋 Nhật Ký Kiểm Toán Thao Tác Quản Trị
+                  </h3>
+                  <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">Lưu vết minh bạch 100% các hành động tạo mùa, reset điểm, sửa điểm, kick/khôi phục và trao huy hiệu.</div>
+                </div>
+                ${auditLogs.length > 0 ? `
+                  <button class="btn btn-sm" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;" onclick="App.clearAuditLogsConfirm()">
+                    🗑️ Xóa Lịch Sử Nhật Ký
+                  </button>
+                ` : ''}
               </div>
 
-              <div class="form-group" style="margin-bottom: 16px;">
-                <label class="form-label" style="font-weight: 700;">Tên Mùa Giải Mới (*):</label>
-                <input type="text" id="adminNewSeasonNameInput" class="form-control" placeholder="Ví dụ: Học Kỳ 2 (2026 - 2027) hoặc Cuộc Thi Mùa Thu 2026">
+              <div class="leaderboard-table-card">
+                <table class="leaderboard-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 170px;">Thời Gian</th>
+                      <th style="width: 140px;">Quản Trị Viên</th>
+                      <th style="width: 160px;">Hành Động</th>
+                      <th style="width: 180px;">Đối Tượng</th>
+                      <th>Chi Tiết / Lý Do Giải Trình</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${auditLogs.length === 0 ? `
+                      <tr>
+                        <td colspan="5" style="text-align: center; padding: 36px; color: var(--text-secondary);">
+                          Chưa có nhật ký kiểm toán nào được ghi nhận!
+                        </td>
+                      </tr>
+                    ` : auditLogs.map(log => `
+                      <tr>
+                        <td style="font-size: 12px; color: var(--text-secondary); font-family: monospace;">
+                          ${new Date(log.timestamp).toLocaleString('vi-VN')}
+                        </td>
+                        <td>
+                          <strong>${log.adminName}</strong>
+                        </td>
+                        <td>
+                          <span class="badge" style="background:#f1f5f9; color:#0f172a; font-weight:800; font-size:11px;">${log.action}</span>
+                        </td>
+                        <td>
+                          <strong>${log.target}</strong>
+                        </td>
+                        <td style="font-size: 13px; color: var(--text-primary);">
+                          ${log.details}
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
               </div>
-
-              <div class="form-group" style="margin-bottom: 20px;">
-                <label style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; color: var(--text-primary); cursor: pointer;">
-                  <input type="checkbox" id="adminResetSeasonPointsCheckbox" checked style="width: 16px; height: 16px;">
-                  <span>Đặt lại (Reset) Điểm Mùa Này của toàn bộ sinh viên về 0 để mở chặng đua mới (Điểm Tổng All-Time vẫn được bảo lưu 100%)</span>
-                </label>
-              </div>
-
-              <button class="btn btn-danger" onclick="App.confirmAdminStartNewSeasonAction()">
-                🚀 Khởi Động Mùa Giải Mới Ngay
-              </button>
             </div>
           `}
         </div>
@@ -4836,6 +5025,9 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     const t1 = document.getElementById("adminTop1Input")?.value.trim();
     const t2 = document.getElementById("adminTop2Input")?.value.trim();
     const t3 = document.getElementById("adminTop3Input")?.value.trim();
+    const isPublic = document.getElementById("adminLeaderboardIsPublicCheckbox")?.checked ?? true;
+    const maxDisplay = document.getElementById("adminMaxDisplaySelect")?.value || "all";
+    const multiplier = parseFloat(document.getElementById("adminExpMultiplierSelect")?.value) || 1.0;
 
     if (!sName) {
       this.showToast("⚠️ Tên mùa giải không được để trống!", "warning");
@@ -4847,31 +5039,522 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     current.top1Title = t1 || "🥇 Hạng 1 (Top 1)";
     current.top2Title = t2 || "🥈 Hạng 2 (Top 2)";
     current.top3Title = t3 || "🥉 Hạng 3 (Top 3)";
+    current.isPublic = isPublic;
+    current.maxDisplayCount = maxDisplay;
+    current.expMultiplier = multiplier;
 
     StorageService.saveLeaderboardSettings(current);
-    this.showToast("✅ Đã lưu cấu hình Bảng Xếp Hạng thành công!", "success", 3000);
+
+    // Cập nhật hệ số vào active season nếu có
+    const activeSeason = StorageService.getActiveSeason();
+    if (activeSeason) {
+      StorageService.updateSeason(activeSeason.id, {
+        name: sName,
+        top1Title: current.top1Title,
+        top2Title: current.top2Title,
+        top3Title: current.top3Title,
+        expMultiplier: multiplier
+      });
+    }
+
+    this.showToast("✅ Đã lưu cấu hình Thể lệ & Bảng Xếp Hạng thành công!", "success", 3000);
     this.renderLeaderboardAdminView(document.getElementById("mainContent"));
+  },
+
+  // ── Modals Quản Lý Vòng Đời Mùa Giải ────────
+  openCreateSeasonModal() {
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = "➕ Tạo Mùa Giải Thi Đua Mới";
+
+    const defaultStart = new Date().toISOString().slice(0, 10);
+    const defaultEnd = new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10);
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight: 700;">Tên Mùa Giải (*):</label>
+            <input type="text" id="newSeasonName" class="form-control" placeholder="Ví dụ: Học Kỳ 2 (2026 - 2027)">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight: 700;">Mã Mùa (*):</label>
+            <input type="text" id="newSeasonCode" class="form-control" placeholder="VD: HK2-2026" style="text-transform: uppercase;">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight: 700;">Ngày Bắt Đầu (*):</label>
+            <input type="date" id="newSeasonStartDate" class="form-control" value="${defaultStart}">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight: 700;">Ngày Kết Thúc Dự Kiến (*):</label>
+            <input type="date" id="newSeasonEndDate" class="form-control" value="${defaultEnd}">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight: 700;">Trạng Thái Khởi Tạo (*):</label>
+            <select id="newSeasonStatus" class="form-control" style="font-weight: 600;">
+              <option value="active">🟢 Đang diễn ra (Kích hoạt ngay)</option>
+              <option value="upcoming" selected>🟡 Sắp diễn ra (Lên lịch trước)</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight: 700;">Hệ Số EXP Mùa Thi (*):</label>
+            <select id="newSeasonMultiplier" class="form-control" style="font-weight: 600;">
+              <option value="1.0" selected>1.0x (Tiêu chuẩn)</option>
+              <option value="1.25">1.25x (Khích lệ)</option>
+              <option value="1.5">1.5x (Mùa thi cao điểm)</option>
+              <option value="2.0">2.0x (Sự kiện đặc biệt)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-weight: 700;">Mô Tả & Thể Lệ Cuộc Thi:</label>
+          <textarea id="newSeasonDesc" class="form-control" style="min-height: 65px;" placeholder="Nhập thể lệ, đối tượng tham gia và phần thưởng thi đua..."></textarea>
+        </div>
+
+        <div class="form-group" style="margin: 0;">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-primary); cursor: pointer;">
+            <input type="checkbox" id="newSeasonResetPoints" checked style="width: 16px; height: 16px;">
+            <span>Đặt lại (Reset) Điểm Mùa Này về 0 cho tất cả thí sinh khi kích hoạt (Điểm All-Time giữ nguyên 100%)</span>
+          </label>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Hủy</button>
+      <button class="btn btn-primary" onclick="App.saveCreateSeasonAction()">💾 Tạo Mùa Giải</button>
+    `;
+
+    this.openModal();
+  },
+
+  saveCreateSeasonAction() {
+    const name = document.getElementById("newSeasonName")?.value.trim();
+    const code = document.getElementById("newSeasonCode")?.value.trim();
+    const startDate = document.getElementById("newSeasonStartDate")?.value;
+    const endDate = document.getElementById("newSeasonEndDate")?.value;
+    const status = document.getElementById("newSeasonStatus")?.value || "upcoming";
+    const multiplier = parseFloat(document.getElementById("newSeasonMultiplier")?.value) || 1.0;
+    const desc = document.getElementById("newSeasonDesc")?.value.trim();
+    const resetPoints = document.getElementById("newSeasonResetPoints")?.checked ?? true;
+
+    if (!name) {
+      this.showToast("⚠️ Vui lòng nhập tên mùa giải mới!", "warning");
+      return;
+    }
+
+    const adminProfile = StorageService.getUserProfile();
+    const adminName = adminProfile.fullName || "Quản trị viên";
+
+    try {
+      StorageService.createSeason({
+        name,
+        code,
+        startDate: startDate ? new Date(startDate).toISOString() : new Date().toISOString(),
+        endDate: endDate ? new Date(endDate).toISOString() : new Date(Date.now() + 90 * 86400000).toISOString(),
+        status,
+        expMultiplier: multiplier,
+        description: desc,
+        resetPoints
+      }, adminName);
+
+      this.closeModal();
+      this.showToast(`🎉 Đã tạo mùa giải "${name}" thành công!`, "success", 4000);
+      this.renderLeaderboardAdminView(document.getElementById("mainContent"));
+    } catch (e) {
+      this.showToast("❌ " + e.message, "danger", 3500);
+    }
+  },
+
+  openEditSeasonModal(seasonId) {
+    const seasons = StorageService.getSeasons();
+    const season = seasons.find(s => s.id === seasonId);
+    if (!season) return;
+
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = `✏️ Chỉnh Sửa Mùa Giải: ${season.name}`;
+
+    const startVal = season.startDate ? new Date(season.startDate).toISOString().slice(0, 10) : '';
+    const endVal = season.endDate ? new Date(season.endDate).toISOString().slice(0, 10) : '';
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight: 700;">Tên Mùa Giải (*):</label>
+            <input type="text" id="editSeasonName" class="form-control" value="${season.name}">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight: 700;">Mã Mùa (*):</label>
+            <input type="text" id="editSeasonCode" class="form-control" value="${season.code || ''}" style="text-transform: uppercase;">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight: 700;">Ngày Bắt Đầu:</label>
+            <input type="date" id="editSeasonStartDate" class="form-control" value="${startVal}">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight: 700;">Ngày Kết Thúc Dự Kiến:</label>
+            <input type="date" id="editSeasonEndDate" class="form-control" value="${endVal}">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-weight: 700;">Hệ Số EXP Mùa Thi (*):</label>
+          <select id="editSeasonMultiplier" class="form-control" style="font-weight: 600;">
+            <option value="1.0" ${(season.expMultiplier || 1.0) == 1.0 ? 'selected' : ''}>1.0x (Tiêu chuẩn)</option>
+            <option value="1.25" ${(season.expMultiplier || 1.0) == 1.25 ? 'selected' : ''}>1.25x (Khích lệ)</option>
+            <option value="1.5" ${(season.expMultiplier || 1.0) == 1.5 ? 'selected' : ''}>1.5x (Mùa thi cao điểm)</option>
+            <option value="2.0" ${(season.expMultiplier || 1.0) == 2.0 ? 'selected' : ''}>2.0x (Sự kiện đặc biệt)</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-weight: 700;">Mô Tả & Thể Lệ Cuộc Thi:</label>
+          <textarea id="editSeasonDesc" class="form-control" style="min-height: 70px;">${season.description || ''}</textarea>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Hủy</button>
+      <button class="btn btn-primary" onclick="App.saveEditSeasonAction('${season.id}')">💾 Lưu Thay Đổi</button>
+    `;
+
+    this.openModal();
+  },
+
+  saveEditSeasonAction(seasonId) {
+    const name = document.getElementById("editSeasonName")?.value.trim();
+    const code = document.getElementById("editSeasonCode")?.value.trim();
+    const startDate = document.getElementById("editSeasonStartDate")?.value;
+    const endDate = document.getElementById("editSeasonEndDate")?.value;
+    const multiplier = parseFloat(document.getElementById("editSeasonMultiplier")?.value) || 1.0;
+    const desc = document.getElementById("editSeasonDesc")?.value.trim();
+
+    if (!name) {
+      this.showToast("⚠️ Tên mùa giải không được để trống!", "warning");
+      return;
+    }
+
+    const adminProfile = StorageService.getUserProfile();
+    const adminName = adminProfile.fullName || "Quản trị viên";
+
+    try {
+      StorageService.updateSeason(seasonId, {
+        name,
+        code,
+        startDate: startDate ? new Date(startDate).toISOString() : undefined,
+        endDate: endDate ? new Date(endDate).toISOString() : undefined,
+        expMultiplier: multiplier,
+        description: desc
+      }, adminName);
+
+      this.closeModal();
+      this.showToast("✅ Đã cập nhật thông số mùa giải thành công!", "success", 3000);
+      this.renderLeaderboardAdminView(document.getElementById("mainContent"));
+    } catch (e) {
+      this.showToast("❌ " + e.message, "danger", 3500);
+    }
+  },
+
+  openResetSeasonModal(seasonId) {
+    const seasons = StorageService.getSeasons();
+    const season = seasons.find(s => s.id === seasonId);
+    if (!season) return;
+
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = `🔄 Đặt Lại Điểm Mùa: ${season.name}`;
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-sm); padding: 14px 16px; font-size: 13px; color: #b45309;">
+          <strong>⚠️ Hành động này sẽ:</strong>
+          <ul style="margin: 6px 0 0 0; padding-left: 18px; line-height: 1.6;">
+            <li>Đặt lại toàn bộ <strong>Điểm Mùa Này (seasonExp & seasonCp)</strong> của tất cả sinh viên về 0.</li>
+            <li><strong>Bảo lưu 100%</strong> Điểm Tổng Các Mùa (totalExp & contributionPoints).</li>
+            <li>Tự động phát thông báo giải trình minh bạch tới 100% sinh viên.</li>
+          </ul>
+        </div>
+
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-weight: 700;">Lý do đặt lại mùa giải (Bắt buộc) (*):</label>
+          <textarea id="resetSeasonReason" class="form-control" style="min-height: 80px;" placeholder="Ví dụ: Hiệu chỉnh điểm do kỳ thi thử kết thúc sớm hoặc Tổ chức chặng đua mới..."></textarea>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Hủy</button>
+      <button class="btn btn-danger" onclick="App.confirmResetSeasonAction('${season.id}')">🔄 Xác Nhận Đặt Lại Điểm Mùa Này</button>
+    `;
+
+    this.openModal();
+  },
+
+  confirmResetSeasonAction(seasonId) {
+    const reason = document.getElementById("resetSeasonReason")?.value.trim();
+    if (!reason) {
+      this.showToast("⚠️ Vui lòng nhập lý do đặt lại mùa giải để gửi thông báo!", "warning");
+      return;
+    }
+
+    const adminProfile = StorageService.getUserProfile();
+    const adminName = adminProfile.fullName || "Quản trị viên";
+
+    try {
+      StorageService.resetActiveSeason(seasonId, reason, adminName);
+      this.closeModal();
+      this.showToast("✅ Đã đặt lại điểm Mùa Này về 0 và gửi thông báo toàn trường thành công!", "success", 4000);
+      this.renderLeaderboardAdminView(document.getElementById("mainContent"));
+    } catch (e) {
+      this.showToast("❌ " + e.message, "danger", 3500);
+    }
+  },
+
+  openFreezeSeasonModal(seasonId) {
+    const seasons = StorageService.getSeasons();
+    const season = seasons.find(s => s.id === seasonId);
+    if (!season) return;
+
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = `🔒 Đóng Băng & Bế Mạc: ${season.name}`;
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #fef2f2; border: 1px solid #fca5a5; border-radius: var(--radius-sm); padding: 14px 16px; font-size: 13px; color: #991b1b;">
+          <strong>🔒 Hành động đóng băng mùa giải:</strong>
+          <ul style="margin: 6px 0 0 0; padding-left: 18px; line-height: 1.6;">
+            <li>Chốt bảng vàng Top 50 EXP & Top 50 CP vào Kho Lưu Trữ (Archives).</li>
+            <li>Chuyển trạng thái mùa giải sang <strong>Đã Đóng Băng (Completed)</strong>.</li>
+            <li>Tự động phát thông báo bế mạc và vinh danh Top 1, Top 2, Top 3 tới toàn trường.</li>
+          </ul>
+        </div>
+        <p style="font-size: 13.5px; margin: 0; color: var(--text-primary);">
+          Bạn có chắc chắn muốn đóng băng và kết thúc mùa giải <strong>"${season.name}"</strong> ngay bây giờ không?
+        </p>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Hủy</button>
+      <button class="btn btn-danger" onclick="App.confirmFreezeSeasonAction('${season.id}')">🔒 Xác Nhận Đóng Băng Mùa Giải</button>
+    `;
+
+    this.openModal();
+  },
+
+  confirmFreezeSeasonAction(seasonId) {
+    const adminProfile = StorageService.getUserProfile();
+    const adminName = adminProfile.fullName || "Quản trị viên";
+
+    try {
+      StorageService.freezeAndEndSeason(seasonId, adminName);
+      this.closeModal();
+      this.showToast("🎉 Đã đóng băng kết quả mùa giải và phát thông báo vinh danh thành công!", "success", 4500);
+      this.renderLeaderboardAdminView(document.getElementById("mainContent"));
+    } catch (e) {
+      this.showToast("❌ " + e.message, "danger", 3500);
+    }
+  },
+
+  confirmActivateSeasonAction(seasonId) {
+    const seasons = StorageService.getSeasons();
+    const season = seasons.find(s => s.id === seasonId);
+    if (!season) return;
+
+    const adminProfile = StorageService.getUserProfile();
+    const adminName = adminProfile.fullName || "Quản trị viên";
+
+    if (confirm(`Bạn có chắc chắn muốn KÍCH HOẠT mùa giải "${season.name}" làm mùa thi đấu chính thức hiện tại của toàn trường không?`)) {
+      try {
+        StorageService.activateSeason(seasonId, adminName, false);
+        this.showToast(`🎉 Đã kích hoạt mùa giải "${season.name}" làm mùa hiện tại thành công!`, "success", 3500);
+        this.renderLeaderboardAdminView(document.getElementById("mainContent"));
+      } catch (e) {
+        this.showToast("❌ " + e.message, "danger", 3500);
+      }
+    }
+  },
+
+  confirmReopenSeasonAction(seasonId) {
+    const seasons = StorageService.getSeasons();
+    const season = seasons.find(s => s.id === seasonId);
+    if (!season) return;
+
+    const adminProfile = StorageService.getUserProfile();
+    const adminName = adminProfile.fullName || "Quản trị viên";
+
+    if (confirm(`Bạn có chắc chắn muốn MỞ LẠI mùa giải "${season.name}" thành mùa giải đang diễn ra không?`)) {
+      try {
+        StorageService.reopenSeason(seasonId, adminName);
+        this.showToast(`🎉 Đã mở lại mùa giải "${season.name}" thành công!`, "success", 3500);
+        this.renderLeaderboardAdminView(document.getElementById("mainContent"));
+      } catch (e) {
+        this.showToast("❌ " + e.message, "danger", 3500);
+      }
+    }
+  },
+
+  confirmDeleteSeasonAction(seasonId) {
+    const seasons = StorageService.getSeasons();
+    const season = seasons.find(s => s.id === seasonId);
+    if (!season) return;
+
+    const adminProfile = StorageService.getUserProfile();
+    const adminName = adminProfile.fullName || "Quản trị viên";
+
+    if (confirm(`⚠️ CẢNH BÁO: Bạn có chắc chắn muốn XÓA vĩnh viễn mùa giải "${season.name}" khỏi hệ thống không? Hành động này không thể hoàn tác.`)) {
+      try {
+        StorageService.deleteSeason(seasonId, adminName);
+        this.showToast("🗑️ Đã xóa mùa giải khỏi hệ thống!", "info", 3000);
+        this.renderLeaderboardAdminView(document.getElementById("mainContent"));
+      } catch (e) {
+        this.showToast("❌ " + e.message, "danger", 3500);
+      }
+    }
+  },
+
+  openViewSeasonStandingsModal(seasonId) {
+    const seasons = StorageService.getSeasons();
+    const season = seasons.find(s => s.id === seasonId);
+    if (!season || !season.frozenStandings) {
+      this.showToast("⚠️ Mùa giải này chưa có dữ liệu đóng băng!", "warning");
+      return;
+    }
+
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = `🏆 Bảng Vàng Đóng Băng: ${season.name}`;
+
+    const topExp = season.frozenStandings.topExp || [];
+    const topCp = season.frozenStandings.topCp || [];
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div style="font-size: 13px; color: var(--text-secondary);">
+          Kết quả thi đua chính thức khi bế mạc mùa giải ngày <strong>${new Date(season.closedAt || season.createdAt).toLocaleString('vi-VN')}</strong>:
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <!-- Top EXP -->
+          <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <div style="font-weight: 800; color: #b45309; margin-bottom: 8px; font-size: 13.5px;">⚡ Top 10 Học Tập (EXP):</div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              ${topExp.slice(0, 10).map((u, i) => `
+                <div style="display: flex; justify-content: space-between; font-size: 12.5px; border-bottom: 1px dashed var(--border); padding-bottom: 4px;">
+                  <span>${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`} <strong>${u.name || u.rawName}</strong></span>
+                  <strong style="color: #b45309;">${u.exp || u.seasonExp || 0} EXP</strong>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Top CP -->
+          <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <div style="font-weight: 800; color: #15803d; margin-bottom: 8px; font-size: 13.5px;">🌟 Top 10 Cống Hiến (CP):</div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              ${topCp.slice(0, 10).map((u, i) => `
+                <div style="display: flex; justify-content: space-between; font-size: 12.5px; border-bottom: 1px dashed var(--border); padding-bottom: 4px;">
+                  <span>${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`} <strong>${u.name || u.rawName}</strong></span>
+                  <strong style="color: #15803d;">${u.cp || u.seasonCp || 0} CP</strong>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Đóng</button>
+      <button class="btn btn-primary" onclick="App.exportSeasonCSV('${season.id}')">📥 Tải Báo Cáo CSV</button>
+    `;
+
+    this.openModal();
+  },
+
+  exportSeasonCSV(seasonId) {
+    const seasons = StorageService.getSeasons();
+    const season = seasons.find(s => s.id === seasonId);
+    if (!season) {
+      this.showToast("⚠️ Không tìm thấy dữ liệu mùa giải!", "warning");
+      return;
+    }
+
+    const expList = (season.frozenStandings && season.frozenStandings.topExp) ? season.frozenStandings.topExp : StorageService.getLeaderboardData("exp", { scope: "season", includeHidden: true, statusFilter: "all" });
+
+    let csvContent = "\uFEFF"; // UTF-8 BOM
+    csvContent += `BÁO CÁO KẾT QUẢ THI ĐUA MÙA GIẢI: ${season.name.toUpperCase()}\n`;
+    csvContent += `Mã mùa: ${season.code || 'N/A'},Thời gian: ${season.startDate || ''} - ${season.endDate || ''},Khởi tạo bởi: ${season.createdBy || 'Admin'}\n\n`;
+    csvContent += "Hạng,Họ và Tên,MSSV,Lớp,Khoa / Viện,Điểm EXP Mùa,Điểm CP Mùa,Trạng Thái\n";
+
+    expList.forEach((u, idx) => {
+      const name = (u.rawName || u.name || '').replace(/"/g, '""');
+      const studentId = u.studentId || '';
+      const className = u.className || '';
+      const dept = (u.department || '').replace(/"/g, '""');
+      const exp = u.exp || u.seasonExp || 0;
+      const cp = u.cp || u.seasonCp || 0;
+      const status = u.status === 'kicked' ? 'Đã bị kick' : 'Hoạt động';
+
+      csvContent += `${idx + 1},"${name}","${studentId}","${className}","${dept}",${exp},${cp},"${status}"\n`;
+    });
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `DThu_QuizMaster_MuaGiai_${(season.code || season.id)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    this.showToast(`📥 Đã tải file báo cáo CSV mùa "${season.name}"!`, "success", 3000);
+  },
+
+  clearAuditLogsConfirm() {
+    const adminProfile = StorageService.getUserProfile();
+    const adminName = adminProfile.fullName || "Quản trị viên";
+
+    if (confirm("⚠️ Bạn có chắc chắn muốn xóa toàn bộ lịch sử Nhật Ký Kiểm Toán không?")) {
+      StorageService.clearAuditLogs(adminName);
+      this.showToast("🗑️ Đã làm sạch lịch sử nhật ký kiểm toán!", "info", 3000);
+      this.renderLeaderboardAdminView(document.getElementById("mainContent"));
+    }
   },
 
   toggleHideUserFromLeaderboardAdminAction(userId) {
     const isHidden = StorageService.toggleHideUserFromLeaderboard(userId);
     this.showToast(isHidden ? "🚫 Đã ẩn thành viên khỏi Bảng Xếp Hạng công khai!" : "✅ Đã cho phép thành viên hiển thị lại trên Bảng Xếp Hạng!", "info", 2500);
-    this.renderLeaderboardAdminView(document.getElementById("mainContent"));
-  },
-
-  confirmAdminStartNewSeasonAction() {
-    const sName = document.getElementById("adminNewSeasonNameInput")?.value.trim();
-    if (!sName) {
-      this.showToast("⚠️ Vui lòng nhập tên mùa giải mới!", "warning");
-      return;
-    }
-
-    const shouldReset = document.getElementById("adminResetSeasonPointsCheckbox")?.checked ?? true;
-    const adminProfile = StorageService.getUserProfile();
-    StorageService.startNewSeason(sName, adminProfile.fullName || "Admin", shouldReset);
-
-    this.showToast(`🎉 Đã mở mùa giải mới "${sName}" và lưu trữ mùa cũ thành công!`, "success", 4000);
-    this.adminLeaderboardTab = "settings";
     this.renderLeaderboardAdminView(document.getElementById("mainContent"));
   },
 
