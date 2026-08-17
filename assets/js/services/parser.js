@@ -276,24 +276,80 @@ const SmartParserService = {
   async extractTextFromFile(file) {
     if (!file) throw new Error("Vui lòng chọn tệp tin!");
     const ext = file.name.split('.').pop().toLowerCase();
+    let rawText = "";
 
     // 1. Tệp văn bản thuần (.txt, .md, .csv, .json, .text)
     if (['txt', 'md', 'csv', 'json', 'text'].includes(ext)) {
-      return await this.readPlainTextFile(file);
+      rawText = await this.readPlainTextFile(file);
     }
-
     // 2. Tệp Word (.docx)
-    if (ext === 'docx') {
-      return await this.extractTextFromDocx(file);
+    else if (ext === 'docx') {
+      rawText = await this.extractTextFromDocx(file);
     }
-
     // 3. Tệp PDF (.pdf text)
-    if (ext === 'pdf') {
-      return await this.extractTextFromPdf(file);
+    else if (ext === 'pdf') {
+      rawText = await this.extractTextFromPdf(file);
+    } else {
+      rawText = await this.readPlainTextFile(file);
     }
 
-    // Mặc định thử đọc văn bản thuần
-    return await this.readPlainTextFile(file);
+    // Tự động chuẩn hóa văn bản đầu ra cho Textarea (tách dòng ngay ngắn, gắn đuôi > Đúng)
+    return this.formatExtractedDocumentText(rawText);
+  },
+
+  /**
+   * Chuẩn hóa văn bản trích xuất từ tài liệu (Word, PDF, Text) trước khi đưa vào Textarea:
+   * - Tự động tách các phương án dính chùm trên cùng 1 hàng thành từng dòng riêng biệt
+   * - Gắn hậu tố ' > Đúng' cho phương án đúng (gạch chân / tô đỏ / highlight)
+   * - Giữ nguyên vẹn 100% phần đề bài câu hỏi (kể cả có chứa MSA, NASA, node, ABCD...)
+   * - Giãn cách các câu hỏi bằng 1 dòng trống (\n\n) để văn bản sạch đẹp, trực quan
+   */
+  formatExtractedDocumentText(rawText) {
+    if (!rawText || !rawText.trim()) return "";
+    let text = rawText.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+
+    const questionSplits = text.split(/(?=(?:(?:\n|\A)\s*(?:\*{0,2}(?:Câu|Bài|Question)\s*\d+[\s\.:\*\-\]]+|\b\d+\s*[\.)]\s+|\[(?:Câu\s*)?\d+\])))/i);
+    const optAPattern = /(?:(?:\n|\A)\s*|[\t\s]{2,}|(?<=[\?\:\.\"\'])\s*)\[?A\]?[\.\)\:\*\_]\s+/i;
+    const formattedBlocks = [];
+
+    questionSplits.forEach((block) => {
+      let trimmedBlock = block.trim();
+      if (!trimmedBlock) return;
+
+      const optAMatch = optAPattern.exec(trimmedBlock);
+      if (optAMatch) {
+        let promptPart = trimmedBlock.slice(0, optAMatch.index).trim();
+        let optionsPart = trimmedBlock.slice(optAMatch.index);
+
+        // Tách các phương án A, B, C, D bị dính chùm trên cùng 1 dòng
+        optionsPart = optionsPart
+          .replace(/[\t\s]{2,}(?=[A-E][\.\)\:\*]\s+)/g, "\n")
+          .replace(/([a-zA-Z0-9_\)\>\]\"\'])\s*(?=[B-E][\.\)\:]\s+)/g, "$1\n")
+          .replace(/([a-zA-Z0-9_\)\>\]\"\'])(?=[B-E]\.\s*)/g, "$1\n");
+
+        const optionLines = optionsPart.split("\n").map(l => l.trim()).filter(Boolean);
+        const cleanedOptionLines = [];
+
+        for (const line of optionLines) {
+          // Nếu dòng là phương án có đánh dấu đúng bằng * hoặc <u>, chuẩn hóa thành đuôi ' > Đúng'
+          if (/^\s*\*+\s*\[?([A-Ea-e])\]?[\.\)\:\*\_]/.test(line)) {
+            let cleanLine = line.replace(/^\s*\*+\s*/, "");
+            if (!cleanLine.includes(">")) {
+              cleanLine = `${cleanLine} > Đúng`;
+            }
+            cleanedOptionLines.push(cleanLine);
+          } else {
+            cleanedOptionLines.push(line);
+          }
+        }
+
+        formattedBlocks.push(`${promptPart}\n${cleanedOptionLines.join("\n")}`);
+      } else {
+        formattedBlocks.push(trimmedBlock);
+      }
+    });
+
+    return formattedBlocks.join("\n\n");
   },
 
   readPlainTextFile(file) {
