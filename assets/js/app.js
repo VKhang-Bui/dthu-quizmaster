@@ -5061,115 +5061,228 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     this.renderLeaderboardAdminView(document.getElementById("mainContent"));
   },
 
-  // ── Modals Quản Lý Vòng Đời Mùa Giải ────────
+  // ── Modals Quản Lý Vòng Đời Mùa Giải (Season Studio) ────────
   openCreateSeasonModal() {
     const modal = document.getElementById("globalModal");
     const title = document.getElementById("modalTitle");
     const body = document.getElementById("modalBody");
     const footer = document.getElementById("modalFooter");
 
-    title.textContent = "➕ Tạo Mùa Giải Thi Đua Mới";
+    title.textContent = "🏆 Khởi Tạo Mùa Giải Mới (Season Studio)";
 
     const defaultStart = new Date().toISOString().slice(0, 10);
     const defaultEnd = new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10);
+    const suggestedCode = "HK" + (new Date().getMonth() > 6 ? "1" : "2") + "-" + new Date().getFullYear();
 
     body.innerHTML = `
-      <div style="display: flex; flex-direction: column; gap: 14px;">
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
-          <div class="form-group" style="margin: 0;">
-            <label class="form-label" style="font-weight: 700;">Tên Mùa Giải (*):</label>
-            <input type="text" id="newSeasonName" class="form-control" placeholder="Ví dụ: Học Kỳ 2 (2026 - 2027)">
+      <div style="display: flex; flex-direction: column; gap: 16px; max-height: 75vh; overflow-y: auto; padding-right: 4px;">
+        
+        <!-- Phân khu 1: Biểu tượng & Tên mùa giải -->
+        <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px;">
+          <div style="font-size: 13.5px; font-weight: 800; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+            <span>1️⃣</span> <span>Thông Tin Định Danh & Biểu Tượng Mùa Giải</span>
           </div>
-          <div class="form-group" style="margin: 0;">
-            <label class="form-label" style="font-weight: 700;">Mã Mùa (*):</label>
-            <input type="text" id="newSeasonCode" class="form-control" placeholder="VD: HK2-2026" style="text-transform: uppercase;">
+
+          <div style="margin-bottom: 12px;">
+            <label class="form-label" style="font-size: 12px; font-weight: 700; margin-bottom: 6px; display: block;">Chọn Biểu Tượng Mùa Giải:</label>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="seasonIconPicker">
+              ${['🏆', '🔥', '🚀', '⭐', '👑', '🎯', '🎓', '💎'].map((icon, idx) => `
+                <button type="button" class="btn btn-sm ${idx === 0 ? 'btn-primary' : ''}" style="font-size: 16px; padding: 6px 12px; border-radius: 8px;" onclick="App.selectSeasonIcon(this, '${icon}')">
+                  ${icon}
+                </button>
+              `).join('')}
+              <input type="hidden" id="newSeasonIcon" value="🏆">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-weight: 700;">Tên Mùa Giải (*):</label>
+              <input type="text" id="newSeasonName" class="form-control" placeholder="Ví dụ: Học Kỳ 1 (2026 - 2027)" value="Học Kỳ Mới (${new Date().toLocaleDateString('vi-VN')})">
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-weight: 700;">Mã Mùa Giải (*):</label>
+              <input type="text" id="newSeasonCode" class="form-control" placeholder="VD: HK1-2026" value="${suggestedCode}" style="text-transform: uppercase; font-weight: 700;">
+            </div>
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-          <div class="form-group" style="margin: 0;">
-            <label class="form-label" style="font-weight: 700;">Ngày Bắt Đầu (*):</label>
-            <input type="date" id="newSeasonStartDate" class="form-control" value="${defaultStart}">
+        <!-- Phân khu 2: Khung Thời Gian & Hệ Số Điểm -->
+        <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px;">
+          <div style="font-size: 13.5px; font-weight: 800; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+            <span>2️⃣</span> <span>Khung Thời Gian & Cơ Chế Điểm Thưởng</span>
           </div>
-          <div class="form-group" style="margin: 0;">
-            <label class="form-label" style="font-weight: 700;">Ngày Kết Thúc Dự Kiến (*):</label>
-            <input type="date" id="newSeasonEndDate" class="form-control" value="${defaultEnd}">
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-weight: 700;">Ngày Bắt Đầu (*):</label>
+              <input type="date" id="newSeasonStartDate" class="form-control" value="${defaultStart}">
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-weight: 700;">Ngày Kết Thúc Dự Kiến (*):</label>
+              <input type="date" id="newSeasonEndDate" class="form-control" value="${defaultEnd}">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-weight: 700;">Trạng Thái Khởi Tạo (*):</label>
+              <select id="newSeasonStatus" class="form-control" style="font-weight: 600;">
+                <option value="active" selected>🟢 Kích hoạt ngay làm mùa hiện tại (Active)</option>
+                <option value="upcoming">🟡 Lên lịch sắp diễn ra (Upcoming)</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-weight: 700;">Hệ Số EXP Mùa Thi (*):</label>
+              <select id="newSeasonMultiplier" class="form-control" style="font-weight: 600;">
+                <option value="1.0" selected>1.0x (Tiêu chuẩn)</option>
+                <option value="1.25">1.25x (Khích lệ ôn tập)</option>
+                <option value="1.5">1.5x (Mùa thi cao điểm)</option>
+                <option value="2.0">2.0x (Sự kiện đặc biệt)</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-          <div class="form-group" style="margin: 0;">
-            <label class="form-label" style="font-weight: 700;">Trạng Thái Khởi Tạo (*):</label>
-            <select id="newSeasonStatus" class="form-control" style="font-weight: 600;">
-              <option value="active">🟢 Đang diễn ra (Kích hoạt ngay)</option>
-              <option value="upcoming" selected>🟡 Sắp diễn ra (Lên lịch trước)</option>
-            </select>
+        <!-- Phân khu 3: Danh Xưng Podium Top 3 -->
+        <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px;">
+          <div style="font-size: 13.5px; font-weight: 800; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+            <span>3️⃣</span> <span>Tùy Biến Danh Hiệu Podium Top 3</span>
           </div>
-          <div class="form-group" style="margin: 0;">
-            <label class="form-label" style="font-weight: 700;">Hệ Số EXP Mùa Thi (*):</label>
-            <select id="newSeasonMultiplier" class="form-control" style="font-weight: 600;">
-              <option value="1.0" selected>1.0x (Tiêu chuẩn)</option>
-              <option value="1.25">1.25x (Khích lệ)</option>
-              <option value="1.5">1.5x (Mùa thi cao điểm)</option>
-              <option value="2.0">2.0x (Sự kiện đặc biệt)</option>
-            </select>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-size: 12px;">🥇 Hạng 1:</label>
+              <input type="text" id="newSeasonTop1" class="form-control" value="🥇 Hạng 1 (Top 1)">
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-size: 12px;">🥈 Hạng 2:</label>
+              <input type="text" id="newSeasonTop2" class="form-control" value="🥈 Hạng 2 (Top 2)">
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-size: 12px;">🥉 Hạng 3:</label>
+              <input type="text" id="newSeasonTop3" class="form-control" value="🥉 Hạng 3 (Top 3)">
+            </div>
           </div>
         </div>
 
+        <!-- Phân khu 4: Mô Tả & Thể Lệ -->
         <div class="form-group" style="margin: 0;">
           <label class="form-label" style="font-weight: 700;">Mô Tả & Thể Lệ Cuộc Thi:</label>
-          <textarea id="newSeasonDesc" class="form-control" style="min-height: 65px;" placeholder="Nhập thể lệ, đối tượng tham gia và phần thưởng thi đua..."></textarea>
+          <textarea id="newSeasonDesc" class="form-control" style="min-height: 60px;" placeholder="Nhập thể lệ, đối tượng tham gia và giải thưởng thi đua..."></textarea>
         </div>
 
-        <div class="form-group" style="margin: 0;">
-          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-primary); cursor: pointer;">
-            <input type="checkbox" id="newSeasonResetPoints" checked style="width: 16px; height: 16px;">
-            <span>Đặt lại (Reset) Điểm Mùa Này về 0 cho tất cả thí sinh khi kích hoạt (Điểm All-Time giữ nguyên 100%)</span>
-          </label>
+        <!-- Phân khu 5: Tùy Chọn Chiến Lược Điểm & Đóng Băng -->
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 12px 16px; font-size: 13px; color: #166534;">
+          <div style="font-weight: 800; margin-bottom: 8px;">⚙️ Chiến Lược Chuyển Giao Mùa Giải:</div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="newSeasonResetPoints" checked style="width: 16px; height: 16px;">
+              <span>Đặt lại Điểm Mùa Này (seasonExp, seasonCp) về 0 để mở chặng đua mới (Bảo lưu 100% Điểm Tổng All-Time).</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="newSeasonFreezeOld" checked style="width: 16px; height: 16px;">
+              <span>Tự động đóng băng kết quả mùa cũ hiện tại và lưu vào Bảng Vàng Archives.</span>
+            </label>
+          </div>
         </div>
+
+        <!-- Phân khu 6: Soạn Thông Báo Phát Động -->
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-weight: 700;">📢 Lời Nhắn Gửi Phát Động Toàn Trường (Broadcast):</label>
+          <textarea id="newSeasonBroadcastMsg" class="form-control" style="min-height: 55px;" placeholder="Ví dụ: Chào mừng các bạn sinh viên bước vào mùa thi đua mới. Hãy cùng nhau ôn luyện trắc nghiệm thật tốt!"></textarea>
+        </div>
+
       </div>
     `;
 
     footer.innerHTML = `
       <button class="btn" onclick="App.closeModal()">Hủy</button>
-      <button class="btn btn-primary" onclick="App.saveCreateSeasonAction()">💾 Tạo Mùa Giải</button>
+      <button class="btn btn-primary" onclick="App.saveCreateSeasonAction()">🚀 Khởi Tạo Mùa Giải Ngay</button>
     `;
 
     this.openModal();
   },
 
+  selectSeasonIcon(btn, icon) {
+    const picker = document.getElementById("seasonIconPicker");
+    if (picker) {
+      picker.querySelectorAll("button").forEach(b => b.classList.remove("btn-primary"));
+    }
+    btn.classList.add("btn-primary");
+    const hidden = document.getElementById("newSeasonIcon");
+    if (hidden) hidden.value = icon;
+  },
+
   saveCreateSeasonAction() {
-    const name = document.getElementById("newSeasonName")?.value.trim();
+    const icon = document.getElementById("newSeasonIcon")?.value || "🏆";
+    let name = document.getElementById("newSeasonName")?.value.trim();
     const code = document.getElementById("newSeasonCode")?.value.trim();
     const startDate = document.getElementById("newSeasonStartDate")?.value;
     const endDate = document.getElementById("newSeasonEndDate")?.value;
-    const status = document.getElementById("newSeasonStatus")?.value || "upcoming";
+    const status = document.getElementById("newSeasonStatus")?.value || "active";
     const multiplier = parseFloat(document.getElementById("newSeasonMultiplier")?.value) || 1.0;
+    const t1 = document.getElementById("newSeasonTop1")?.value.trim();
+    const t2 = document.getElementById("newSeasonTop2")?.value.trim();
+    const t3 = document.getElementById("newSeasonTop3")?.value.trim();
     const desc = document.getElementById("newSeasonDesc")?.value.trim();
     const resetPoints = document.getElementById("newSeasonResetPoints")?.checked ?? true;
+    const freezeOld = document.getElementById("newSeasonFreezeOld")?.checked ?? true;
+    const broadcastMsg = document.getElementById("newSeasonBroadcastMsg")?.value.trim();
 
     if (!name) {
       this.showToast("⚠️ Vui lòng nhập tên mùa giải mới!", "warning");
       return;
     }
 
+    if (icon && !name.startsWith(icon)) {
+      name = `${icon} ${name}`;
+    }
+
     const adminProfile = StorageService.getUserProfile();
     const adminName = adminProfile.fullName || "Quản trị viên";
 
+    // Nếu chọn đóng băng mùa cũ trước khi mở mùa mới
+    if (status === "active" && freezeOld) {
+      const activeOld = StorageService.getActiveSeason();
+      if (activeOld) {
+        try {
+          StorageService.freezeAndEndSeason(activeOld.id, adminName);
+        } catch (e) {}
+      }
+    }
+
     try {
-      StorageService.createSeason({
+      const newSeason = StorageService.createSeason({
         name,
         code,
         startDate: startDate ? new Date(startDate).toISOString() : new Date().toISOString(),
         endDate: endDate ? new Date(endDate).toISOString() : new Date(Date.now() + 90 * 86400000).toISOString(),
         status,
         expMultiplier: multiplier,
+        top1Title: t1 || "🥇 Hạng 1 (Top 1)",
+        top2Title: t2 || "🥈 Hạng 2 (Top 2)",
+        top3Title: t3 || "🥉 Hạng 3 (Top 3)",
         description: desc,
         resetPoints
       }, adminName);
 
+      // Nếu có lời nhắn broadcast tùy biến
+      if (status === "active" && broadcastMsg) {
+        const allUsers = StorageService.getAllUsers();
+        allUsers.forEach(u => {
+          StorageService.addNotification(u.id, {
+            type: "system_announcement",
+            title: `📢 Thông Điệp Mùa Giải: ${name}`,
+            message: broadcastMsg,
+            pointsDelta: null,
+            pointType: null
+          });
+        });
+      }
+
       this.closeModal();
-      this.showToast(`🎉 Đã tạo mùa giải "${name}" thành công!`, "success", 4000);
+      this.showToast(`🎉 Đã khởi tạo thành công mùa giải "${name}"!`, "success", 4500);
       this.renderLeaderboardAdminView(document.getElementById("mainContent"));
     } catch (e) {
       this.showToast("❌ " + e.message, "danger", 3500);
@@ -5192,7 +5305,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     const endVal = season.endDate ? new Date(season.endDate).toISOString().slice(0, 10) : '';
 
     body.innerHTML = `
-      <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; flex-direction: column; gap: 14px; max-height: 75vh; overflow-y: auto; padding-right: 4px;">
         <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
           <div class="form-group" style="margin: 0;">
             <label class="form-label" style="font-weight: 700;">Tên Mùa Giải (*):</label>
@@ -5200,7 +5313,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
           </div>
           <div class="form-group" style="margin: 0;">
             <label class="form-label" style="font-weight: 700;">Mã Mùa (*):</label>
-            <input type="text" id="editSeasonCode" class="form-control" value="${season.code || ''}" style="text-transform: uppercase;">
+            <input type="text" id="editSeasonCode" class="form-control" value="${season.code || ''}" style="text-transform: uppercase; font-weight: 700;">
           </div>
         </div>
 
@@ -5225,6 +5338,15 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
           </select>
         </div>
 
+        <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px;">
+          <label class="form-label" style="font-size: 12.5px; font-weight: 700; margin-bottom: 8px; display: block;">Tùy Biến Danh Hiệu Podium Top 3:</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+            <input type="text" id="editSeasonTop1" class="form-control" value="${season.top1Title || '🥇 Hạng 1 (Top 1)'}">
+            <input type="text" id="editSeasonTop2" class="form-control" value="${season.top2Title || '🥈 Hạng 2 (Top 2)'}">
+            <input type="text" id="editSeasonTop3" class="form-control" value="${season.top3Title || '🥉 Hạng 3 (Top 3)'}">
+          </div>
+        </div>
+
         <div class="form-group" style="margin: 0;">
           <label class="form-label" style="font-weight: 700;">Mô Tả & Thể Lệ Cuộc Thi:</label>
           <textarea id="editSeasonDesc" class="form-control" style="min-height: 70px;">${season.description || ''}</textarea>
@@ -5246,6 +5368,9 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
     const startDate = document.getElementById("editSeasonStartDate")?.value;
     const endDate = document.getElementById("editSeasonEndDate")?.value;
     const multiplier = parseFloat(document.getElementById("editSeasonMultiplier")?.value) || 1.0;
+    const t1 = document.getElementById("editSeasonTop1")?.value.trim();
+    const t2 = document.getElementById("editSeasonTop2")?.value.trim();
+    const t3 = document.getElementById("editSeasonTop3")?.value.trim();
     const desc = document.getElementById("editSeasonDesc")?.value.trim();
 
     if (!name) {
@@ -5263,6 +5388,9 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
         startDate: startDate ? new Date(startDate).toISOString() : undefined,
         endDate: endDate ? new Date(endDate).toISOString() : undefined,
         expMultiplier: multiplier,
+        top1Title: t1 || undefined,
+        top2Title: t2 || undefined,
+        top3Title: t3 || undefined,
         description: desc
       }, adminName);
 
@@ -9499,8 +9627,18 @@ Câu 2: Nội dung câu hỏi số 2 ở đây?
     input.click();
   },
 
+  openModal() {
+    const modal = document.getElementById("globalModal");
+    if (modal) {
+      modal.classList.add("active");
+    }
+  },
+
   closeModal() {
-    document.getElementById("globalModal")?.classList.remove("active");
+    const modal = document.getElementById("globalModal");
+    if (modal) {
+      modal.classList.remove("active");
+    }
   },
 
   bindGlobalEvents() {
