@@ -9177,7 +9177,7 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
     // Tự động lưu nháp dữ liệu đang điền dở ở form đăng ký nếu có
     this.saveRegisterFormDraft();
 
-    const modal = document.getElementById("appModal");
+    const modal = document.getElementById("globalModal");
     const title = document.getElementById("modalTitle");
     const body = document.getElementById("modalBody");
     const footer = document.getElementById("modalFooter");
@@ -9254,6 +9254,11 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
     this.showToast("✅ Đã xác nhận đồng ý với Điều khoản Dịch vụ!", "success", 3000);
   },
 
+  navigateToTermsFromRegister() {
+    this.saveRegisterFormDraft();
+    this.navigateTo('terms', { fromView: 'register' });
+  },
+
   // ── LƯU NHÁP & PHỤC HỒI DỮ LIỆU BIỂU MẪU ĐĂNG KÝ (AUTO-DRAFT) ──────────────
   saveRegisterFormDraft() {
     const fullName = document.getElementById("regFullName")?.value || "";
@@ -9289,7 +9294,7 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
             <button class="btn btn-sm" onclick="window.print()" title="In hoặc xuất văn bản PDF">
               🖨️ In / Lưu PDF
             </button>
-            ${(this.previousView === 'register' || (this.activeRouteData && this.activeRouteData.fromView === 'register')) ? `
+            ${(this.previousView === 'register' || (this.activeRouteData && this.activeRouteData.fromView === 'register') || (this.registerFormDraft && Object.keys(this.registerFormDraft).length > 0)) ? `
               <button class="btn btn-sm btn-primary" onclick="App.navigateTo('register')" title="Quay lại biểu mẫu đăng ký mà không mất dữ liệu">
                 ← Quay Lại Form Đăng Ký
               </button>
@@ -9716,9 +9721,10 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
                 <input type="checkbox" id="regTermsAgree" onchange="App.toggleRegisterSubmitState(); App.saveRegisterFormDraft();" style="margin-top: 3px; cursor: pointer; width: 16px; height: 16px;" ${isTermsAgreed ? 'checked' : ''}>
                 <span>
                   Tôi xác nhận đã đủ năng lực hành vi dân sự, đã đọc kỹ, hiểu rõ và hoàn toàn đồng ý với 
-                  <a href="javascript:void(0)" onclick="App.openTermsModal()" style="color: var(--brand-primary); font-weight: 700; text-decoration: underline;" title="Nhấp để xem tóm tắt điều khoản ngay tại chỗ">
+                  <a href="javascript:void(0)" onclick="App.openTermsModal()" style="color: var(--brand-primary); font-weight: 700; text-decoration: underline;" title="Nhấp để mở popup xem điều khoản ngay tại chỗ">
                     Điều khoản Dịch vụ & Thỏa thuận Sử dụng
                   </a> 
+                  <span style="font-size: 11px; margin-left: 3px;">(<a href="javascript:void(0)" onclick="App.navigateToTermsFromRegister()" style="color: var(--text-tertiary); text-decoration: underline;" title="Xem toàn màn hình tại trang riêng">Xem toàn trang ↗</a>)</span>
                   của Shinora QuizMaster.
                 </span>
               </label>
