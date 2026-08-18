@@ -21,7 +21,10 @@ const StorageService = {
     LEADERBOARD_SETTINGS: "dthu_quiz_leaderboard_settings_v2",
     LEADERBOARD_ARCHIVES: "dthu_quiz_leaderboard_archives_v2",
     SEASONS_LIST: "dthu_quiz_seasons_list_v2",
-    AUDIT_LOGS: "dthu_quiz_audit_logs_v2"
+    AUDIT_LOGS: "dthu_quiz_audit_logs_v2",
+    FOLDERS: "dthu_quiz_folders_v2",
+    BOOKMARKS: "dthu_quiz_bookmarks_v2",
+    RECENT_DOCS: "dthu_quiz_recent_docs_v2"
   },
 
   // Danh mục tất cả các loại cảnh báo hệ thống hỗ trợ ẩn/bật
@@ -1525,7 +1528,45 @@ const StorageService = {
     return user;
   },
 
-  // ── 4. Quản lý Tài Liệu Học Tập (.txt & Tóm tắt) ────────────
+  // ── 4. Quản lý Thư Viện Tài Liệu Số (Knowledge Hub & Folders) ────────────
+  getFolders() {
+    try {
+      const data = localStorage.getItem(this.KEYS.FOLDERS);
+      if (data) return JSON.parse(data);
+      return (typeof DataLoader !== "undefined" && DataLoader.FALLBACK_FOLDERS) ? DataLoader.FALLBACK_FOLDERS : [];
+    } catch (e) {
+      return [];
+    }
+  },
+
+  saveFolders(folders) {
+    localStorage.setItem(this.KEYS.FOLDERS, JSON.stringify(folders));
+  },
+
+  getFolderById(id) {
+    return this.getFolders().find(f => f.id === id) || null;
+  },
+
+  createFolder(folderData) {
+    const folders = this.getFolders();
+    const newFolder = {
+      id: folderData.id || ("fld-" + Date.now()),
+      parentId: folderData.parentId || null,
+      name: folderData.name || "Thư mục mới",
+      icon: folderData.icon || "📁",
+      description: folderData.description || ""
+    };
+    folders.push(newFolder);
+    this.saveFolders(folders);
+    return newFolder;
+  },
+
+  deleteFolder(folderId) {
+    let folders = this.getFolders();
+    folders = folders.filter(f => f.id !== folderId && f.parentId !== folderId);
+    this.saveFolders(folders);
+  },
+
   getMaterials() {
     try {
       const data = localStorage.getItem(this.KEYS.MATERIALS);
@@ -1543,6 +1584,50 @@ const StorageService = {
   getMaterialById(id) {
     const list = this.getMaterials();
     return list.find(m => m.id === id) || null;
+  },
+
+  getBookmarks() {
+    try {
+      const data = localStorage.getItem(this.KEYS.BOOKMARKS);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      return [];
+    }
+  },
+
+  isBookmarked(id) {
+    return this.getBookmarks().includes(id);
+  },
+
+  toggleBookmark(id) {
+    const list = this.getBookmarks();
+    const idx = list.indexOf(id);
+    if (idx >= 0) {
+      list.splice(idx, 1);
+    } else {
+      list.unshift(id);
+    }
+    localStorage.setItem(this.KEYS.BOOKMARKS, JSON.stringify(list));
+    return idx < 0; // return true if newly bookmarked
+  },
+
+  recordRecentDoc(id) {
+    try {
+      let list = this.getRecentDocs();
+      list = list.filter(item => item !== id);
+      list.unshift(id);
+      if (list.length > 15) list = list.slice(0, 15);
+      localStorage.setItem(this.KEYS.RECENT_DOCS, JSON.stringify(list));
+    } catch (e) {}
+  },
+
+  getRecentDocs() {
+    try {
+      const data = localStorage.getItem(this.KEYS.RECENT_DOCS);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      return [];
+    }
   },
 
   // ── 5. Quản lý Lịch sử Thi & Leaderboard (Lưu tối đa 10 lần thi gần nhất / Tự động xóa sau 30 ngày) ──

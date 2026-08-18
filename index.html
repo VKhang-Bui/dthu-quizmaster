@@ -67,7 +67,7 @@
         <div class="footer-col footer-col-brand">
           <div class="footer-brand-title">
             <span class="footer-brand-icon">🎓</span>
-            <span class="footer-brand-text">Shinora QuizMaster <span class="footer-pro-badge">PRO v3.1.1</span></span>
+            <span class="footer-brand-text">Shinora QuizMaster <span class="footer-pro-badge">v3.1.2</span></span>
           </div>
           <p class="footer-brand-desc">
             Nền tảng Tự học, Ngân hàng đề thi trắc nghiệm học phần và Khảo thí trực tuyến thông minh phát triển bởi Shina (Bùi Văn Khang).
@@ -159,7 +159,7 @@
           </div>
         </div>
         <div class="footer-bottom-right">
-          <span class="footer-meta-pill">v3.1.1 Pro</span>
+          <span class="footer-meta-pill">v3.1.2</span>
           <button class="footer-back-to-top" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })" title="Cuộn lên đầu trang">
             <span>Về Đầu Trang</span>
             <span class="arrow-up">↑</span>
@@ -179,6 +179,34 @@
   <script src="assets/js/services/quiz-engine.js"></script>
   <script src="assets/js/services/import-export.js"></script>
   <script src="assets/js/services/parser.js"></script>
+
+  <!-- App Core (State, Router, Init, Global Events) -->
   <script src="assets/js/app.js"></script>
+
+  <!-- View Modules (Gán methods vào App qua Object.assign) -->
+  <script src="assets/js/views/ui-helpers.js"></script>
+  <script src="assets/js/views/header-drawer.js"></script>
+  <script src="assets/js/views/home-view.js"></script>
+  <script src="assets/js/views/subject-detail-view.js"></script>
+  <script src="assets/js/views/parser-view.js"></script>
+  <script src="assets/js/views/quiz-views.js"></script>
+  <script src="assets/js/views/result-history-view.js"></script>
+  <script src="assets/js/views/leaderboard-view.js"></script>
+  <script src="assets/js/views/materials-view.js"></script>
+  <script src="assets/js/views/notifications-view.js"></script>
+  <script src="assets/js/views/users-management-view.js"></script>
+  <script src="assets/js/views/auth-view.js"></script>
+  <script src="assets/js/views/register-terms-view.js"></script>
+  <script src="assets/js/views/manage-view.js"></script>
+  <script src="assets/js/views/guide-view.js"></script>
+
+  <!-- Khởi chạy ứng dụng sau khi toàn bộ Services, App Core và View Modules đã nạp đủ -->
+  <script>
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => App.init());
+    } else {
+      App.init();
+    }
+  </script>
 </body>
 </html>
