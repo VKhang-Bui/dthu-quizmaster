@@ -279,9 +279,56 @@ D. Chức năng tâm lý</div>
           </div>
         </div>
 
-        <!-- Section 6: Dành Cho Ban Biên Tập & Admin -->
+        <!-- Section 6: Dynamic Island & Âm Thanh Học Tập -->
         <div class="guide-section">
-          <h3>🛡️ 6. Cẩm Nang Dành Cho Ban Biên Tập & Quản Trị Viên (Admin)</h3>
+          <h3>🏝️ 6. Đảo Âm Thanh Học Tập (Dynamic Island) & Giao Diện Vector Hiện Đại</h3>
+          
+          <div class="guide-step-item">
+            <div class="guide-step-num">1</div>
+            <div>
+              <strong>Dynamic Island - Âm Thanh Sóng Não & Nhạc Tập Trung Cao Độ:</strong>
+              <p style="font-size: 13.5px; margin-top: 4px;">
+                Được tích hợp cố định tại mép trên màn hình nhằm nâng cao hiệu suất ghi nhớ và giảm căng thẳng khi làm bài. Bao gồm 5 thể loại âm thanh học tập chuyên dụng: <em>Lo-fi Chill Beats, Baroque Focus (Mozart Effect), Deep Alpha/Theta Binaural Beats, White Noise & Mưa Rơi Tĩnh Lặng</em>.
+              </p>
+            </div>
+          </div>
+
+          <div class="guide-step-item">
+            <div class="guide-step-num">2</div>
+            <div>
+              <strong>3 Trạng Thái Thu Phóng Thông Minh & Tự Động Ẩn Viền Màn Hình (Edge Bar):</strong>
+              <ul style="font-size: 13px; margin: 4px 0 0 0; padding-left: 18px; line-height: 1.6; color: var(--text-secondary);">
+                <li><strong>Mở Rộng (Expanded)</strong>: Bấm trực tiếp vào Island để mở bảng điều khiển lớn với bìa đĩa xoay, thanh trượt âm lượng và danh sách đổi bài nhanh.</li>
+                <li><strong>Viên Nhộng (Mini Capsule)</strong>: Tự động thu gọn khi bạn thao tác giải đề để không che khuất nội dung.</li>
+                <li><strong>Dải Viền Màn Hình (Edge Bar)</strong>: Sau 10s/30s không tương tác, Island tự động giấu lên đỉnh màn hình thành một dải gợn sóng màu tím/đen siêu mỏng. <strong>Rê chuột (Desktop) hoặc Chạm nhẹ (Mobile)</strong> vào đỉnh màn hình để Island trượt xuống tức thì.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="guide-step-item">
+            <div class="guide-step-num">3</div>
+            <div>
+              <strong>Cài Đặt Tùy Biến Toàn Diện & Biểu Tượng Thành Viên:</strong>
+              <p style="font-size: 13.5px; margin-top: 4px;">
+                Mở <strong>Thanh Menu bên phải (Drawer) ➔ Cài Đặt Hệ Thống ➔ Cài Đặt Dynamic Island</strong> để bật/tắt toàn diện tính năng, chỉnh độ trễ tự ẩn (10s, 30s, 60s hoặc Vô hiệu hóa), bật/tắt tự động phát nhạc khi vào web và chọn dải màu viền gợn sóng yêu thích.<br>
+                Đồng thời, bạn có thể chọn 1 trong <strong>12 Biểu Tượng Thành Viên Vector Gradient 3D</strong> trong trang Đăng ký để khẳng định phong cách cá nhân.
+              </p>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;">
+            <button class="btn btn-sm btn-primary" onclick="App.renderDrawerLevel('settings-island'); App.openUserDrawer();" style="font-weight: 700; display:inline-flex; align-items:center; gap:5px;">
+              ${Icons.get('volume2', 13)} <span>Mở Cài Đặt Dynamic Island</span> ➔
+            </button>
+            <button class="btn btn-sm" onclick="App.toggleDynamicIslandCollapse()" style="display:inline-flex; align-items:center; gap:5px;">
+              ${Icons.get('sparkles', 13)} <span>Bật/Thu Gọn Island Ngay</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Section 7: Dành Cho Ban Biên Tập & Admin -->
+        <div class="guide-section">
+          <h3>🛡️ 7. Cẩm Nang Dành Cho Ban Biên Tập & Quản Trị Viên (Admin)</h3>
           
           <div class="guide-step-item">
             <div class="guide-step-num">1</div>
