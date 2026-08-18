@@ -1545,11 +1545,34 @@ const StorageService = {
     return list.find(m => m.id === id) || null;
   },
 
-  // ── 5. Quản lý Lịch sử Thi & Leaderboard (Chỉ lưu 3 lần thi thử gần nhất) ──
+  // ── 5. Quản lý Lịch sử Thi & Leaderboard (Lưu tối đa 10 lần thi gần nhất / Tự động xóa sau 30 ngày) ──
+  MAX_HISTORY_ITEMS: 10,
+  HISTORY_TTL_DAYS: 30,
+
+  cleanExpiredHistory(historyList) {
+    if (!Array.isArray(historyList)) return [];
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    return historyList.filter(item => {
+      if (!item) return false;
+      const dateStr = item.completedAt || item.timestamp || item.date || item.createdAt;
+      if (!dateStr) return true; // Giữ lại nếu không có trường thời gian
+      const itemTime = new Date(dateStr).getTime();
+      if (isNaN(itemTime)) return true;
+      return (now - itemTime) <= THIRTY_DAYS_MS;
+    });
+  },
+
   getHistory() {
     try {
       const data = localStorage.getItem(this.KEYS.HISTORY);
-      return data ? JSON.parse(data) : [];
+      let list = data ? JSON.parse(data) : [];
+      // Tự động dọn dẹp các bài thi đã quá 30 ngày
+      const cleaned = this.cleanExpiredHistory(list);
+      if (cleaned.length !== list.length) {
+        localStorage.setItem(this.KEYS.HISTORY, JSON.stringify(cleaned));
+      }
+      return cleaned;
     } catch (e) {
       return [];
     }
@@ -1559,10 +1582,11 @@ const StorageService = {
     const profile = this.getUserProfile();
     const currentUserId = profile ? (profile.id || profile.mssv || 'guest') : 'guest';
     const allHistory = this.getHistory();
-    // Lọc lịch sử của user này và chỉ lấy chế độ thi thử (exam), tối đa 3 lần
+    // Lọc lịch sử của user này và chỉ lấy chế độ thi thử (exam), tối đa 10 lần gần nhất
+    const maxItems = this.MAX_HISTORY_ITEMS || 10;
     return allHistory
       .filter(h => (h.userId === currentUserId || (!h.userId && currentUserId === 'guest')) && h.mode === 'exam')
-      .slice(0, 3);
+      .slice(0, maxItems);
   },
 
   getAttemptById(attemptId) {
@@ -1579,19 +1603,25 @@ const StorageService = {
     const profile = this.getUserProfile();
     const currentUserId = profile ? (profile.id || profile.mssv || 'guest') : 'guest';
     attempt.userId = currentUserId;
+    if (!attempt.completedAt) {
+      attempt.completedAt = new Date().toISOString();
+    }
 
     let allHistory = this.getHistory();
     // Tách lịch sử của user hiện tại và các user khác
     let userAttempts = allHistory.filter(h => (h.userId === currentUserId || (!h.userId && currentUserId === 'guest')) && h.mode === 'exam');
     let otherAttempts = allHistory.filter(h => h.userId && h.userId !== currentUserId);
 
-    // Đưa lần thi mới nhất lên đầu và chỉ giữ đúng 3 lần gần nhất
+    // Đưa lần thi mới nhất lên đầu và chỉ giữ đúng tối đa 10 lần gần nhất
     userAttempts.unshift(attempt);
-    if (userAttempts.length > 3) {
-      userAttempts = userAttempts.slice(0, 3);
+    const maxItems = this.MAX_HISTORY_ITEMS || 10;
+    if (userAttempts.length > maxItems) {
+      userAttempts = userAttempts.slice(0, maxItems);
     }
 
     allHistory = [...userAttempts, ...otherAttempts];
+    // Dọn dẹp hết hạn trước khi lưu
+    allHistory = this.cleanExpiredHistory(allHistory);
     localStorage.setItem(this.KEYS.HISTORY, JSON.stringify(allHistory));
 
     // Cập nhật số bài thi hoàn thành của tài khoản

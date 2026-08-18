@@ -3118,7 +3118,7 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
 
                   <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #2563eb;">
                     <span>📜</span>
-                    <span>Kết quả bài thi thử sẽ được tự động ghi nhận vào <strong>Lịch Sử Thi (3 lần gần nhất)</strong>.</span>
+                    <span>Kết quả bài thi thử sẽ được tự động ghi nhận vào <strong>Lịch Sử Thi (10 lần gần nhất / lưu 30 ngày)</strong>.</span>
                   </div>
                 </div>
               `}
@@ -4080,7 +4080,7 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
           ${result.mode === 'exam' ? `
             <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); padding: 14px 18px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
               <div style="text-align: left;">
-                <strong style="color: #1e40af; font-size: 14px;">📜 Bài thi thử đã được lưu vào Lịch Sử Thi (3 lần gần nhất):</strong>
+                <strong style="color: #1e40af; font-size: 14px;">📜 Bài thi thử đã được lưu vào Lịch Sử Thi (10 lần gần nhất / lưu 30 ngày):</strong>
                 <div style="font-size: 12.5px; color: #3b82f6; margin-top: 2px;">Bạn có thể xem lại chi tiết bài làm hoặc so sánh kết quả bất cứ lúc nào.</div>
               </div>
               <button class="btn btn-primary btn-sm" onclick="App.navigateTo('history')">
@@ -4091,7 +4091,7 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
 
           <div style="margin-top: 24px; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
             <button class="btn btn-primary" onclick="App.openQuizConfigModal('${result.subjectId}')">🔄 Thi lại môn này</button>
-            ${result.mode === 'exam' ? `<button class="btn" onclick="App.navigateTo('history')">📜 Lịch Sử Thi (${StorageService.getUserExamHistory().length}/3)</button>` : ''}
+            ${result.mode === 'exam' ? `<button class="btn" onclick="App.navigateTo('history')">📜 Lịch Sử Thi (${StorageService.getUserExamHistory().length}/10)</button>` : ''}
             <button class="btn" onclick="App.openUserDrawer()">👤 Menu Cá nhân & BXH</button>
             <button class="btn" onclick="App.navigateTo('home')">🏠 Về trang chủ</button>
           </div>
@@ -4175,7 +4175,7 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
   },
 
   // ═════════════════════════════════════════════════════════════════════════
-  // 7. EXAM HISTORY VIEW (LỊCH SỬ THI & NHẬT KÝ LÀM BÀI - TỐI ĐA 3 LẦN GẦN NHẤT)
+  // 7. EXAM HISTORY VIEW (LỊCH SỬ THI & NHẬT KÝ LÀM BÀI - TỐI ĐA 10 LẦN GẦN NHẤT / LƯU 30 NGÀY)
   // ═════════════════════════════════════════════════════════════════════════
   renderExamHistoryView(container) {
     if (!StorageService.isLoggedIn()) {
@@ -4184,7 +4184,7 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
           <div style="font-size: 52px; margin-bottom: 14px;">📜</div>
           <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary);">Lịch Sử Thi & Nhật Ký Làm Bài</h3>
           <p style="color: var(--text-secondary); margin-top: 8px; line-height: 1.6;">
-            Vui lòng đăng nhập tài khoản để hệ thống tự động ghi nhận và phân tích tối đa 3 lần thi thử gần nhất của bạn.
+            Vui lòng đăng nhập tài khoản để hệ thống tự động ghi nhận và phân tích tối đa 10 lần thi thử gần nhất (lưu trong 30 ngày) của bạn.
           </p>
           <div style="display: flex; gap: 10px; justify-content: center; margin-top: 22px;">
             <button class="btn btn-primary" onclick="App.openAccountSwitcherModal()">🔑 Đăng Nhập Ngay ➔</button>
@@ -4210,13 +4210,13 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
           <div>
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
               <span class="badge badge-blue" style="font-weight: 700;">📜 Nhật Ký Thi Thử</span>
-              <span class="badge badge-gray">${count}/3 bài thi gần nhất</span>
+              <span class="badge badge-gray">${count}/10 bài thi gần nhất</span>
             </div>
             <h2 style="font-size: 24px; font-weight: 800; color: var(--text-primary); margin: 0;">
               Lịch Sử Thi & Bảng Điểm Gần Đây
             </h2>
             <p style="font-size: 13.5px; color: var(--text-secondary); margin-top: 4px;">
-              Hệ thống tự động lưu <strong>3 lần thi thử gần nhất</strong> của bạn để bạn theo dõi tiến bộ và ôn lại bài làm bất kỳ lúc nào.
+              Hệ thống tự động lưu <strong>10 lần thi thử gần nhất</strong> (tự động xóa sau 30 ngày) của bạn để bạn theo dõi tiến bộ và ôn lại bài làm bất kỳ lúc nào.
             </p>
           </div>
 
@@ -4240,7 +4240,7 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
               Lượt thi đã lưu
             </div>
             <div style="font-size: 26px; font-weight: 800; color: var(--brand-primary); margin-top: 4px;">
-              ${count} <span style="font-size: 14px; font-weight: 600; color: var(--text-tertiary);">/ 3 lần</span>
+              ${count} <span style="font-size: 14px; font-weight: 600; color: var(--text-tertiary);">/ 10 lần</span>
             </div>
             <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">
               Tự động luân chuyển bài mới
@@ -4285,7 +4285,7 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
 
         </div>
 
-        <!-- Danh Sách 3 Lần Thi Thử Gần Nhất -->
+        <!-- Danh Sách 10 Lần Thi Thử Gần Nhất -->
         <div>
           <h3 style="font-size: 17px; font-weight: 800; color: var(--text-primary); margin-bottom: 14px;">
             📋 Danh Sách Bài Thi Gần Nhất
@@ -4298,7 +4298,7 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
                 Bạn chưa có lịch sử thi thử nào!
               </h3>
               <p style="font-size: 13.5px; color: var(--text-secondary); margin: 0 0 20px 0; max-width: 450px; margin-left: auto; margin-right: auto; line-height: 1.6;">
-                Khi bạn làm bài ở chế độ <strong>"Thi Thử (Exam Mode)"</strong>, hệ thống sẽ tự động ghi nhận kết quả và lưu lại chi tiết từng câu làm tại đây (tối đa 3 lần gần nhất).
+                Khi bạn làm bài ở chế độ <strong>"Thi Thử (Exam Mode)"</strong>, hệ thống sẽ tự động ghi nhận kết quả và lưu lại chi tiết từng câu làm tại đây (tối đa 10 lần gần nhất trong vòng 30 ngày).
               </p>
               <button class="btn btn-primary" onclick="App.navigateTo('home')">
                 🚀 Vào Danh Sách Môn Thi Ngay ➔
