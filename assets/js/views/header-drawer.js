@@ -230,6 +230,12 @@ Object.assign(App, {
                     ${(profile.role === 'admin' || StorageService.hasPermission('canApproveDrafts')) && drafts.length > 0 ? `<span class="badge" style="background:#fef3c7; color:#92400e; font-weight:700;">${drafts.length} chờ duyệt</span>` : `<span class="drawer-arrow">${Icons.get('chevronRight', 13)}</span>`}
                   </button>
 
+                  <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('about');">
+                    <span class="drawer-icon" style="color:#8b5cf6;">${Icons.get('info', 18)}</span>
+                    <span class="drawer-label">Giới Thiệu Dự Án</span>
+                    <span class="drawer-arrow">${Icons.get('chevronRight', 13)}</span>
+                  </button>
+
                   <button class="drawer-nav-btn" style="background: var(--surface-subtle); border-color: var(--brand-primary);" onclick="App.renderDrawerLevel('settings')">
                     <span class="drawer-icon" style="color:var(--brand-primary);">${Icons.get('settings', 18)}</span>
                     <span class="drawer-label"><strong>Cài Đặt Hệ Thống</strong></span>

@@ -328,6 +328,9 @@ const App = {
       case "subject-detail":
         this.renderSubjectDetailView(mainContainer, data.subjectId || this.selectedSubjectDetailId);
         break;
+      case "about":
+        this.renderAboutView(mainContainer);
+        break;
       case "guide":
         this.renderGuideView(mainContainer);
         break;

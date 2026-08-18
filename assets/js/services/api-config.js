@@ -10,9 +10,9 @@
  */
 
 const API_CONFIG = {
-  // Cấu hình Supabase Cloud (Đã kích hoạt CSDL đám mây PostgreSQL Shinora QuizMaster)
+  // Supabase Cloud Project Configuration (Publishable Anon Key - Safe for Browser)
   SUPABASE_URL: "https://bpntyxetofyqchlmoaua.supabase.co",
-  SUPABASE_ANON_KEY: "sb_publishable_XDlDvMS7oPEA-Xm3l-SpTg_YLQaPTpZ",
+  SUPABASE_ANON_KEY: "sb_publishable_v4ys3EoSjZ7DxFkjjRWqDw_s3pt7HXP",
 
   // Cờ kiểm tra trạng thái kết nối Cloud
   isCloudEnabled() {

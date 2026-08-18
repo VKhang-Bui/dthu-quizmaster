@@ -303,14 +303,14 @@ const StorageService = {
     {
       id: "USR-01",
       fullName: "Bùi Văn Khang",
-      studentId: "0024418475",
-      className: "ĐHCNSH24A",
+      studentId: "admin",
+      className: "ADMIN",
       email: "vkhg.bui@gmail.com",
-      phone: "0354616301",
+      phone: "",
       department: "Khoa Kỹ thuật - Công nghệ",
       role: "admin",
       avatar: "👨‍🎓",
-      pinCode: "123456",
+      pinCode: "000000",
       permissions: {
         canApproveDrafts: true,
         canEditSubjects: true,
@@ -468,7 +468,7 @@ const StorageService = {
 
           // Tự động đồng bộ hồ sơ Admin USR-01 nếu phát hiện thông tin cũ
           const adminIdx = validList.findIndex(u => u.id === "USR-01" || u.role === "admin");
-          if (adminIdx !== -1 && validList[adminIdx].studentId !== "0024418475") {
+          if (adminIdx !== -1 && validList[adminIdx].studentId !== "admin") {
             validList[adminIdx] = Object.assign({}, validList[adminIdx], this.DEFAULT_USERS[0]);
             this.saveAllUsers(validList);
           } else if (adminIdx === -1 && this.DEFAULT_USERS.length > 0) {

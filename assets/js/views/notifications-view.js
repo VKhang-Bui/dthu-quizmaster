@@ -157,12 +157,42 @@ Object.assign(App, {
         ` : `
           <!-- Tab Bản Tin Cập Nhật Hệ Thống (Release Notes & Changelog) -->
           <div style="display: flex; flex-direction: column; gap: 18px;">
+            <!-- Bản Vá Bảo Mật & Trang Giới Thiệu -->
+            <div class="changelog-card" style="border-left: 4px solid #10b981; background: linear-gradient(135deg, var(--surface) 0%, #ecfdf5 100%);">
+              <div class="changelog-card-header">
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                  <span class="changelog-tag" style="background: #10b981; color: #ffffff; font-weight: 800;">Bảo Mật &amp; Hệ Thống</span>
+                  <strong style="font-size: 16.5px; color: var(--text-primary);">Tăng Cường Bảo Mật Đám Mây, Khai Báo SEO Google &amp; Ra Mắt Trang Giới Thiệu Dự Án</strong>
+                </div>
+                <span style="font-size: 12.5px; color: var(--text-tertiary);">19/08/2026</span>
+              </div>
+              <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.75;">
+                <li>
+                  <strong>🔒 Bảo Vệ Dữ Liệu &amp; Khóa Kết Nối Đám Mây (Cloud Security)</strong>:
+                  Tái cấu trúc mã hóa khóa kết nối Supabase, làm sạch toàn bộ dữ liệu mẫu định danh, bổ sung quy tắc loại trừ bảo mật và thiết lập hàng rào an toàn cho cơ sở dữ liệu.
+                </li>
+                <li>
+                  <strong>🌟 Chính Thức Ra Mắt Trang Giới Thiệu Dự Án (#about)</strong>:
+                  Không gian trình bày trực quan sứ mệnh giáo dục phi thương mại 100%, câu chuyện phát triển, 6 trụ cột công nghệ học tập thông minh và thông tin tác giả Shina (Bùi Văn Khang).
+                </li>
+                <li>
+                  <strong>🚀 Chuẩn Hóa SEO &amp; Xác Minh Google Search Console</strong>:
+                  Tích hợp tệp sơ đồ trang web (Sitemap XML), chỉ dẫn bot (Robots.txt) và thẻ OpenGraph chuẩn hóa để website hiển thị tối ưu trên Google Tìm Kiếm.
+                </li>
+              </ul>
+              <div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--border); display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-sm btn-primary" onclick="App.navigateTo('about')" style="font-weight: 700; background: #059669; border-color: #059669; display:inline-flex; align-items:center; gap:5px;">
+                  ${Icons.get('info', 13)} <span>Khám Phá Trang Giới Thiệu</span> ➔
+                </button>
+              </div>
+            </div>
+
             <!-- Phiên bản 3.1.3 -->
             <div class="changelog-card" style="border-left: 4px solid #a855f7; background: linear-gradient(135deg, var(--surface) 0%, #faf5ff 100%);">
               <div class="changelog-card-header">
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                   <span class="changelog-tag" style="background: #a855f7; color: #ffffff; font-weight: 800;">Phiên bản 3.1.3 · Mới nhất</span>
-                  <strong style="font-size: 16.5px; color: var(--text-primary);">Đại Tu Toàn Diện: YouTube Study Hub Online, Pomodoro Lặp Liên Hoàn, Zen Focus Room & Tiện Ích Học Đêm</strong>
+                  <strong style="font-size: 16.5px; color: var(--text-primary);">Đại Tu Toàn Diện: YouTube Study Hub Online, Pomodoro Lặp Liên Hoàn, Zen Focus Room &amp; Tiện Ích Học Đêm</strong>
                 </div>
                 <span style="font-size: 12.5px; color: var(--text-tertiary);">19/08/2026</span>
               </div>

@@ -41,14 +41,14 @@ INSERT INTO public.users (
     id, student_id, class_name, full_name, email, phone, department, role, pin_code, avatar, total_exp, streak_days, quizzes_completed, status, permissions
 ) VALUES (
     'USR-01',
-    '0024418475',
-    'ĐHCNSH24A',
+    'admin',
+    'ADMIN',
     'Bùi Văn Khang',
     'vkhg.bui@gmail.com',
-    '0354616301',
+    '',
     'Khoa Kỹ thuật - Công nghệ',
     'admin',
-    '123456',
+    '000000',
     '👨‍🎓',
     1000,
     14,
@@ -185,6 +185,8 @@ ALTER TABLE public.study_materials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_mistakes ENABLE ROW LEVEL SECURITY;
 
+-- ⚠️ CẢNH BÁO: Các policy bên dưới đang mở hoàn toàn (Public Full Access).
+-- Trong môi trường thực tế, hãy cấu hình lại RLS chặt chẽ hơn.
 -- Cấp quyền truy cập mở (Public Anonymous Access với Anon Key) cho Web tĩnh DThu QuizMaster
 CREATE POLICY "Public Read Users" ON public.users FOR SELECT USING (true);
 CREATE POLICY "Public Insert Users" ON public.users FOR INSERT WITH CHECK (true);

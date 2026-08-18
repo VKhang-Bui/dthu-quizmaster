@@ -5,14 +5,14 @@
  */
 const EmailService = {
   STORAGE_KEY_URL: "dthu_quiz_apps_script_url",
-  DEFAULT_APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbw5INBlFEEhIeQkgRzPkc5ZGtsZkMKrjaXVfRnlXqpdRMemyW4DTUwA-sKE3GGQVWXLtA/exec",
+  DEFAULT_APPS_SCRIPT_URL: "",
   ADMIN_EMAIL: "vkhg.bui@gmail.com, giaosukhang621@gmail.com",
   ADMIN_PRIMARY_EMAIL: "vkhg.bui@gmail.com",
-  ADMIN_BACKUP_EMAIL: "giaosukhang621@gmail.com",
-  ADMIN_PHONE: "0354616301",
+  ADMIN_BACKUP_EMAIL: "",
+  ADMIN_PHONE: "0000000000",
   ADMIN_NAME: "Shina (Bùi Văn Khang)",
   ADMIN_CLASS: "Shinora Dev",
-  ADMIN_MSSV: "0024418475",
+  ADMIN_MSSV: "ADMIN_MSSV",
   ADMIN_UNIT: "Shinora Academic Studio",
   DEFAULT_EXPIRY_SECONDS: 300, // 300 giây (5 phút)
 
