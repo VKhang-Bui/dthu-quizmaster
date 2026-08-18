@@ -206,6 +206,12 @@ Object.assign(App, {
                     <span class="drawer-arrow">${Icons.get('chevronRight', 13)}</span>
                   </button>
 
+                  <button class="drawer-nav-btn" style="border-color: rgba(168, 85, 247, 0.4); background: rgba(168, 85, 247, 0.06);" onclick="App.closeUserDrawer(); if(window.DynamicIsland) { DynamicIsland.wakeFromStealth(); DynamicIsland.expandToFull('presets'); }">
+                    <span class="drawer-icon" style="color:#a855f7;">${Icons.get('radio', 18)}</span>
+                    <span class="drawer-label"><strong style="color:var(--text-main);">Bài Giảng & Âm Nhạc YouTube</strong></span>
+                    <span class="badge" style="background:#f3e8ff; color:#7e22ce; font-weight:700;">v3.1.3</span>
+                  </button>
+
                   <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('parser');">
                     <span class="drawer-icon" style="color:#10b981;">${Icons.get('upload', 18)}</span>
                     <span class="drawer-label">Nhập & Đóng Góp Đề</span>
@@ -787,7 +793,7 @@ Object.assign(App, {
           <div class="drawer-slide-content" style="text-align: center; padding: 12px 0;">
             <div style="color: var(--brand-primary); margin-bottom: 8px; display: flex; justify-content: center;">${Icons.get('logo', 48)}</div>
             <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0;">Shinora QuizMaster</h3>
-            <div style="font-size: 13px; color: var(--brand-text); font-weight: 700; margin-top: 2px;">Phiên bản v3.1.2 (Bản chuẩn phát hành)</div>
+            <div style="font-size: 13px; color: var(--brand-text); font-weight: 700; margin-top: 2px;">Phiên bản v3.1.3 (Bản chuẩn phát hành)</div>
 
             <div style="text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; margin-top: 16px; font-size: 13px; line-height: 1.6; color: var(--text-secondary);">
               <div style="display: flex; align-items: center; gap: 6px;">${Icons.get('book', 14)} <strong>Dự án:</strong> Shinora QuizMaster (Học tập & Nghiên cứu)</div>

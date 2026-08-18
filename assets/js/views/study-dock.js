@@ -1,6 +1,6 @@
 /**
  * SHINORA FLOATING STUDY DOCK (TRUNG TÂM TIỆN ÍCH HỌC TẬP NỔI ĐA NĂNG)
- * Phiên bản: v3.2.2 Pro
+ * Phiên bản: v3.1.3
  * Kiến trúc giao diện: Cửa sổ kép Master-Detail (Cửa sổ gốc menu bên trái + Cửa sổ con trượt mở sang bên phải)
  */
 
@@ -9,7 +9,13 @@ const StudyDockView = {
   activeDetailId: "pomodoro", // 'pomodoro' | 'calculator' | 'notes' | 'sounds' | 'keysound' | 'experience' | 'fortune' | 'cheatsheet'
   isDetailOpen: true, // Mặc định mở cửa sổ con song song trên Desktop
   isZenMode: false,
+  isZenFocusRoomOpen: false,
   isWarmFilter: false,
+  warmIntensity: 0.25,
+  isOledMode: false,
+  isReadingComfort: false,
+  isCandleMode: false,
+  isDndMode: false,
   isIdle: false,
   idleTimer: null,
   countdownInterval: null,
@@ -17,12 +23,28 @@ const StudyDockView = {
   // Trạng thái Pomodoro
   pomodoro: {
     mode: "work", // 'work' | 'shortBreak' | 'longBreak'
+    preset: "classic", // 'quick' | 'classic' | 'deep' | 'ultradian'
     durations: { work: 25 * 60, shortBreak: 5 * 60, longBreak: 15 * 60 },
     timeLeft: 25 * 60,
     isRunning: false,
     timerId: null,
-    totalSessionsCompleted: 0
+    currentRound: 1, // 1 -> 4
+    maxRounds: 4,
+    autoLoop: true, // Tự động lặp liên hoàn 4 hiệp
+    smartMusicSync: true, // Tự động bật/tắt nhạc khi học/nghỉ
+    currentGoal: "", // Mục tiêu hiệp học
+    distractionCount: 0, // Số lần phân tâm
+    todayFocusedSeconds: 0, // Tổng giây tập trung hôm nay
+    totalSessionsCompleted: 0,
+    activeTipIndex: 0
   },
+
+  microBreakTips: [
+    { title: "👁️ Quy tắc 20-20-20 bảo vệ mắt", desc: "Hãy phóng tầm mắt nhìn một vật ở xa khoảng 6 mét trong vòng 20 giây để thư giãn cơ mắt." },
+    { title: "🧘 Bài tập thả lỏng cổ & vai gáy", desc: "Xoay nhẹ đầu theo vòng tròn từ trái qua phải 5 lần, sau đó nghiêng đầu sang hai bên để giãn cơ." },
+    { title: "💧 Nạp năng lượng với một ngụm nước", desc: "Đứng dậy, uống một ly nước mát và hít thở sâu 3 nhịp để tăng tuần hoàn máu lên não bộ." },
+    { title: "🫁 Kỹ thuật hít thở sâu 4-7-8", desc: "Hít vào bằng mũi trong 4 giây, giữ hơi thở 7 giây, thở chậm ra bằng miệng trong 8 giây." }
+  ],
 
   // Trạng thái Máy tính
   calc: {
@@ -55,8 +77,61 @@ const StudyDockView = {
     this.bindEvents();
     this.initDraggableDock();
     this.restoreSavedStates();
+    this.initDistractionWatcher();
+    this.initKeyboardWatcher();
     this.resetIdleTimer();
     this.startMidnightCountdownWatcher();
+  },
+
+  initKeyboardWatcher() {
+    window.addEventListener("keydown", (e) => {
+      // Escape để thoát Zen Focus Room nếu đang mở
+      if (e.key === "Escape" && this.isZenFocusRoomOpen) {
+        this.closeZenFocusRoom();
+        return;
+      }
+
+      // Hỗ trợ gõ trực tiếp bàn phím vật lý khi đang mở tab Máy Tính Bỏ Túi
+      if (this.isOpen && this.activeDetailId === "calculator") {
+        const activeEl = document.activeElement;
+        if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA")) {
+          return;
+        }
+
+        if (e.key >= "0" && e.key <= "9") {
+          e.preventDefault();
+          this.handleCalcNum(e.key);
+        } else if (e.key === "." || e.key === ",") {
+          e.preventDefault();
+          this.handleCalcNum(".");
+        } else if (e.key === "+" || e.key === "-" || e.key === "*" || e.key === "/") {
+          e.preventDefault();
+          this.handleCalcOp(e.key);
+        } else if (e.key === "Enter" || e.key === "=") {
+          e.preventDefault();
+          this.handleCalcEquals();
+        } else if (e.key === "Backspace") {
+          e.preventDefault();
+          this.handleCalcAction("delete");
+        } else if (e.key === "Escape" || e.key.toLowerCase() === "c") {
+          e.preventDefault();
+          this.handleCalcAction("clear");
+        }
+      }
+    });
+  },
+
+  initDistractionWatcher() {
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden && this.pomodoro.isRunning && this.pomodoro.mode === "work") {
+        this.pomodoro.distractionCount++;
+        const badge = document.getElementById("pomoDistractionBadge");
+        if (badge) {
+          badge.style.display = "inline-flex";
+          badge.innerHTML = `🛡️ Phân tâm: <strong>${this.pomodoro.distractionCount}</strong> lần`;
+        }
+      }
+    });
   },
 
   restoreSavedStates() {
@@ -64,6 +139,22 @@ const StudyDockView = {
       const savedCount = localStorage.getItem("dthu_dock_pomodoro_count");
       if (savedCount) {
         this.pomodoro.totalSessionsCompleted = parseInt(savedCount, 10) || 0;
+      }
+      const savedTodaySecs = localStorage.getItem("dthu_dock_pomodoro_today_secs");
+      if (savedTodaySecs) {
+        this.pomodoro.todayFocusedSeconds = parseInt(savedTodaySecs, 10) || 0;
+      }
+      const savedAutoLoop = localStorage.getItem("dthu_dock_pomodoro_autoloop");
+      if (savedAutoLoop !== null) {
+        this.pomodoro.autoLoop = (savedAutoLoop === "true");
+      }
+      const savedMusicSync = localStorage.getItem("dthu_dock_pomodoro_musicsync");
+      if (savedMusicSync !== null) {
+        this.pomodoro.smartMusicSync = (savedMusicSync === "true");
+      }
+      const savedPreset = localStorage.getItem("dthu_dock_pomodoro_preset");
+      if (savedPreset) {
+        this.setPomodoroPreset(savedPreset, false);
       }
       const savedWarm = localStorage.getItem("dthu_dock_warm_filter");
       if (savedWarm === "true") {
@@ -347,34 +438,123 @@ const StudyDockView = {
   renderPomodoroDetail() {
     const p = this.pomodoro;
     const progressPercent = Math.max(0, Math.min(100, ((p.durations[p.mode] - p.timeLeft) / p.durations[p.mode]) * 100));
+    const tip = this.microBreakTips[p.activeTipIndex % this.microBreakTips.length];
+    const todayHours = Math.floor(p.todayFocusedSeconds / 3600);
+    const todayMins = Math.floor((p.todayFocusedSeconds % 3600) / 60);
 
     return `
       <div class="detail-box">
-        <div class="pomo-mode-selector">
-          <button class="pomo-mode-btn ${p.mode === 'work' ? 'active' : ''}" onclick="StudyDockView.setPomodoroMode('work')">📚 Học (25p)</button>
-          <button class="pomo-mode-btn ${p.mode === 'shortBreak' ? 'active' : ''}" onclick="StudyDockView.setPomodoroMode('shortBreak')">☕ Nghỉ (5p)</button>
-          <button class="pomo-mode-btn ${p.mode === 'longBreak' ? 'active' : ''}" onclick="StudyDockView.setPomodoroMode('longBreak')">🌴 Nghỉ (15p)</button>
+        <!-- 1. Thanh Tiến Trình 4 Quả Cà Chua Chu Kỳ -->
+        <div class="pomo-cycles-header">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 11.5px; font-weight: 700; color: var(--text-primary);">Chu kỳ Pomodoro</span>
+            <span style="font-size: 11px; color: #ef4444; font-weight: 800;">(Hiệp ${p.currentRound}/4)</span>
+          </div>
+          <div class="pomo-tomatoes-row">
+            ${[1, 2, 3, 4].map(round => `
+              <div class="pomo-tomato-dot ${p.currentRound === round ? 'active' : ''} ${p.currentRound > round ? 'completed' : ''}" title="Hiệp ${round}/4">
+                🍅
+              </div>
+            `).join('')}
+          </div>
         </div>
 
+        <!-- 2. Bộ Cài Đặt Thời Gian Linh Hoạt (Presets) -->
+        <div class="pomo-preset-chips">
+          <button type="button" class="pomo-preset-chip ${p.preset === 'quick' ? 'active' : ''}" onclick="StudyDockView.setPomodoroPreset('quick')">⚡ Ôn Nhanh (15p/3p)</button>
+          <button type="button" class="pomo-preset-chip ${p.preset === 'classic' ? 'active' : ''}" onclick="StudyDockView.setPomodoroPreset('classic')">🍅 Chuẩn (25p/5p)</button>
+          <button type="button" class="pomo-preset-chip ${p.preset === 'deep' ? 'active' : ''}" onclick="StudyDockView.setPomodoroPreset('deep')">📚 Tiết Học (45p/10p)</button>
+          <button type="button" class="pomo-preset-chip ${p.preset === 'ultradian' ? 'active' : ''}" onclick="StudyDockView.setPomodoroPreset('ultradian')">🧠 Nghiên Cứu (90p/20p)</button>
+        </div>
+
+        <!-- 3. Gắn Mục Tiêu Hiệp Học (Task Goal) -->
+        <div class="pomo-goal-box">
+          <span class="pomo-goal-icon">🎯</span>
+          <input type="text" 
+                 class="pomo-goal-input" 
+                 placeholder="Gắn mục tiêu hiệp này (VD: Giải 15 câu Triết)..." 
+                 value="${this.escapeHtml ? this.escapeHtml(p.currentGoal) : p.currentGoal}" 
+                 onchange="StudyDockView.setPomodoroGoal(this.value)">
+        </div>
+
+        <!-- 4. Chuyển Chế Độ (Học / Nghỉ ngắn / Nghỉ dài) -->
+        <div class="pomo-mode-selector">
+          <button type="button" class="pomo-mode-btn ${p.mode === 'work' ? 'active' : ''}" onclick="StudyDockView.setPomodoroMode('work')">📚 Học (${Math.round(p.durations.work / 60)}p)</button>
+          <button type="button" class="pomo-mode-btn ${p.mode === 'shortBreak' ? 'active' : ''}" onclick="StudyDockView.setPomodoroMode('shortBreak')">☕ Nghỉ ngắn (${Math.round(p.durations.shortBreak / 60)}p)</button>
+          <button type="button" class="pomo-mode-btn ${p.mode === 'longBreak' ? 'active' : ''}" onclick="StudyDockView.setPomodoroMode('longBreak')">🌴 Nghỉ dài (${Math.round(p.durations.longBreak / 60)}p)</button>
+        </div>
+
+        <!-- 5. Thẻ Hiển Thị Thời Gian & Tiến Trình -->
         <div class="pomo-display-card">
           <div class="pomo-time-display" id="pomoTimeDisplay">${this.formatTime(p.timeLeft)}</div>
           <div class="pomo-progress-track">
             <div class="pomo-progress-bar" id="pomoProgressBar" style="width: ${progressPercent}%;"></div>
           </div>
-          <p class="pomo-sub-label">${p.mode === 'work' ? '🎯 Hiệp học tập trung cao độ' : '☕ Thư giãn mắt & hít thở sâu'}</p>
+          <p class="pomo-sub-label">
+            ${p.mode === 'work' 
+              ? (p.currentGoal ? `🎯 Đang tập trung: <strong>${this.escapeHtml ? this.escapeHtml(p.currentGoal) : p.currentGoal}</strong>` : '🎯 Hiệp học tập trung cao độ') 
+              : (p.mode === 'shortBreak' ? '☕ Thư giãn mắt & uống nước 5 phút' : '🌴 Nghỉ dài phục hồi năng lượng')}
+          </p>
+          <span class="pomo-distraction-badge" id="pomoDistractionBadge" style="${p.distractionCount > 0 ? 'display:inline-flex;' : 'display:none;'}">
+            🛡️ Phân tâm: <strong>${p.distractionCount}</strong> lần
+          </span>
         </div>
 
+        <!-- 6. Hướng Dẫn Thư Giãn Mắt & Thể Chất Khi Nghỉ -->
+        ${p.mode !== 'work' ? `
+          <div class="pomo-microbreak-card">
+            <h6>${tip.title}</h6>
+            <p>${tip.desc}</p>
+          </div>
+        ` : ''}
+
+        <!-- 7. Cụm Nút Điều Khiển -->
         <div class="pomo-actions">
           ${p.isRunning ? `
-            <button class="pomo-action-btn btn-pause" onclick="StudyDockView.pausePomodoro()">⏸️ Tạm dừng</button>
+            <button type="button" class="pomo-action-btn btn-pause" onclick="StudyDockView.pausePomodoro()">⏸️ Tạm dừng</button>
           ` : `
-            <button class="pomo-action-btn btn-start" onclick="StudyDockView.startPomodoro()">▶️ Bắt đầu hiệp học</button>
+            <button type="button" class="pomo-action-btn btn-start" onclick="StudyDockView.startPomodoro()">▶️ Bắt đầu hiệp</button>
           `}
-          <button class="pomo-action-btn btn-reset" onclick="StudyDockView.resetPomodoro()">🔄 Đặt lại</button>
+          <button type="button" class="pomo-action-btn btn-skip" onclick="StudyDockView.skipPomodoro()" title="Bỏ qua chuyển sang hiệp kế">⏭️ Bỏ qua</button>
+          <button type="button" class="pomo-action-btn btn-reset" onclick="StudyDockView.resetPomodoro()" title="Đặt lại đồng hồ">🔄 Đặt lại</button>
         </div>
 
-        <div class="detail-footer-note">
-          🏆 Đã hoàn thành: <strong>${p.totalSessionsCompleted} hiệp Pomodoro</strong>
+        <!-- Nút Mở Không Gian Zen Focus Toàn Màn Hình -->
+        <button type="button" class="btn btn-block" style="margin-top: 10px; background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%); color: var(--text-primary); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 12px; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.2s ease;" onclick="StudyDockView.openZenFocusRoom()">
+          <span>🧘</span> <span>Mở Không Gian Tập Trung Toàn Màn Hình</span>
+        </button>
+
+        <!-- 8. Các Tùy Chọn Thông Minh (Tự động lặp & Đồng bộ nhạc) -->
+        <div class="pomo-toggles-list">
+          <div class="pomo-toggle-row">
+            <div>
+              <strong>Tự động lặp liên hoàn 4 hiệp</strong>
+              <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--text-muted);">Tự chuyển giữa các hiệp Học và Nghỉ</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" ${p.autoLoop ? 'checked' : ''} onchange="StudyDockView.togglePomodoroAutoLoop(this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="pomo-toggle-row">
+            <div>
+              <strong>Tự động đồng bộ âm nhạc Dynamic Island</strong>
+              <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--text-muted);">Tự bật nhạc khi học, tạm dừng khi nghỉ</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" ${p.smartMusicSync ? 'checked' : ''} onchange="StudyDockView.togglePomodoroMusicSync(this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 9. Thống Kê Trong Ngày & Bạn Cùng Học Trực Tuyến -->
+        <div class="detail-footer-note" style="display: flex; flex-direction: column; gap: 4px; text-align: center; margin-top: 10px;">
+          <div>🟢 <strong>18 sinh viên</strong> đang cùng trong hiệp tập trung</div>
+          <div style="font-size: 11.5px; color: var(--text-muted);">
+            📊 Đã tập trung hôm nay: <strong>${todayHours}h ${todayMins}m</strong> · <strong>${p.totalSessionsCompleted} hiệp</strong>
+          </div>
         </div>
       </div>
     `;
@@ -556,7 +736,7 @@ const StudyDockView = {
           <div class="sound-card-top">
             <span class="sound-icon">⌨️</span>
             <div class="sound-info">
-              <strong>Kích Hoạt Âm Phím Cơ</strong>
+              <strong>Kích Hoạt Âm Phím Cơ & Chạm</strong>
               <p>Phát âm thanh khi click chọn đáp án hoặc bấm phím</p>
             </div>
             <label class="toggle-switch">
@@ -566,23 +746,37 @@ const StudyDockView = {
           </div>
         </div>
 
-        <h5 class="section-sub-title">Chọn loại Switch bàn phím cơ:</h5>
-        <div class="key-sound-options">
-          <label class="key-switch-pill ${keyProfile === 'clicky' ? 'active' : ''}">
-            <input type="radio" name="keySwitchType" value="clicky" ${keyProfile === 'clicky' ? 'checked' : ''} onchange="StudyDockView.setKeySoundProfile('clicky')">
-            <div class="switch-text">
-              <strong>🔵 Blue Switch (Clicky Đanh Giòn)</strong>
-              <span>Âm thanh đanh, tiếng clicky rõ ràng, đã tai khi bấm đáp án</span>
-            </div>
-          </label>
+        <h5 class="section-sub-title">Chọn loại Switch & Âm thanh bàn phím:</h5>
+        <div class="key-sound-grid">
+          <div class="key-switch-card ${keyProfile === 'clicky' ? 'active' : ''}" onclick="StudyDockView.setKeySoundProfile('clicky')">
+            <strong>🔵 Blue Switch</strong>
+            <span>Clicky đanh giòn, nảy đanh thép khi chọn đáp án</span>
+          </div>
 
-          <label class="key-switch-pill ${keyProfile === 'thock' ? 'active' : ''}">
-            <input type="radio" name="keySwitchType" value="thock" ${keyProfile === 'thock' ? 'checked' : ''} onchange="StudyDockView.setKeySoundProfile('thock')">
-            <div class="switch-text">
-              <strong>🟤 Cream Switch (Thock Trầm Ấm)</strong>
-              <span>Âm thanh thock đầm ấm, êm dịu, không gây ồn khi cày đêm</span>
-            </div>
-          </label>
+          <div class="key-switch-card ${keyProfile === 'linear' ? 'active' : ''}" onclick="StudyDockView.setKeySoundProfile('linear')">
+            <strong>🔴 Red Switch</strong>
+            <span>Linear êm ái, mượt mà, gõ siêu nhẹ nhàng</span>
+          </div>
+
+          <div class="key-switch-card ${keyProfile === 'thock' ? 'active' : ''}" onclick="StudyDockView.setKeySoundProfile('thock')">
+            <strong>🟤 Cream Switch</strong>
+            <span>Thock trầm ấm, sang trọng, không ồn ban đêm</span>
+          </div>
+
+          <div class="key-switch-card ${keyProfile === 'typewriter' ? 'active' : ''}" onclick="StudyDockView.setKeySoundProfile('typewriter')">
+            <strong>⌨️ Máy Đánh Chữ</strong>
+            <span>Âm cơ học cổ điển phong cách vintage typewriter</span>
+          </div>
+
+          <div class="key-switch-card ${keyProfile === 'waterDrop' ? 'active' : ''}" onclick="StudyDockView.setKeySoundProfile('waterDrop')">
+            <strong>💧 Giọt Nước</strong>
+            <span>Trong trẻo, thiền định thư thái đầu óc</span>
+          </div>
+
+          <div class="key-switch-card ${keyProfile === 'woodblock' ? 'active' : ''}" onclick="StudyDockView.setKeySoundProfile('woodblock')">
+            <strong>🪵 Gõ Mõ Zen</strong>
+            <span>Thanh tịnh tĩnh lặng chuẩn phòng thiền</span>
+          </div>
         </div>
       </div>
     `;
@@ -593,29 +787,83 @@ const StudyDockView = {
     return `
       <div class="detail-box">
         <div class="view-toggles-list">
-          <div class="sound-card">
+          <!-- 1. Lọc ánh sáng vàng Amber Warm -->
+          <div class="sound-card ${this.isWarmFilter ? 'playing' : ''}">
             <div class="sound-card-top">
-              <span class="sound-icon">🧘</span>
+              <span class="sound-icon">🌙</span>
               <div class="sound-info">
-                <strong>Chế Độ Zen Focus Toàn Màn Hình</strong>
-                <p>Ẩn thanh điều hướng và footer, mở rộng trang đọc đề</p>
+                <strong>Lọc Ánh Sáng Đêm (Amber Warm)</strong>
+                <p>Lớp phủ màu ấm bảo vệ mắt khi ôn bài lúc 1-2h sáng</p>
               </div>
               <label class="toggle-switch">
-                <input type="checkbox" ${this.isZenMode ? 'checked' : ''} onchange="StudyDockView.toggleZenMode(this.checked)">
+                <input type="checkbox" ${this.isWarmFilter ? 'checked' : ''} onchange="StudyDockView.toggleWarmFilter(this.checked)">
+                <span class="slider"></span>
+              </label>
+            </div>
+            ${this.isWarmFilter ? `
+              <div class="sound-vol-row">
+                <span>Độ ấm:</span>
+                <input type="range" min="0.1" max="0.5" step="0.05" value="${this.warmIntensity}" oninput="StudyDockView.setWarmIntensity(this.value)">
+                <span>${Math.round(this.warmIntensity * 200)}%</span>
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- 2. Chế độ đen tuyệt đối OLED -->
+          <div class="sound-card ${this.isOledMode ? 'playing' : ''}">
+            <div class="sound-card-top">
+              <span class="sound-icon">🔲</span>
+              <div class="sound-info">
+                <strong>Chế Độ Đen Tuyệt Đối OLED</strong>
+                <p>Nền đen sâu 100% tiết kiệm pin và dịu mắt tối đa</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" ${this.isOledMode ? 'checked' : ''} onchange="StudyDockView.toggleOledMode(this.checked)">
                 <span class="slider"></span>
               </label>
             </div>
           </div>
 
-          <div class="sound-card">
+          <!-- 3. Giãn dòng & Cỡ chữ đọc sách -->
+          <div class="sound-card ${this.isReadingComfort ? 'playing' : ''}">
             <div class="sound-card-top">
-              <span class="sound-icon">🌙</span>
+              <span class="sound-icon">📖</span>
               <div class="sound-info">
-                <strong>Lọc Ánh Sáng Đêm (Amber Warm)</strong>
-                <p>Phủ lớp lọc màu ấm bảo vệ mắt khi ôn bài lúc 1-2h sáng</p>
+                <strong>Cỡ Chữ & Giãn Dòng Thoải Mái</strong>
+                <p>Tăng kích thước và độ giãn dòng đọc tài liệu, đề thi</p>
               </div>
               <label class="toggle-switch">
-                <input type="checkbox" ${this.isWarmFilter ? 'checked' : ''} onchange="StudyDockView.toggleWarmFilter(this.checked)">
+                <input type="checkbox" ${this.isReadingComfort ? 'checked' : ''} onchange="StudyDockView.toggleReadingComfort(this.checked)">
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 4. Đèn nến lung linh -->
+          <div class="sound-card ${this.isCandleMode ? 'playing' : ''}">
+            <div class="sound-card-top">
+              <span class="sound-icon">🕯️</span>
+              <div class="sound-info">
+                <strong>Ánh Nến Lung Linh (Candle Glow)</strong>
+                <p>Hiệu ứng ánh nến vàng nhẹ nhàng góc màn hình</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" ${this.isCandleMode ? 'checked' : ''} onchange="StudyDockView.toggleCandleMode(this.checked)">
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 5. Tĩnh lặng tuyệt đối DND -->
+          <div class="sound-card ${this.isDndMode ? 'playing' : ''}">
+            <div class="sound-card-top">
+              <span class="sound-icon">🔇</span>
+              <div class="sound-info">
+                <strong>Yên Tĩnh Tuyệt Đối (Do Not Disturb)</strong>
+                <p>Tắt toàn bộ thông báo popup khi đang tập trung</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" ${this.isDndMode ? 'checked' : ''} onchange="StudyDockView.toggleDndMode(this.checked)">
                 <span class="slider"></span>
               </label>
             </div>
@@ -828,6 +1076,68 @@ const StudyDockView = {
   },
 
   // ── ⏱️ LOGIC POMODORO TIMER ──────────────────────────────
+  setPomodoroPreset(presetKey, updateDisplay = true) {
+    this.pomodoro.preset = presetKey;
+    try {
+      localStorage.setItem("dthu_dock_pomodoro_preset", presetKey);
+    } catch (e) {}
+
+    switch (presetKey) {
+      case "quick": // 15p học / 3p nghỉ
+        this.pomodoro.durations = { work: 15 * 60, shortBreak: 3 * 60, longBreak: 10 * 60 };
+        break;
+      case "deep": // 45p học / 10p nghỉ
+        this.pomodoro.durations = { work: 45 * 60, shortBreak: 10 * 60, longBreak: 20 * 60 };
+        break;
+      case "ultradian": // 90p học / 20p nghỉ
+        this.pomodoro.durations = { work: 90 * 60, shortBreak: 20 * 60, longBreak: 30 * 60 };
+        break;
+      case "classic":
+      default: // 25p học / 5p nghỉ
+        this.pomodoro.durations = { work: 25 * 60, shortBreak: 5 * 60, longBreak: 15 * 60 };
+        break;
+    }
+
+    if (!this.pomodoro.isRunning) {
+      this.pomodoro.timeLeft = this.pomodoro.durations[this.pomodoro.mode];
+    }
+
+    if (updateDisplay) {
+      this.refreshDetailPane();
+      this.updatePillBadge();
+    }
+  },
+
+  setPomodoroGoal(goalText) {
+    this.pomodoro.currentGoal = (goalText || "").trim();
+    if (typeof DynamicIsland !== "undefined" && typeof DynamicIsland.updateActivity === "function" && this.pomodoro.isRunning) {
+      DynamicIsland.updateActivity("pomodoro", {
+        title: this.pomodoro.currentGoal || `Hiệp ${this.pomodoro.currentRound}/4`,
+        subtitle: this.formatTime(this.pomodoro.timeLeft)
+      });
+    }
+  },
+
+  togglePomodoroAutoLoop(checked) {
+    this.pomodoro.autoLoop = Boolean(checked);
+    try {
+      localStorage.setItem("dthu_dock_pomodoro_autoloop", this.pomodoro.autoLoop.toString());
+    } catch (e) {}
+    if (typeof UIHelpers !== "undefined") {
+      UIHelpers.showToast(this.pomodoro.autoLoop ? "Đã bật: Tự động chuyển hiệp liên hoàn 4 vòng!" : "Đã tắt tự động lặp.", "info");
+    }
+  },
+
+  togglePomodoroMusicSync(checked) {
+    this.pomodoro.smartMusicSync = Boolean(checked);
+    try {
+      localStorage.setItem("dthu_dock_pomodoro_musicsync", this.pomodoro.smartMusicSync.toString());
+    } catch (e) {}
+    if (typeof UIHelpers !== "undefined") {
+      UIHelpers.showToast(this.pomodoro.smartMusicSync ? "Đã bật: Tự động phát nhạc khi học & dừng khi nghỉ!" : "Đã tắt đồng bộ âm nhạc.", "info");
+    }
+  },
+
   setPomodoroMode(mode) {
     if (this.pomodoro.isRunning) this.pausePomodoro();
     this.pomodoro.mode = mode;
@@ -835,6 +1145,7 @@ const StudyDockView = {
     this.refreshDetailPane();
     this.refreshMasterList();
     this.updatePillBadge();
+    if (this.isZenFocusRoomOpen) this.renderZenFocusRoom();
   },
 
   startPomodoro() {
@@ -842,13 +1153,20 @@ const StudyDockView = {
     this.pomodoro.isRunning = true;
     AudioFXService.playKeyClick();
 
+    // Tự động bật nhạc sóng não / Lo-Fi trên Dynamic Island nếu đang ở hiệp Học
+    if (this.pomodoro.mode === "work" && this.pomodoro.smartMusicSync) {
+      if (typeof DynamicIsland !== "undefined" && DynamicIsland.currentTrack && !DynamicIsland.currentTrack.isPlaying) {
+        DynamicIsland.togglePlayPause();
+      }
+    }
+
     if (typeof DynamicIsland !== "undefined" && typeof DynamicIsland.pushActivity === "function") {
       DynamicIsland.pushActivity({
         id: "pomodoro",
         type: "pomodoro",
         priority: 2,
         icon: "🍅",
-        title: "Pomodoro",
+        title: this.pomodoro.currentGoal || `Hiệp ${this.pomodoro.currentRound}/4`,
         subtitle: this.formatTime(this.pomodoro.timeLeft)
       });
     }
@@ -860,6 +1178,7 @@ const StudyDockView = {
 
         if (typeof DynamicIsland !== "undefined" && typeof DynamicIsland.updateActivity === "function") {
           DynamicIsland.updateActivity("pomodoro", {
+            title: this.pomodoro.currentGoal || `Hiệp ${this.pomodoro.currentRound}/4`,
             subtitle: this.formatTime(this.pomodoro.timeLeft)
           });
         }
@@ -872,6 +1191,16 @@ const StudyDockView = {
           const pct = Math.max(0, Math.min(100, ((p.durations[p.mode] - p.timeLeft) / p.durations[p.mode]) * 100));
           barEl.style.width = `${pct}%`;
         }
+
+        // Cập nhật giao diện đồng hồ khổng lồ trong Zen Focus Room
+        const zenTimeEl = document.getElementById("zenRoomTimeDisplay");
+        const zenBarEl = document.getElementById("zenRoomProgressBar");
+        if (zenTimeEl) zenTimeEl.innerText = this.formatTime(this.pomodoro.timeLeft);
+        if (zenBarEl) {
+          const p = this.pomodoro;
+          const pct = Math.max(0, Math.min(100, ((p.durations[p.mode] - p.timeLeft) / p.durations[p.mode]) * 100));
+          zenBarEl.style.width = `${pct}%`;
+        }
       } else {
         this.finishPomodoro();
       }
@@ -880,6 +1209,7 @@ const StudyDockView = {
     this.updatePillBadge();
     this.refreshDetailPane();
     this.refreshMasterList();
+    if (this.isZenFocusRoomOpen) this.renderZenFocusRoom();
   },
 
   pausePomodoro() {
@@ -897,46 +1227,111 @@ const StudyDockView = {
     this.updatePillBadge();
     this.refreshDetailPane();
     this.refreshMasterList();
+    if (this.isZenFocusRoomOpen) this.renderZenFocusRoom();
+  },
+
+  skipPomodoro() {
+    this.pausePomodoro();
+    if (this.pomodoro.mode === "work") {
+      if (this.pomodoro.currentRound < this.pomodoro.maxRounds) {
+        this.setPomodoroMode("shortBreak");
+      } else {
+        this.setPomodoroMode("longBreak");
+      }
+      if (typeof UIHelpers !== "undefined") {
+        UIHelpers.showToast("Đã chuyển sang hiệp nghỉ ngơi.", "info");
+      }
+    } else {
+      if (this.pomodoro.mode === "shortBreak") {
+        this.pomodoro.currentRound++;
+      } else {
+        this.pomodoro.currentRound = 1;
+      }
+      this.setPomodoroMode("work");
+      if (typeof UIHelpers !== "undefined") {
+        UIHelpers.showToast(`Bắt đầu Hiệp học số ${this.pomodoro.currentRound}/4!`, "info");
+      }
+    }
+    if (this.isZenFocusRoomOpen) this.renderZenFocusRoom();
   },
 
   resetPomodoro() {
     this.pausePomodoro();
     this.pomodoro.timeLeft = this.pomodoro.durations[this.pomodoro.mode];
+    this.pomodoro.distractionCount = 0;
     this.updatePillBadge();
     this.refreshDetailPane();
     this.refreshMasterList();
+    if (this.isZenFocusRoomOpen) this.renderZenFocusRoom();
   },
 
   finishPomodoro() {
     this.pausePomodoro();
     AudioFXService.playBell();
 
+    const isWorkSession = (this.pomodoro.mode === "work");
+
+    // Flash thông báo nổi bật trên Dynamic Island
     if (typeof DynamicIsland !== "undefined" && typeof DynamicIsland.flashActivity === "function") {
       DynamicIsland.flashActivity({
         id: "pomodoro-done-" + Date.now(),
         type: "combo",
         priority: 4,
         icon: "🔔",
-        title: "Hoàn thành hiệp Pomodoro!",
-        subtitle: this.pomodoro.mode === "work" ? "Hãy thư giãn mắt 5 phút nhé" : "Bắt đầu hiệp học tập trung mới"
-      }, 4000);
+        title: isWorkSession ? `Hoàn thành hiệp ${this.pomodoro.currentRound}/4!` : "Hết giờ giải lao!",
+        subtitle: isWorkSession ? "Hãy thư giãn mắt & uống nước nhé" : "Bắt đầu hiệp học tập trung mới"
+      }, 5000);
     }
 
-    if (this.pomodoro.mode === "work") {
+    if (isWorkSession) {
+      // Cộng dồn thời gian tập trung
       this.pomodoro.totalSessionsCompleted++;
+      this.pomodoro.todayFocusedSeconds += this.pomodoro.durations.work;
+      this.pomodoro.activeTipIndex = (this.pomodoro.activeTipIndex + 1) % this.microBreakTips.length;
+
       try {
         localStorage.setItem("dthu_dock_pomodoro_count", this.pomodoro.totalSessionsCompleted.toString());
+        localStorage.setItem("dthu_dock_pomodoro_today_secs", this.pomodoro.todayFocusedSeconds.toString());
       } catch (e) {}
 
-      if (typeof UIHelpers !== "undefined") {
-        UIHelpers.showToast("🎉 Xuất sắc! Bạn đã hoàn thành 1 hiệp Pomodoro 25 phút. Hãy nghỉ ngơi 5 phút nhé!", "success", 6000);
+      // Tạm dừng nhạc nếu bật Smart Music Sync để sinh viên nghỉ ngơi
+      if (this.pomodoro.smartMusicSync && typeof DynamicIsland !== "undefined" && DynamicIsland.currentTrack && DynamicIsland.currentTrack.isPlaying) {
+        DynamicIsland.togglePlayPause();
       }
-      this.setPomodoroMode("shortBreak");
+
+      if (this.pomodoro.currentRound < this.pomodoro.maxRounds) {
+        if (typeof UIHelpers !== "undefined") {
+          UIHelpers.showToast(`🎉 Xuất sắc! Hoàn thành hiệp ${this.pomodoro.currentRound}/4. Hãy nghỉ ngắn ${Math.round(this.pomodoro.durations.shortBreak / 60)} phút nhé!`, "success", 6000);
+        }
+        this.setPomodoroMode("shortBreak");
+      } else {
+        if (typeof UIHelpers !== "undefined") {
+          UIHelpers.showToast(`🏆 Tuyệt vời! Bạn đã hoàn thành trọn vẹn 4 hiệp Pomodoro liên tiếp. Hãy tận hưởng ${Math.round(this.pomodoro.durations.longBreak / 60)} phút nghỉ dài nhé!`, "success", 8000);
+        }
+        this.pomodoro.currentRound = 1;
+        this.setPomodoroMode("longBreak");
+      }
     } else {
+      // Hết giờ nghỉ
+      if (this.pomodoro.mode === "shortBreak") {
+        this.pomodoro.currentRound++;
+      } else {
+        this.pomodoro.currentRound = 1;
+      }
+
       if (typeof UIHelpers !== "undefined") {
-        UIHelpers.showToast("🔔 Hết giờ giải lao! Bắt đầu hiệp học tập trung mới nhé!", "info", 5000);
+        UIHelpers.showToast(`🔔 Hết giờ giải lao! Bắt đầu Hiệp học ${this.pomodoro.currentRound}/4 tập trung mới nhé!`, "info", 5000);
       }
       this.setPomodoroMode("work");
+    }
+
+    // Tự Động Chạy Tiếp Nếu Bật Auto-Loop
+    if (this.pomodoro.autoLoop) {
+      setTimeout(() => {
+        if (!StudyDockView.pomodoro.isRunning) {
+          StudyDockView.startPomodoro();
+        }
+      }, 1500);
     }
   },
 
@@ -1064,24 +1459,168 @@ const StudyDockView = {
     this.refreshMasterList();
   },
 
-  toggleZenMode(checked) {
-    this.isZenMode = checked;
-    document.body.classList.toggle("zen-focus-active", this.isZenMode);
-    if (typeof UIHelpers !== "undefined") {
-      UIHelpers.showToast(this.isZenMode ? "🧘 Đã bật Chế độ Zen Focus (Ẩn điều hướng)" : "Đã thoát Chế độ Zen Focus", "info");
+  // ── 🧘 LOGIC KHÔNG GIAN TẬP TRUNG TOÀN MÀN HÌNH (ZEN FOCUS ROOM) ─
+  openZenFocusRoom() {
+    this.isZenFocusRoomOpen = true;
+    this.close(); // Đóng modal study dock để nhường toàn bộ màn hình cho không gian Zen
+
+    let overlay = document.getElementById("zenFocusRoomOverlay");
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.id = "zenFocusRoomOverlay";
+      document.body.appendChild(overlay);
     }
-    this.refreshDetailPane();
+    overlay.style.display = "flex";
+    document.body.classList.add("zen-focus-room-active");
+    this.renderZenFocusRoom();
+
+    if (typeof UIHelpers !== "undefined") {
+      UIHelpers.showToast("🧘 Đã vào Không Gian Tập Trung Toàn Màn Hình (Bấm Esc để thoát)", "info");
+    }
   },
 
+  closeZenFocusRoom() {
+    this.isZenFocusRoomOpen = false;
+    const overlay = document.getElementById("zenFocusRoomOverlay");
+    if (overlay) {
+      overlay.style.display = "none";
+    }
+    document.body.classList.remove("zen-focus-room-active");
+  },
+
+  renderZenFocusRoom() {
+    const overlay = document.getElementById("zenFocusRoomOverlay");
+    if (!overlay) return;
+
+    const p = this.pomodoro;
+    const progressPercent = Math.max(0, Math.min(100, ((p.durations[p.mode] - p.timeLeft) / p.durations[p.mode]) * 100));
+
+    overlay.innerHTML = `
+      <!-- Nút Thoát Góc Phải -->
+      <button type="button" class="zen-exit-top-btn" onclick="StudyDockView.closeZenFocusRoom()" title="Thoát chế độ tập trung (Esc)">
+        <span>✕</span> <span>Thoát Chế Độ Tập Trung (Esc)</span>
+      </button>
+
+      <!-- Nội Dung Trung Tâm: Đồng Hồ Siêu Lớn -->
+      <div class="zen-room-content">
+        <div class="zen-room-mode-badge">
+          ${p.mode === 'work' ? `🍅 HIỆP HỌC ${p.currentRound}/4 (${Math.round(p.durations.work / 60)} PHÚT)` : (p.mode === 'shortBreak' ? '☕ NGHỈ NGẮN 5 PHÚT' : '🌴 NGHỈ DÀI PHỤC HỒI')}
+        </div>
+
+        ${p.currentGoal ? `
+          <div class="zen-room-goal-pill">🎯 Mục tiêu: ${this.escapeHtml ? this.escapeHtml(p.currentGoal) : p.currentGoal}</div>
+        ` : ''}
+
+        <!-- Đồng Hồ To Chà Bá Ở Giữa -->
+        <div class="zen-room-time-huge" id="zenRoomTimeDisplay">${this.formatTime(p.timeLeft)}</div>
+
+        <!-- Thanh Tiến Trình -->
+        <div class="zen-room-progress-track">
+          <div class="zen-room-progress-bar" id="zenRoomProgressBar" style="width: ${progressPercent}%;"></div>
+        </div>
+
+        <!-- 4 Quả Cà Chua Tiến Trình -->
+        <div class="zen-room-tomatoes" id="zenRoomTomatoes">
+          ${[1, 2, 3, 4].map(round => `
+            <div class="zen-room-tomato-dot ${p.currentRound === round ? 'active' : ''} ${p.currentRound > round ? 'completed' : ''}">
+              🍅
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- Các Nút Điều Khiển Tập Trung -->
+        <div class="zen-room-actions">
+          ${p.isRunning ? `
+            <button type="button" class="zen-action-btn btn-pause" onclick="StudyDockView.pausePomodoro(); StudyDockView.renderZenFocusRoom();">
+              <span>⏸️</span> <span>Tạm Dừng</span>
+            </button>
+          ` : `
+            <button type="button" class="zen-action-btn btn-play" onclick="StudyDockView.startPomodoro(); StudyDockView.renderZenFocusRoom();">
+              <span>▶️</span> <span>Bắt Đầu Hiệp</span>
+            </button>
+          `}
+          <button type="button" class="zen-action-btn btn-secondary" onclick="StudyDockView.skipPomodoro(); StudyDockView.renderZenFocusRoom();" title="Bỏ qua hiệp">
+            <span>⏭️</span> <span>Bỏ Qua</span>
+          </button>
+          <button type="button" class="zen-action-btn btn-secondary" onclick="StudyDockView.resetPomodoro(); StudyDockView.renderZenFocusRoom();" title="Đặt lại hiệp">
+            <span>🔄</span> <span>Đặt Lại</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="zen-desk-clock-hint">
+        💡 Đặt thiết bị trên bàn học như một chiếc Đồng hồ Pomodoro để bàn tối giản
+      </div>
+    `;
+  },
+
+  // ── 👁️ LOGIC TRẢI NGHIỆM HỌC TẬP & ĐÈN ĐÊM ──────────────
   toggleWarmFilter(checked) {
     this.isWarmFilter = checked;
     const overlay = document.getElementById("studyWarmFilterOverlay");
     if (overlay) {
       overlay.classList.toggle("active", this.isWarmFilter);
+      overlay.style.backgroundColor = `rgba(245, 158, 11, ${this.warmIntensity})`;
     }
     try {
       localStorage.setItem("dthu_dock_warm_filter", this.isWarmFilter.toString());
     } catch (e) {}
+    this.refreshDetailPane();
+  },
+
+  setWarmIntensity(val) {
+    this.warmIntensity = parseFloat(val) || 0.25;
+    const overlay = document.getElementById("studyWarmFilterOverlay");
+    if (overlay && this.isWarmFilter) {
+      overlay.style.backgroundColor = `rgba(245, 158, 11, ${this.warmIntensity})`;
+    }
+    this.refreshDetailPane();
+  },
+
+  toggleOledMode(checked) {
+    this.isOledMode = checked;
+    document.body.classList.toggle("oled-pure-black-mode", this.isOledMode);
+    try {
+      localStorage.setItem("dthu_dock_oled_mode", this.isOledMode.toString());
+    } catch (e) {}
+    if (typeof UIHelpers !== "undefined") {
+      UIHelpers.showToast(this.isOledMode ? "🔲 Đã bật Chế Độ Đen Tuyệt Đối OLED 100%" : "Đã tắt Chế Độ OLED", "info");
+    }
+    this.refreshDetailPane();
+  },
+
+  toggleReadingComfort(checked) {
+    this.isReadingComfort = checked;
+    document.body.classList.toggle("reading-comfort-mode", this.isReadingComfort);
+    try {
+      localStorage.setItem("dthu_dock_reading_comfort", this.isReadingComfort.toString());
+    } catch (e) {}
+    if (typeof UIHelpers !== "undefined") {
+      UIHelpers.showToast(this.isReadingComfort ? "📖 Đã bật Giãn Dòng & Cỡ Chữ Đọc Sách Thoải Mái" : "Đã về cỡ chữ chuẩn", "info");
+    }
+    this.refreshDetailPane();
+  },
+
+  toggleCandleMode(checked) {
+    this.isCandleMode = checked;
+    document.body.classList.toggle("candle-ambient-glow", this.isCandleMode);
+    try {
+      localStorage.setItem("dthu_dock_candle_mode", this.isCandleMode.toString());
+    } catch (e) {}
+    if (typeof UIHelpers !== "undefined") {
+      UIHelpers.showToast(this.isCandleMode ? "🕯️ Đã thắp Ánh Nến Lung Linh góc màn hình" : "Đã tắt ánh nến", "info");
+    }
+    this.refreshDetailPane();
+  },
+
+  toggleDndMode(checked) {
+    this.isDndMode = checked;
+    try {
+      localStorage.setItem("dthu_dock_dnd_mode", this.isDndMode.toString());
+    } catch (e) {}
+    if (typeof UIHelpers !== "undefined") {
+      UIHelpers.showToast(this.isDndMode ? "🔇 Đã bật Chế Độ Yên Tĩnh Tuyệt Đối (DND)" : "Đã tắt chế độ yên tĩnh", "info");
+    }
     this.refreshDetailPane();
   },
 

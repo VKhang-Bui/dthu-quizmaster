@@ -12,7 +12,7 @@ Object.assign(App, {
         <div class="guide-hero">
           <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
             <span class="badge badge-blue" style="font-size: 13px;">Shinora QuizMaster</span>
-            <span class="badge badge-green">Phiên bản 3.1.2 (Mới Nhất)</span>
+            <span class="badge badge-green">Phiên bản 3.1.3 (Mới Nhất)</span>
           </div>
           <h2 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin-bottom: 8px;">
             Hướng Dẫn Sử Dụng
@@ -279,16 +279,16 @@ D. Chức năng tâm lý</div>
           </div>
         </div>
 
-        <!-- Section 6: Dynamic Island & Âm Thanh Học Tập -->
+        <!-- Section 6: Dynamic Island & YouTube Study Hub -->
         <div class="guide-section">
-          <h3>🏝️ 6. Đảo Âm Thanh Học Tập (Dynamic Island) & Giao Diện Vector Hiện Đại</h3>
+          <h3>🏝️ 6. Đảo Âm Thanh Học Tập (Dynamic Island) & YouTube Study Hub (v3.1.3)</h3>
           
           <div class="guide-step-item">
             <div class="guide-step-num">1</div>
             <div>
-              <strong>Dynamic Island - Âm Thanh Sóng Não & Nhạc Tập Trung Cao Độ:</strong>
+              <strong>Thao Tác Âm Nhạc & Bài Giảng YouTube 100% Không Cần Nhập Link URL:</strong>
               <p style="font-size: 13.5px; margin-top: 4px;">
-                Được tích hợp cố định tại mép trên màn hình nhằm nâng cao hiệu suất ghi nhớ và giảm căng thẳng khi làm bài. Bao gồm 5 thể loại âm thanh học tập chuyên dụng: <em>Lo-fi Chill Beats, Baroque Focus (Mozart Effect), Deep Alpha/Theta Binaural Beats, White Noise & Mưa Rơi Tĩnh Lặng</em>.
+                Bạn không cần mất thời gian mở app YouTube để sao chép link. Mở <strong>Dynamic Island ➔ Tab "Khám Phá & Tìm Kiếm"</strong> để thưởng thức các kho nhạc sóng não (Alpha Waves 432Hz, Lofi Girl, Studio Ghibli Piano, Mưa Rào) hoặc các bài giảng đại cương DTHU (Triết học Mác - Lênin, Toán C1, Tiếng Anh B1) chỉ bằng 1 cú chạm.
               </p>
             </div>
           </div>
@@ -296,39 +296,98 @@ D. Chức năng tâm lý</div>
           <div class="guide-step-item">
             <div class="guide-step-num">2</div>
             <div>
-              <strong>3 Trạng Thái Thu Phóng Thông Minh & Tự Động Ẩn Viền Màn Hình (Edge Bar):</strong>
-              <ul style="font-size: 13px; margin: 4px 0 0 0; padding-left: 18px; line-height: 1.6; color: var(--text-secondary);">
-                <li><strong>Mở Rộng (Expanded)</strong>: Bấm trực tiếp vào Island để mở bảng điều khiển lớn với bìa đĩa xoay, thanh trượt âm lượng và danh sách đổi bài nhanh.</li>
-                <li><strong>Viên Nhộng (Mini Capsule)</strong>: Tự động thu gọn khi bạn thao tác giải đề để không che khuất nội dung.</li>
-                <li><strong>Dải Viền Màn Hình (Edge Bar)</strong>: Sau 10s/30s không tương tác, Island tự động giấu lên đỉnh màn hình thành một dải gợn sóng màu tím/đen siêu mỏng. <strong>Rê chuột (Desktop) hoặc Chạm nhẹ (Mobile)</strong> vào đỉnh màn hình để Island trượt xuống tức thì.</li>
-              </ul>
+              <strong>Thanh Tìm Kiếm YouTube Tức Thì (In-App Instant Search):</strong>
+              <p style="font-size: 13.5px; margin-top: 4px;">
+                Gõ từ khóa tự nhiên (ví dụ: <em>"nhạc ôn thi", "bài giảng triết học", "piano mozart"...</em>) hoặc chọn các thẻ từ khóa gợi ý nhanh bên dưới ô tìm kiếm để hiển thị danh sách kết quả kèm ảnh bìa video sắc nét và bấm nghe ngay.
+              </p>
             </div>
           </div>
 
           <div class="guide-step-item">
             <div class="guide-step-num">3</div>
             <div>
-              <strong>Cài Đặt Tùy Biến Toàn Diện & Biểu Tượng Thành Viên:</strong>
+              <strong>Cửa Sổ Video Nổi Mini (Floating Picture-in-Picture):</strong>
               <p style="font-size: 13.5px; margin-top: 4px;">
-                Mở <strong>Thanh Menu bên phải (Drawer) ➔ Cài Đặt Hệ Thống ➔ Cài Đặt Dynamic Island</strong> để bật/tắt toàn diện tính năng, chỉnh độ trễ tự ẩn (10s, 30s, 60s hoặc Vô hiệu hóa), bật/tắt tự động phát nhạc khi vào web và chọn dải màu viền gợn sóng yêu thích.<br>
-                Đồng thời, bạn có thể chọn 1 trong <strong>12 Biểu Tượng Thành Viên Vector Gradient 3D</strong> trong trang Đăng ký để khẳng định phong cách cá nhân.
+                Khi xem bài giảng có slide hoặc công thức toán học, bấm nút <strong>"📺 Xem Video Nổi"</strong> để mở khung video bo tròn 16:9 ở góc màn hình. Bạn có thể kéo thả di chuyển tự do hoặc thu nhỏ thành bong bóng nổi để vừa xem thầy cô giải đề vừa thao tác làm bài trắc nghiệm.
+              </p>
+            </div>
+          </div>
+
+          <div class="guide-step-item">
+            <div class="guide-step-num">4</div>
+            <div>
+              <strong>Hẹn Giờ Tắt Nhạc, Lưu Yêu Thích & Tự Động Ẩn Viền Màn Hình (Stealth Notch):</strong>
+              <ul style="font-size: 13px; margin: 4px 0 0 0; padding-left: 18px; line-height: 1.6; color: var(--text-secondary);">
+                <li><strong>Thả tim ❤️</strong>: Lưu bài hát vào danh mục <em>Yêu Thích</em> để nghe lại trong các buổi học sau.</li>
+                <li><strong>Hẹn giờ ngủ ⏱️</strong>: Tự động tắt nhạc sau 15p, 30p, 45p hoặc 60p trong menu Cài Đặt Trình Phát.</li>
+                <li><strong>Dải Viền Màn Hình (Stealth)</strong>: Sau 30s không thao tác, Island tự động co lên đỉnh màn hình thành dải 4px mỏng. Rê chuột hoặc chạm nhẹ vào đỉnh để gọi Island trượt xuống.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;">
+            <button class="btn btn-sm btn-primary" onclick="if(window.DynamicIsland){ DynamicIsland.wakeFromStealth(); DynamicIsland.expandToFull('presets'); }" style="font-weight: 700; background: #9333ea; border-color: #9333ea; display:inline-flex; align-items:center; gap:5px;">
+              ${Icons.get('radio', 13)} <span>Mở Khám Phá & Tìm Kiếm YouTube</span> ➔
+            </button>
+            <button class="btn btn-sm" onclick="if(window.DynamicIsland){ DynamicIsland.toggleVideoPip(); }" style="display:inline-flex; align-items:center; gap:5px;">
+              ${Icons.get('video', 13)} <span>Bật/Tắt Video Nổi (PiP)</span>
+            </button>
+            <button class="btn btn-sm" onclick="App.renderDrawerLevel('settings-island'); App.openUserDrawer();" style="display:inline-flex; align-items:center; gap:5px;">
+              ${Icons.get('volume2', 13)} <span>Cài Đặt Hệ Thống</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Section 7: Study Dock & Pomodoro Zen Focus Room -->
+        <div class="guide-section">
+          <h3>🍅 7. Trung Tâm Tiện Ích Học Tập Nổi (Study Dock) & Không Gian Zen Focus (v3.1.3)</h3>
+          
+          <div class="guide-step-item">
+            <div class="guide-step-num">1</div>
+            <div>
+              <strong>Nút Dock Nổi Kéo Thả & Giao Diện Kép Master-Detail:</strong>
+              <p style="font-size: 13.5px; margin-top: 4px;">
+                Nút nổi hình viên thuốc <strong>"⚡ Tiện ích học tập"</strong> nằm cố định ở góc dưới bên phải màn hình. Bạn có thể <strong>kéo thả tự do</strong> đến bất kỳ vị trí thuận tay nào trên màn hình. Khi nhấp mở, bảng điều khiển kép Master-Detail cho phép chuyển đổi tức thì giữa 8 tiện ích học tập:
+              </p>
+              <ul style="font-size: 13px; margin: 4px 0 0 0; padding-left: 18px; line-height: 1.6; color: var(--text-secondary);">
+                <li><strong>🍅 Đồng Hồ Pomodoro</strong>: Chu kỳ 4 hiệp tự động lặp (Auto-Loop), 4 bộ thời gian (15p, 25p, 45p, 90p), đồng bộ nhạc thông minh và gắn mục tiêu ôn tập.</li>
+                <li><strong>🔢 Máy Tính Bỏ Túi</strong>: Hỗ trợ tính số liệu đề thi, tính điểm và <strong>gõ trực tiếp bằng bàn phím vật lý</strong> (số, phép tính, Enter, Backspace, Esc).</li>
+                <li><strong>📝 Sổ Nháp Tức Thì</strong>: Ghi nhanh công thức, tự động lưu 100% vào LocalStorage và đếm số từ / ký tự thời gian thực.</li>
+                <li><strong>🌧️ Âm Thanh Môi Trường 0MB</strong>: Tiếng mưa rơi, sóng biển, gió rừng và tích tắc đồng hồ cơ bằng thuật toán toán học 100% offline không tốn mạng.</li>
+                <li><strong>⌨️ Âm Thanh Bàn Phím Cơ</strong>: 6 cấu hình âm sắc đặc sắc (Blue Switch, Red Switch, Cream Thock, Máy Đánh Chữ, Giọt Nước, Gõ Mõ Zen).</li>
+                <li><strong>🌙 Trải Nghiệm Học Đêm</strong>: Lọc ánh sáng vàng Amber Warm có thanh trượt độ ấm, Chế độ đen tuyệt đối OLED 100%, Giãn dòng đọc tài liệu, Ánh nến lung linh và Yên tĩnh tuyệt đối DND.</li>
+                <li><strong>🥠 Quẻ May Mắn & Mẹo Thi</strong>: Bốc quẻ 1 lần mỗi ngày lúc 00:00 (GMT+7) với thông điệp vũ trụ và mẹo khoanh trắc nghiệm.</li>
+                <li><strong>⌨️ Bảng Tra Cứu Phím Tắt</strong>: Toàn bộ phím tắt phòng thi và cú pháp soạn đề nhanh.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="guide-step-item">
+            <div class="guide-step-num">2</div>
+            <div>
+              <strong>Không Gian Tập Trung Toàn Màn Hình (Zen Focus Desk Clock):</strong>
+              <p style="font-size: 13.5px; margin-top: 4px;">
+                Trong tab Pomodoro, bấm <strong>"🧘 Mở Không Gian Tập Trung Toàn Màn Hình"</strong> để biến máy tính thành chiếc đồng hồ Pomodoro để bàn siêu lớn, tối giản và thanh tịnh. Toàn bộ thanh điều hướng và footer được ẩn sạch để bạn tập trung cao độ 100%. Thoát cực nhanh bằng nút góc phải hoặc phím <kbd>Esc</kbd>.
               </p>
             </div>
           </div>
 
           <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;">
-            <button class="btn btn-sm btn-primary" onclick="App.renderDrawerLevel('settings-island'); App.openUserDrawer();" style="font-weight: 700; display:inline-flex; align-items:center; gap:5px;">
-              ${Icons.get('volume2', 13)} <span>Mở Cài Đặt Dynamic Island</span> ➔
+            <button class="btn btn-sm btn-primary" onclick="if(window.StudyDockView){ StudyDockView.open(); StudyDockView.selectMasterItem('pomodoro'); }" style="font-weight: 700; background: #ea580c; border-color: #ea580c; display:inline-flex; align-items:center; gap:5px;">
+              <span>🍅</span> <span>Mở Tiện Ích Pomodoro & Zen Room</span> ➔
             </button>
-            <button class="btn btn-sm" onclick="App.toggleDynamicIslandCollapse()" style="display:inline-flex; align-items:center; gap:5px;">
-              ${Icons.get('sparkles', 13)} <span>Bật/Thu Gọn Island Ngay</span>
+            <button class="btn btn-sm" onclick="if(window.StudyDockView){ StudyDockView.open(); StudyDockView.selectMasterItem('calculator'); }" style="display:inline-flex; align-items:center; gap:5px;">
+              <span>🔢</span> <span>Mở Máy Tính Bỏ Túi</span>
+            </button>
+            <button class="btn btn-sm" onclick="if(window.StudyDockView){ StudyDockView.open(); StudyDockView.selectMasterItem('experience'); }" style="display:inline-flex; align-items:center; gap:5px;">
+              <span>🌙</span> <span>Chế Độ Học Đêm & Đèn Nến</span>
             </button>
           </div>
         </div>
 
-        <!-- Section 7: Dành Cho Ban Biên Tập & Admin -->
+        <!-- Section 8: Dành Cho Ban Biên Tập & Admin -->
         <div class="guide-section">
-          <h3>🛡️ 7. Cẩm Nang Dành Cho Ban Biên Tập & Quản Trị Viên (Admin)</h3>
+          <h3>🛡️ 8. Cẩm Nang Dành Cho Ban Biên Tập & Quản Trị Viên (Admin)</h3>
           
           <div class="guide-step-item">
             <div class="guide-step-num">1</div>

@@ -71,7 +71,7 @@ Object.assign(App, {
             ${Icons.get('bell', 14)} <span>Thông Báo Cá Nhân</span> <span class="badge-tab-count">${allNotifs.length}</span>
           </button>
           <button class="hub-tab-btn ${activeTab === 'changelog' ? 'active' : ''}" onclick="App.notifTab = 'changelog'; App.renderNotificationsView(document.getElementById('mainContent'));" style="display:inline-flex; align-items:center; gap:6px;">
-            ${Icons.get('sparkles', 14)} <span>Bản Tin Cập Nhật Hệ Thống</span> <span class="badge-tab-count">v3.1.2</span>
+            ${Icons.get('sparkles', 14)} <span>Bản Tin Cập Nhật Hệ Thống</span> <span class="badge-tab-count">v3.1.3</span>
           </button>
         </div>
 
@@ -157,11 +157,55 @@ Object.assign(App, {
         ` : `
           <!-- Tab Bản Tin Cập Nhật Hệ Thống (Release Notes & Changelog) -->
           <div style="display: flex; flex-direction: column; gap: 18px;">
-            <!-- Phiên bản 3.1.2 -->
-            <div class="changelog-card" style="border-left: 4px solid var(--brand-primary); background: linear-gradient(135deg, var(--surface) 0%, #eff6ff 100%);">
+            <!-- Phiên bản 3.1.3 -->
+            <div class="changelog-card" style="border-left: 4px solid #a855f7; background: linear-gradient(135deg, var(--surface) 0%, #faf5ff 100%);">
               <div class="changelog-card-header">
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                  <span class="changelog-tag" style="background: #2563eb; color: #ffffff; font-weight: 800;">Phiên bản 3.1.2 · Mới nhất</span>
+                  <span class="changelog-tag" style="background: #a855f7; color: #ffffff; font-weight: 800;">Phiên bản 3.1.3 · Mới nhất</span>
+                  <strong style="font-size: 16.5px; color: var(--text-primary);">Đại Tu Toàn Diện: YouTube Study Hub Online, Pomodoro Lặp Liên Hoàn, Zen Focus Room & Tiện Ích Học Đêm</strong>
+                </div>
+                <span style="font-size: 12.5px; color: var(--text-tertiary);">19/08/2026</span>
+              </div>
+              <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.75;">
+                <li>
+                  <strong>🎵 YouTube Study Hub Online Không Cần URL</strong>:
+                  Tìm kiếm trực tuyến không giới hạn trên YouTube với cụm API phân tán đa nguồn, phân trang <em>"Xem Thêm Video Khác"</em>, kho nhạc học tập stream 24/7 sạch bóng quảng cáo và khung Video Nổi mini (Picture-in-Picture) vừa xem bài giảng vừa làm quiz.
+                </li>
+                <li>
+                  <strong>🍅 Đồng Hồ Pomodoro Nâng Cấp Toàn Diện</strong>:
+                  Chu kỳ tự động lặp liên hoàn 4 hiệp (Auto-Loop), 4 bộ preset thời gian (Ôn Nhanh 15/3, Tiêu Chuẩn 25/5, Tiết Học 45/10, Nghiên Cứu 90/20), Smart Music Sync tự động đồng bộ phát/dừng nhạc theo hiệp, gắn mục tiêu học tập (Task Goal), bộ đếm phân tâm thông minh và hướng dẫn thư giãn mắt 20-20-20.
+                </li>
+                <li>
+                  <strong>🧘 Không Gian Tập Trung Toàn Màn Hình (Zen Focus Room)</strong>:
+                  Biến trình duyệt máy tính thành một chiếc đồng hồ Pomodoro để bàn tối giản sang trọng với kích thước số siêu lớn, loại bỏ 100% xao nhãng và thoát cực nhanh với phím <kbd>Esc</kbd>.
+                </li>
+                <li>
+                  <strong>⌨️ Hỗ Trợ Bàn Phím Vật Lý Cho Máy Tính & 6 Âm Sắc Phím Cơ</strong>:
+                  Gõ số và dấu phép tính trực tiếp trên bàn phím máy tính không cần chuột. Kho âm thanh phím cơ 0MB mở rộng 6 cấu hình: <em>🔵 Blue Switch, 🔴 Red Switch, 🟤 Cream Switch, ⌨️ Máy Đánh Chữ, 💧 Giọt Nước, 🪵 Gõ Mõ Zen</em>.
+                </li>
+                <li>
+                  <strong>🌙 Bộ Trải Nghiệm Học Đêm Khoa Học</strong>:
+                  Bổ sung Lọc ánh sáng vàng Amber Warm với thanh trượt độ ấm, Chế độ đen tuyệt đối OLED 100%, Giãn dòng & cỡ chữ đọc sách thoải mái, Ánh nến lung linh và Yên tĩnh tuyệt đối (DND).
+                </li>
+              </ul>
+              <div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--border); display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-sm btn-primary" onclick="if(window.DynamicIsland){ DynamicIsland.wakeFromStealth(); DynamicIsland.expandToFull('presets'); }" style="font-weight: 700; background: #9333ea; border-color: #9333ea; display:inline-flex; align-items:center; gap:5px;">
+                  ${Icons.get('radio', 13)} <span>Khám Phá & Tìm Kiếm YouTube</span> ➔
+                </button>
+                <button class="btn btn-sm" onclick="if(window.StudyDockView){ StudyDockView.open(); StudyDockView.selectMasterItem('pomodoro'); }" style="display:inline-flex; align-items:center; gap:5px;">
+                  <span>🍅</span> <span>Mở Pomodoro & Zen Room</span>
+                </button>
+                <button class="btn btn-sm" onclick="App.navigateTo('guide')" style="display:inline-flex; align-items:center; gap:5px;">
+                  ${Icons.get('helpCircle', 13)} <span>Xem Hướng Dẫn Sử Dụng</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Phiên bản 3.1.2 -->
+            <div class="changelog-card" style="border-left: 4px solid var(--brand-primary); background: var(--surface);">
+              <div class="changelog-card-header">
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                  <span class="changelog-tag" style="background: #2563eb; color: #ffffff; font-weight: 800;">Phiên bản 3.1.2</span>
                   <strong style="font-size: 16.5px; color: var(--text-primary);">Đảo Âm Thanh Học Tập (Dynamic Island), Đại Tu Vector SVG & Thư Viện Tài Liệu Số</strong>
                 </div>
                 <span style="font-size: 12.5px; color: var(--text-tertiary);">18/08/2026</span>

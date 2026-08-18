@@ -371,7 +371,7 @@ const AudioFXService = {
     } catch (e) {}
   },
 
-  // ⌨️ 5. TIẾNG PHÍM CƠ (Switch Profile: 'clicky' vs 'thock')
+  // ⌨️ 5. TIẾNG PHÍM CƠ & CHẠM ĐA DẠNG (6 Cấu Hình Âm Sắc)
   playKeyClick() {
     if (!this.isKeySoundEnabled) return;
     const ctx = this.getAudioContext();
@@ -380,36 +380,125 @@ const AudioFXService = {
     try {
       const now = ctx.currentTime;
 
-      if (this.keySoundProfile === "thock") {
-        // Âm Thock trầm ấm (Cream Switch)
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(180 + Math.random() * 40, now);
-        osc.frequency.exponentialRampToValueAtTime(50, now + 0.05);
+      switch (this.keySoundProfile) {
+        case "linear": {
+          // 🔴 Red Switch (Linear Êm Ái, Mượt Mà)
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(220 + Math.random() * 30, now);
+          osc.frequency.exponentialRampToValueAtTime(60, now + 0.04);
 
-        gain.gain.setValueAtTime(0.18, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
 
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.05);
-      } else {
-        // Âm Clicky đanh giòn (Blue Switch)
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "square";
-        osc.frequency.setValueAtTime(420 + Math.random() * 80, now);
-        osc.frequency.exponentialRampToValueAtTime(90, now + 0.035);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.04);
+          break;
+        }
 
-        gain.gain.setValueAtTime(0.1, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+        case "thock": {
+          // 🟤 Cream Switch (Thock Trầm Ấm, Cao Cấp)
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(160 + Math.random() * 30, now);
+          osc.frequency.exponentialRampToValueAtTime(45, now + 0.055);
 
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.035);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.055);
+          break;
+        }
+
+        case "typewriter": {
+          // ⌨️ Vintage Typewriter (Máy Đánh Chữ Cơ Cổ Điển)
+          const osc1 = ctx.createOscillator();
+          const osc2 = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          osc1.type = "square";
+          osc1.frequency.setValueAtTime(750 + Math.random() * 100, now);
+          osc1.frequency.exponentialRampToValueAtTime(120, now + 0.03);
+
+          osc2.type = "triangle";
+          osc2.frequency.setValueAtTime(1400, now);
+          osc2.frequency.exponentialRampToValueAtTime(300, now + 0.02);
+
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+
+          osc1.connect(gain);
+          osc2.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc1.start(now);
+          osc2.start(now);
+          osc1.stop(now + 0.045);
+          osc2.stop(now + 0.045);
+          break;
+        }
+
+        case "waterDrop": {
+          // 💧 Giọt Nước (Trong Trẻo Thiền Định)
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(950 + Math.random() * 120, now);
+          osc.frequency.exponentialRampToValueAtTime(1600 + Math.random() * 100, now + 0.06);
+
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.06);
+          break;
+        }
+
+        case "woodblock": {
+          // 🪵 Gõ Mõ Zen (Thanh Tịnh Tĩnh Lặng)
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(560 + Math.random() * 40, now);
+          osc.frequency.exponentialRampToValueAtTime(180, now + 0.05);
+
+          gain.gain.setValueAtTime(0.22, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.05);
+          break;
+        }
+
+        case "clicky":
+        default: {
+          // 🔵 Blue Switch (Clicky Đanh Giòn)
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "square";
+          osc.frequency.setValueAtTime(440 + Math.random() * 80, now);
+          osc.frequency.exponentialRampToValueAtTime(90, now + 0.035);
+
+          gain.gain.setValueAtTime(0.1, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.035);
+          break;
+        }
       }
     } catch (e) {}
   },

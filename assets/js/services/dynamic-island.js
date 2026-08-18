@@ -57,12 +57,26 @@ const DynamicIsland = {
     piano: (s = 16) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="6" y1="4" x2="6" y2="12"></line><line x1="10" y1="4" x2="10" y2="12"></line><line x1="14" y1="4" x2="14" y2="12"></line><line x1="18" y1="4" x2="18" y2="12"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg>`,
     sparkles: (s = 16) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"></path></svg>`,
     rain: (s = 16) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16" y1="13" x2="16" y2="21"></line><line x1="8" y1="13" x2="8" y2="21"></line><line x1="12" y1="15" x2="12" y2="23"></line><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path></svg>`,
-    sliders: (s = 16) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>`
+    sliders: (s = 16) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>`,
+    search: (s = 16) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
+    video: (s = 16) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="14" height="16" rx="2"></rect><polygon points="23 7 16 12 23 17 23 7"></polygon></svg>`,
+    minimize: (s = 16) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6"></path><path d="M20 10h-6V4"></path><path d="M14 10l7-7"></path><path d="M3 21l7-7"></path></svg>`
   },
 
   // ── YouTube Player State ──
   ytPlayer: null,
   isYtApiReady: false,
+  isVideoPipOpen: false,
+  isPipMinimized: false,
+  selectedCategory: "all",
+  searchQuery: "",
+  isSearchingOnline: false,
+  isLoadingMore: false,
+  hasMoreOnlineResults: true,
+  searchPage: 1,
+  onlineSearchResults: [],
+  searchDebounceTimer: null,
+
   currentTrack: {
     id: "WPni755-Krg", // Mặc định: Sóng Não Alpha Tập Trung Sâu
     title: "Sóng Não Alpha — Kích Thích Não Bộ Tập Trung Sâu",
@@ -84,16 +98,37 @@ const DynamicIsland = {
     intervalId: null
   },
 
-  // ── Bộ nhớ bài hát yêu thích ──
+  // ── Bộ nhớ bài hát yêu thích & Gần đây ──
   likedTracks: {},
+  recentTracks: [],
 
-  // Danh sách Playlist/Kênh học tập gợi ý sẵn (Đã kiểm tra cấp phép nhúng)
+  // Danh mục phân loại thông minh
+  categories: [
+    { id: "all", name: "Tất Cả" },
+    { id: "lofi", name: "☕ Lo-Fi & Chill" },
+    { id: "brain", name: "🧠 Sóng Não Sâu" },
+    { id: "piano", name: "🎹 Piano Cổ Điển" },
+    { id: "nature", name: "🌧️ Mưa & Quán Cafe" },
+    { id: "favorites", name: "❤️ Yêu Thích" }
+  ],
+
+  // Kho tuyển tập bài học & nhạc gợi ý (100% Stream chuẩn hoạt động 24/7 trên YouTube)
   presets: [
-    { id: "WPni755-Krg", title: "Sóng Não Alpha — Tập Trung Sâu", iconType: "brain", tag: "Alpha Waves" },
-    { id: "5yx6BWlEVcY", title: "Coffee Shop Chillhop Beats", iconType: "coffee", tag: "Chillhop" },
-    { id: "lTRiuFIWV54", title: "Classical Piano for Studying", iconType: "piano", tag: "Piano Cổ Điển" },
-    { id: "DWcJFNfaw9c", title: "Ambient Study Music — Siêu Tập Trung", iconType: "sparkles", tag: "Deep Focus" },
-    { id: "mPZkdNFkNps", title: "Mưa Rào + Nhạc Jazz Êm Dịu", iconType: "rain", tag: "Rain & Jazz" }
+    // ☕ Lo-Fi & Chill
+    { id: "jfKfPfyJRdk", title: "Lofi Hip Hop Radio — Beats to Relax & Study", artist: "Lofi Girl", category: "lofi", iconType: "music", tag: "Lofi Girl" },
+    { id: "5yx6BWlEVcY", title: "Coffee Shop Chillhop Beats 24/7", artist: "Chillhop Music", category: "lofi", iconType: "coffee", tag: "Chillhop" },
+    
+    // 🧠 Sóng Não Sâu
+    { id: "WPni755-Krg", title: "Sóng Não Alpha — Kích Thích Não Bộ Tập Trung Sâu", artist: "Alpha Waves Focus", category: "brain", iconType: "brain", tag: "Alpha 432Hz" },
+    { id: "DWcJFNfaw9c", title: "Super Intelligence Binaural Beats Focus", artist: "Deep Brain Focus", category: "brain", iconType: "sparkles", tag: "Binaural" },
+
+    // 🎹 Piano & Cổ Điển
+    { id: "lTRiuFIWV54", title: "Classical Piano for Studying — Mozart & Beethoven", artist: "Halidon Music", category: "piano", iconType: "piano", tag: "Piano Cổ Điển" },
+    { id: "4xDzrJKXOOY", title: "Relaxing Piano Music for Stress Relief & Focus", artist: "RelaxCafe Piano", category: "piano", iconType: "piano", tag: "Piano Êm Dịu" },
+
+    // 🌧️ Mưa & Quán Cafe
+    { id: "mPZkdNFkNps", title: "Mưa Rào Đêm + Nhạc Jazz Êm Dịu", artist: "Rainy Jazz Cafe", category: "nature", iconType: "rain", tag: "Rain & Jazz" },
+    { id: "eX0b3P1kL64", title: "Tiếng Mưa Rơi Trên Cửa Kính + Lofi Chill", artist: "Cozy Rain Ambience", category: "nature", iconType: "rain", tag: "Cozy Rain" }
   ],
 
   // ── Cài đặt người dùng & Tùy biến sâu ──
@@ -169,6 +204,27 @@ const DynamicIsland = {
       <!-- Khung phát YouTube ẩn 1x1px ngầm -->
       <div id="ytHiddenPlayerWrapper" style="position: absolute; width: 1px; height: 1px; left: -9999px; top: -9999px; overflow: hidden; opacity: 0; pointer-events: none;">
         <div id="ytHiddenPlayer"></div>
+      </div>
+
+      <!-- CỬA SỔ NỔI VIDEO PICTURE-IN-PICTURE (NẾU BẬT) -->
+      <div id="diFloatingVideoPip" style="display: none;">
+        <div class="di-pip-bubble-icon" onclick="DynamicIsland.togglePipMinimize()" title="Bung lớn video bài giảng">
+          ${this.icons.video(22)}
+        </div>
+        <div class="di-pip-header" id="diPipHeader">
+          <span class="di-pip-title-text" id="diPipTitle">${this.escapeHtml(this.currentTrack.title)}</span>
+          <div class="di-pip-actions">
+            <button class="di-pip-btn" onclick="DynamicIsland.togglePipMinimize()" title="Thu nhỏ thành bong bóng">
+              ${this.icons.minimize(13)}
+            </button>
+            <button class="di-pip-btn" onclick="DynamicIsland.closeVideoPip()" title="Đóng video nổi">
+              ${this.icons.close(13)}
+            </button>
+          </div>
+        </div>
+        <div class="di-pip-body" id="diPipBody">
+          <iframe id="diPipIframe" class="di-pip-iframe" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        </div>
       </div>
 
       <!-- Backdrop đóng đảo khi click ra ngoài (chỉ kích hoạt ở trạng thái full) -->
@@ -503,13 +559,13 @@ const DynamicIsland = {
         <div class="di-full-header">
           <div class="di-header-tabs">
             <button class="di-tab-btn ${this.activeTab === 'music' ? 'active' : ''}" onclick="DynamicIsland.switchTab('music')">
-              ${this.icons.music(14)} <span>Nhạc Lofi</span>
+              ${this.icons.music(14)} <span>Đang Phát</span>
+            </button>
+            <button class="di-tab-btn ${this.activeTab === 'presets' ? 'active' : ''}" onclick="DynamicIsland.switchTab('presets')">
+              ${this.icons.search(14)} <span>Khám Phá & Tìm Kiếm</span>
             </button>
             <button class="di-tab-btn ${this.activeTab === 'activity' ? 'active' : ''}" onclick="DynamicIsland.switchTab('activity')">
               ${this.icons.timer(14)} <span>Tiến Trình (${this.activities.length})</span>
-            </button>
-            <button class="di-tab-btn ${this.activeTab === 'presets' ? 'active' : ''}" onclick="DynamicIsland.switchTab('presets')">
-              ${this.icons.radio(14)} <span>Kênh Hay</span>
             </button>
             <button class="di-tab-btn ${this.activeTab === 'settings' ? 'active' : ''}" onclick="DynamicIsland.switchTab('settings')">
               ${this.icons.gear(14)} <span>Tùy Biến</span>
@@ -601,20 +657,23 @@ const DynamicIsland = {
           </button>
         </div>
 
-        <!-- Cụm Nút Thả Cảm Xúc Like / Dislike -->
+        <!-- Cụm Nút Thả Cảm Xúc Like & Chuyển Video Nổi PiP -->
         <div class="di-reaction-row">
           <button class="di-reaction-btn ${t.isLiked ? 'active-liked' : ''}" onclick="DynamicIsland.toggleLike()">
             ${t.isLiked ? `${this.icons.heartFilled(14)} <span>Đã thích</span>` : `${this.icons.heart(14)} <span>Yêu thích</span>`}
           </button>
-          <button class="di-reaction-btn" onclick="DynamicIsland.toggleDislike()" title="Bỏ qua bài này và chuyển sang bài tiếp theo">
-            ${this.icons.thumbsDown(14)} <span>Bỏ qua</span>
+          <button class="di-reaction-btn ${this.isVideoPipOpen ? 'active-liked' : ''}" onclick="DynamicIsland.toggleVideoPip()" title="Mở video nổi để vừa học vừa xem bài giảng/hình vẽ">
+            ${this.icons.video(14)} <span>${this.isVideoPipOpen ? 'Đang bật PiP' : 'Xem Video Nổi'}</span>
+          </button>
+          <button class="di-reaction-btn" onclick="DynamicIsland.switchTab('presets')" title="Tìm bài hát / bài giảng khác">
+            ${this.icons.search(14)} <span>Tìm kiếm</span>
           </button>
         </div>
 
-        <!-- Ô dán link YouTube -->
+        <!-- Ô dán link YouTube dự phòng (tùy chọn) -->
         <div class="di-custom-url-box">
-          <input type="text" id="diCustomYtInput" placeholder="Dán link YouTube (https://youtube.com/watch?v=...)" onkeydown="if(event.key==='Enter') DynamicIsland.loadCustomUrl()">
-          <button onclick="DynamicIsland.loadCustomUrl()">Nạp Link</button>
+          <input type="text" id="diCustomYtInput" placeholder="Tìm kiếm hoặc dán link YouTube..." onkeydown="if(event.key==='Enter') DynamicIsland.handleCustomInput()">
+          <button onclick="DynamicIsland.handleCustomInput()">Phát Ngay</button>
         </div>
       </div>
     `;
@@ -777,39 +836,175 @@ const DynamicIsland = {
       <div class="di-activities-list">
         ${this.activities.map(act => `
           <div class="di-activity-card">
-            <span class="di-act-card-icon">${this.icons.timer(16)}</span>
+            <span class="di-act-card-icon">${act.icon || this.icons.timer(16)}</span>
             <div class="di-act-card-info">
-              <h6>${act.title}</h6>
-              <p>${act.subtitle || ''}</p>
+              <h6>${this.escapeHtml(act.title)}</h6>
+              <p style="color: #c084fc; font-weight: 700;">${this.escapeHtml(act.subtitle || '')}</p>
             </div>
-            ${act.priority >= 3 ? '<span class="di-urgent-tag">Ưu tiên</span>' : ''}
+            ${act.type === 'pomodoro' ? `
+              <div style="display: flex; gap: 4px; margin-left: auto;">
+                <button type="button" class="btn btn-xs" style="padding: 4px 8px; font-size: 11px; background: rgba(255,255,255,0.08); border-radius: 6px; border: 1px solid rgba(255,255,255,0.12); color:#fff; cursor:pointer;" onclick="if(typeof StudyDockView!=='undefined') StudyDockView.pausePomodoro(); event.stopPropagation();" title="Tạm dừng/Tiếp tục">⏸️</button>
+                <button type="button" class="btn btn-xs" style="padding: 4px 8px; font-size: 11px; background: rgba(255,255,255,0.08); border-radius: 6px; border: 1px solid rgba(255,255,255,0.12); color:#fff; cursor:pointer;" onclick="if(typeof StudyDockView!=='undefined') StudyDockView.skipPomodoro(); event.stopPropagation();" title="Bỏ qua hiệp">⏭️</button>
+              </div>
+            ` : (act.priority >= 3 ? '<span class="di-urgent-tag">Ưu tiên</span>' : '')}
           </div>
         `).join("")}
       </div>
     `;
   },
 
-  // ── TAB: KÊNH GỢI Ý (PRESETS) ──────────────────────────────
+  // ── TAB: KHÁM PHÁ & TÌM KIẾM YOUTUBE (IN-APP SEARCH & CATALOG) ─
   renderPresetsTab() {
+    const quickChips = [
+      "Lo-Fi Girl", "Sóng Não 432Hz", "Piano Mozart", "Mưa Rào Đêm", "Triết Học", "Toán Cao Cấp C1", "Kinh Tế Chính Trị", "Ghibli Lofi"
+    ];
+
     return `
-      <div class="di-presets-grid">
-        ${this.presets.map(p => {
-          const iconRenderer = this.icons[p.iconType] || this.icons.music;
+      <div style="display: flex; flex-direction: column;">
+        <!-- Thanh Tìm Kiếm In-App Không Cần URL -->
+        <div class="di-search-box">
+          <span class="di-search-icon-left">${this.icons.search(16)}</span>
+          <input type="text" 
+                 class="di-search-input" 
+                 id="diPresetSearchInput" 
+                 placeholder="Gõ từ khóa tìm video / bài giảng / nhạc YouTube..." 
+                 value="${this.escapeHtml(this.searchQuery)}"
+                 oninput="DynamicIsland.handlePresetSearchInput(this.value)"
+                 onkeydown="if(event.key==='Enter') DynamicIsland.triggerInstantOnlineSearch()">
+          <button class="di-search-clear-btn" id="diSearchClearBtn" onclick="DynamicIsland.clearSearchInput()" title="Xóa tìm kiếm" style="${this.searchQuery ? 'display:flex;' : 'display:none;'}">
+            ${this.icons.close(14)}
+          </button>
+        </div>
+
+        <!-- Các Từ Khóa Gợi Ý Nhanh (Chips) -->
+        <div class="di-search-chips">
+          ${quickChips.map(c => `
+            <span class="di-chip" onclick="DynamicIsland.quickSearchChip('${c}')">${c}</span>
+          `).join("")}
+        </div>
+
+        <!-- Thanh Tab Danh Mục Thể Loại -->
+        <div class="di-category-tabs">
+          ${this.categories.map(cat => `
+            <button type="button" class="di-cat-btn ${this.selectedCategory === cat.id ? 'active' : ''}" onclick="DynamicIsland.setPresetCategory('${cat.id}')">
+              ${cat.name}
+            </button>
+          `).join("")}
+        </div>
+
+        <!-- Danh Sách Kết Quả / Danh Sách Bài Tuyển Chọn (Cập nhật độc lập không mất focus) -->
+        <div class="di-search-results-list" id="diSearchResultsContainer">
+          ${this.renderSearchResultsInner()}
+        </div>
+      </div>
+    `;
+  },
+
+  renderSearchResultsInner() {
+    const q = (this.searchQuery || "").toLowerCase().trim();
+
+    // 1. Trạng thái đang tìm kiếm Online
+    if (this.isSearchingOnline) {
+      return `
+        <div class="di-empty-box" style="padding: 24px 10px;">
+          <div class="spinner" style="width: 24px; height: 24px; border-width: 2.5px; margin-bottom: 8px; border-top-color: #c084fc;"></div>
+          <p style="color: #c084fc; font-weight: 700;">Đang tìm kiếm trực tuyến trên YouTube...</p>
+          <p class="di-sub-hint">Đang kết nối kho dữ liệu video YouTube không cần URL</p>
+        </div>
+      `;
+    }
+
+    // 2. Nếu có kết quả Online
+    if (this.onlineSearchResults && this.onlineSearchResults.length > 0) {
+      return `
+        <div style="padding: 2px 4px 6px 4px; font-size: 11px; color: #c084fc; font-weight: 700; display: flex; align-items: center; justify-content: space-between;">
+          <span>🌐 Kết quả tìm kiếm YouTube trực tuyến (${this.onlineSearchResults.length})</span>
+          <span style="font-size: 10px; color: #94a3b8; cursor: pointer;" onclick="DynamicIsland.clearSearchInput()">Quay lại kho có sẵn</span>
+        </div>
+        ${this.onlineSearchResults.map(p => {
+          const isActive = (this.currentTrack.id === p.id);
+          const thumbUrl = `https://i.ytimg.com/vi/${p.id}/mqdefault.jpg`;
+
           return `
-            <div class="di-preset-item ${this.currentTrack.id === p.id ? 'active' : ''}" onclick="DynamicIsland.loadPreset('${p.id}')">
-              <span class="di-preset-icon">${iconRenderer(18)}</span>
-              <div class="di-preset-info">
-                <h6>${p.title}</h6>
-                <span class="di-preset-tag">${p.tag}</span>
+            <div class="di-search-card ${isActive ? 'active' : ''}" onclick="DynamicIsland.loadPreset('${p.id}', event, true)">
+              <img class="di-search-thumb" src="${thumbUrl}" alt="" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'54\\' height=\\'38\\' fill=\\'%231e293b\\'><rect width=\\'100%\\' height=\\'100%\\'/></svg>'">
+              <div class="di-search-info">
+                <h6 title="${this.escapeHtml(p.title)}">${this.escapeHtml(p.title)}</h6>
+                <p>${this.escapeHtml(p.artist)} · <span style="color:#c084fc;">${p.tag}</span></p>
               </div>
-              ${this.currentTrack.id === p.id && this.currentTrack.isPlaying 
-                ? '<span class="di-eq-active">ılılı</span>' 
-                : `<span class="di-play-arrow">${this.icons.play(12)}</span>`}
+              ${isActive && this.currentTrack.isPlaying 
+                ? '<span class="di-eq-active" style="color:#c084fc; font-weight:800;">ılılı</span>' 
+                : `<span class="di-play-arrow" style="color:#94a3b8;">${this.icons.play(13)}</span>`}
             </div>
           `;
         }).join("")}
-      </div>
-    `;
+        <div style="padding: 10px 0 4px 0; text-align: center;">
+          <button type="button" class="di-load-more-btn" onclick="DynamicIsland.loadMoreSearchResults(event)" ${this.isLoadingMore ? 'disabled' : ''}>
+            ${this.isLoadingMore 
+              ? '<span class="spinner" style="width: 13px; height: 13px; border-width: 2px; display: inline-block; vertical-align: middle; margin-right: 6px; border-top-color: #c084fc;"></span> Đang tải thêm video...' 
+              : `${this.icons.chevronRight(13)} <span>Xem Thêm Video Khác Trên YouTube...</span>`}
+          </button>
+        </div>
+      `;
+    }
+
+    // 3. Danh sách lọc từ kho Tuyển Tập Sẵn Có
+    let displayList = this.presets;
+
+    if (this.selectedCategory === "favorites") {
+      const likedIds = Object.keys(this.likedTracks);
+      displayList = this.presets.filter(p => likedIds.includes(p.id));
+      if (displayList.length === 0 && Object.keys(this.likedTracks).length > 0) {
+        displayList = Object.values(this.likedTracks).map(t => ({
+          id: t.id,
+          title: t.title,
+          artist: t.artist || "Yêu thích",
+          category: "favorites",
+          iconType: "heartFilled",
+          tag: "Yêu thích"
+        }));
+      }
+    } else if (this.selectedCategory && this.selectedCategory !== "all") {
+      displayList = displayList.filter(p => p.category === this.selectedCategory);
+    }
+
+    if (q) {
+      displayList = this.presets.filter(p => 
+        (p.title && p.title.toLowerCase().includes(q)) ||
+        (p.artist && p.artist.toLowerCase().includes(q)) ||
+        (p.tag && p.tag.toLowerCase().includes(q))
+      );
+    }
+
+    if (displayList.length === 0) {
+      return `
+        <div class="di-empty-box" style="padding: 20px 10px;">
+          <span class="di-empty-icon">${this.icons.search(28)}</span>
+          <p>Không tìm thấy trong kho tuyển tập.</p>
+          <button class="btn btn-sm btn-primary" style="margin-top: 10px; font-size: 12px; background: #9333ea; border-color: #9333ea;" onclick="DynamicIsland.triggerInstantOnlineSearch()">
+            ${this.icons.search(13)} Tìm kiếm "${this.escapeHtml(this.searchQuery)}" trên YouTube
+          </button>
+        </div>
+      `;
+    }
+
+    return displayList.map(p => {
+      const isActive = (this.currentTrack.id === p.id);
+      const thumbUrl = `https://i.ytimg.com/vi/${p.id}/mqdefault.jpg`;
+
+      return `
+        <div class="di-search-card ${isActive ? 'active' : ''}" onclick="DynamicIsland.loadPreset('${p.id}', event)">
+          <img class="di-search-thumb" src="${thumbUrl}" alt="" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'54\\' height=\\'38\\' fill=\\'%231e293b\\'><rect width=\\'100%\\' height=\\'100%\\'/></svg>'">
+          <div class="di-search-info">
+            <h6 title="${this.escapeHtml(p.title)}">${this.escapeHtml(p.title)}</h6>
+            <p>${this.escapeHtml(p.artist || p.tag)} · <span style="color:#c084fc;">${p.tag || 'YouTube'}</span></p>
+          </div>
+          ${isActive && this.currentTrack.isPlaying 
+            ? '<span class="di-eq-active" style="color:#c084fc; font-weight:800;">ılılı</span>' 
+            : `<span class="di-play-arrow" style="color:#94a3b8;">${this.icons.play(13)}</span>`}
+        </div>
+      `;
+    }).join("");
   },
 
   // ── TAB: CÀI ĐẶT ĐẢO NÂNG CAO ─────────────────────────────
@@ -1176,34 +1371,237 @@ const DynamicIsland = {
     this.updateDisplay();
   },
 
-  loadPreset(videoId) {
+  loadPreset(videoId, e, isOnlineResult = false) {
+    if (e) {
+      if (typeof e.preventDefault === "function") e.preventDefault();
+      if (typeof e.stopPropagation === "function") e.stopPropagation();
+    }
     this.errorRetryCount = 0;
-    const preset = this.presets.find(p => p.id === videoId);
-    if (preset) {
-      this.currentTrack.id = preset.id;
-      this.currentTrack.title = preset.title;
-      this.currentTrack.artist = preset.tag;
-      this.currentTrack.isLiked = Boolean(this.likedTracks[preset.id]);
+
+    let targetTrack = null;
+    if (isOnlineResult && this.onlineSearchResults) {
+      targetTrack = this.onlineSearchResults.find(p => p.id === videoId);
+    }
+    if (!targetTrack) {
+      targetTrack = this.presets.find(p => p.id === videoId);
+    }
+
+    if (targetTrack) {
+      this.currentTrack.id = targetTrack.id;
+      this.currentTrack.title = targetTrack.title;
+      this.currentTrack.artist = targetTrack.artist || targetTrack.tag || "YouTube";
+      this.currentTrack.isLiked = Boolean(this.likedTracks[targetTrack.id]);
+    } else {
+      this.currentTrack.id = videoId;
+      this.currentTrack.title = "Đang tải video YouTube...";
+      this.currentTrack.artist = "YouTube";
+      this.currentTrack.isLiked = Boolean(this.likedTracks[videoId]);
     }
 
     try {
       localStorage.setItem("dthu_dynamic_island_last_track", JSON.stringify({ id: videoId }));
-    } catch (e) {}
+    } catch (err) {}
 
     if (this.ytPlayer && this.ytPlayer.loadVideoById) {
       this.ytPlayer.loadVideoById(videoId);
       this.currentTrack.isPlaying = true;
+    } else {
+      this.createYtPlayer();
     }
 
+    this.updatePipState();
     this.playerSubView = "main";
     this.restartStealthTimer();
     this.updateDisplay();
     if (typeof UIHelpers !== "undefined") {
-      UIHelpers.showToast(`Đang phát: ${preset ? preset.title : 'Kênh Lofi'}`, "success");
+      UIHelpers.showToast(`Đang phát: ${targetTrack ? targetTrack.title : 'Video YouTube'}`, "success");
     }
   },
 
-  loadCustomUrl() {
+  setPresetCategory(catId) {
+    this.selectedCategory = catId;
+    this.renderCurrentState();
+  },
+
+  handlePresetSearchInput(val) {
+    this.searchQuery = val;
+    const clearBtn = document.getElementById("diSearchClearBtn");
+    if (clearBtn) {
+      clearBtn.style.display = val ? "flex" : "none";
+    }
+
+    if (this.searchDebounceTimer) clearTimeout(this.searchDebounceTimer);
+
+    // Cập nhật ngay kết quả lọc cục bộ (không re-render thẻ input để không mất focus)
+    this.updateSearchResultsContainer();
+
+    // Kích hoạt tìm kiếm Online sau 400ms gõ phím
+    if (val && val.trim().length >= 2) {
+      this.searchDebounceTimer = setTimeout(() => {
+        DynamicIsland.searchYouTubeOnline(val);
+      }, 450);
+    } else {
+      this.onlineSearchResults = [];
+      this.isSearchingOnline = false;
+      this.updateSearchResultsContainer();
+    }
+  },
+
+  triggerInstantOnlineSearch() {
+    const input = document.getElementById("diPresetSearchInput");
+    const val = (input ? input.value : this.searchQuery) || "";
+    if (val.trim()) {
+      if (this.searchDebounceTimer) clearTimeout(this.searchDebounceTimer);
+      this.searchYouTubeOnline(val.trim(), false);
+    }
+  },
+
+  loadMoreSearchResults(e) {
+    if (e) {
+      if (typeof e.preventDefault === "function") e.preventDefault();
+      if (typeof e.stopPropagation === "function") e.stopPropagation();
+    }
+    if (this.isLoadingMore || !this.searchQuery) return;
+    this.searchPage += 1;
+    this.searchYouTubeOnline(this.searchQuery, true);
+  },
+
+  async searchYouTubeOnline(query, isLoadMore = false) {
+    if (!query || !query.trim()) {
+      this.onlineSearchResults = [];
+      this.isSearchingOnline = false;
+      this.isLoadingMore = false;
+      this.updateSearchResultsContainer();
+      return;
+    }
+
+    const cleanQ = query.trim();
+
+    if (isLoadMore) {
+      this.isLoadingMore = true;
+    } else {
+      this.searchPage = 1;
+      this.isSearchingOnline = true;
+      this.onlineSearchResults = [];
+    }
+    this.updateSearchResultsContainer();
+
+    const publicEndpoints = [
+      `https://invidious.nerdvpn.de/api/v1/search?q=${encodeURIComponent(cleanQ)}&page=${this.searchPage}&type=video`,
+      `https://inv.nadeko.net/api/v1/search?q=${encodeURIComponent(cleanQ)}&page=${this.searchPage}&type=video`,
+      `https://vid.priv.au/api/v1/search?q=${encodeURIComponent(cleanQ)}&page=${this.searchPage}&type=video`,
+      `https://yt.drgnz.club/api/v1/search?q=${encodeURIComponent(cleanQ)}&page=${this.searchPage}&type=video`,
+      `https://api.piped.private.coffee/search?q=${encodeURIComponent(cleanQ)}&filter=videos`
+    ];
+
+    let foundVideos = [];
+
+    for (const endpoint of publicEndpoints) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+        const res = await fetch(endpoint, {
+          signal: controller.signal,
+          headers: { 'Accept': 'application/json' }
+        });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const data = await res.json();
+          let items = [];
+          if (Array.isArray(data)) {
+            items = data;
+          } else if (data && Array.isArray(data.items)) {
+            items = data.items;
+          }
+
+          if (items.length > 0) {
+            foundVideos = items
+              .filter(item => (item.videoId || item.id || (item.url && item.url.includes('watch?v='))))
+              .slice(0, 15)
+              .map(item => {
+                const vidId = item.videoId || item.id || (item.url ? DynamicIsland.extractYouTubeId(item.url) : null);
+                let durFormatted = "";
+                if (item.lengthSeconds) {
+                  durFormatted = DynamicIsland.formatSeconds(item.lengthSeconds);
+                } else if (item.duration) {
+                  durFormatted = typeof item.duration === 'string' ? item.duration : DynamicIsland.formatSeconds(item.duration);
+                }
+                return {
+                  id: vidId,
+                  title: item.title || "Video YouTube",
+                  artist: item.author || item.uploaderName || item.channelTitle || "YouTube",
+                  category: "online",
+                  iconType: "video",
+                  tag: durFormatted || "YouTube Online",
+                  isOnlineResult: true
+                };
+              })
+              .filter(v => v.id && v.id.length === 11);
+
+            if (foundVideos.length > 0) break;
+          }
+        }
+      } catch (err) {
+        // Thử tiếp endpoint dự phòng
+      }
+    }
+
+    this.isSearchingOnline = false;
+    this.isLoadingMore = false;
+
+    if (isLoadMore) {
+      if (foundVideos.length > 0) {
+        const existingIds = new Set(this.onlineSearchResults.map(v => v.id));
+        const uniqueNew = foundVideos.filter(v => !existingIds.has(v.id));
+        this.onlineSearchResults = this.onlineSearchResults.concat(uniqueNew.length > 0 ? uniqueNew : foundVideos);
+      } else {
+        if (typeof UIHelpers !== "undefined") {
+          UIHelpers.showToast("Đã tải hết kết quả tìm kiếm cho từ khóa này!", "info");
+        }
+      }
+    } else {
+      this.onlineSearchResults = foundVideos;
+    }
+
+    this.updateSearchResultsContainer();
+  },
+
+  updateSearchResultsContainer() {
+    const container = document.getElementById("diSearchResultsContainer");
+    if (container) {
+      container.innerHTML = this.renderSearchResultsInner();
+    }
+  },
+
+  clearSearchInput() {
+    this.searchQuery = "";
+    this.onlineSearchResults = [];
+    this.isSearchingOnline = false;
+    const input = document.getElementById("diPresetSearchInput");
+    if (input) {
+      input.value = "";
+      input.focus();
+    }
+    const clearBtn = document.getElementById("diSearchClearBtn");
+    if (clearBtn) clearBtn.style.display = "none";
+    this.updateSearchResultsContainer();
+  },
+
+  quickSearchChip(keyword) {
+    this.searchQuery = keyword;
+    const input = document.getElementById("diPresetSearchInput");
+    if (input) {
+      input.value = keyword;
+      input.focus();
+    }
+    const clearBtn = document.getElementById("diSearchClearBtn");
+    if (clearBtn) clearBtn.style.display = "flex";
+    this.handlePresetSearchInput(keyword);
+  },
+
+  handleCustomInput() {
     this.errorRetryCount = 0;
     const input = document.getElementById("diCustomYtInput");
     if (!input || !input.value.trim()) return;
@@ -1211,28 +1609,90 @@ const DynamicIsland = {
     const val = input.value.trim();
     const videoId = this.extractYouTubeId(val);
 
-    if (!videoId) {
-      if (typeof UIHelpers !== "undefined") {
-        UIHelpers.showToast("Link YouTube không hợp lệ! Vui lòng kiểm tra lại.", "warning");
+    if (videoId) {
+      this.currentTrack.id = videoId;
+      this.currentTrack.title = "Đang phát video YouTube...";
+      this.currentTrack.artist = "Tùy chỉnh";
+      this.currentTrack.isLiked = Boolean(this.likedTracks[videoId]);
+
+      if (this.ytPlayer && this.ytPlayer.loadVideoById) {
+        this.ytPlayer.loadVideoById(videoId);
+        this.currentTrack.isPlaying = true;
       }
-      return;
+
+      this.updatePipState();
+      this.playerSubView = "main";
+      this.restartStealthTimer();
+      this.updateDisplay();
+      if (typeof UIHelpers !== "undefined") {
+        UIHelpers.showToast("Đã phát video YouTube thành công!", "success");
+      }
+    } else {
+      // Nếu không phải URL, tự động tìm kiếm trực tuyến theo từ khóa
+      this.searchQuery = val;
+      this.activeTab = "presets";
+      this.renderCurrentState();
+      this.searchYouTubeOnline(val);
+      if (typeof UIHelpers !== "undefined") {
+        UIHelpers.showToast(`Đang tìm kiếm trên YouTube: "${val}"`, "info");
+      }
     }
+  },
 
-    this.currentTrack.id = videoId;
-    this.currentTrack.title = "Đang tải bài hát từ YouTube...";
-    this.currentTrack.artist = "Tùy chỉnh";
-    this.currentTrack.isLiked = Boolean(this.likedTracks[videoId]);
+  loadCustomUrl() {
+    this.handleCustomInput();
+  },
 
-    if (this.ytPlayer && this.ytPlayer.loadVideoById) {
-      this.ytPlayer.loadVideoById(videoId);
-      this.currentTrack.isPlaying = true;
-    }
+  // ── FLOATING PICTURE-IN-PICTURE (VIDEO NỔI MINI) ──────────
+  toggleVideoPip() {
+    this.isVideoPipOpen = !this.isVideoPipOpen;
+    this.isPipMinimized = false;
+    this.updatePipState();
+    this.renderCurrentState();
 
-    this.playerSubView = "main";
-    this.restartStealthTimer();
-    this.updateDisplay();
     if (typeof UIHelpers !== "undefined") {
-      UIHelpers.showToast("Đã nạp thành công link YouTube!", "success");
+      UIHelpers.showToast(this.isVideoPipOpen ? "Đã bật Cửa Sổ Video Nổi (PiP)!" : "Đã đóng video nổi.", "info");
+    }
+  },
+
+  togglePipMinimize() {
+    this.isPipMinimized = !this.isPipMinimized;
+    const pipEl = document.getElementById("diFloatingVideoPip");
+    if (pipEl) {
+      if (this.isPipMinimized) {
+        pipEl.classList.add("minimized");
+      } else {
+        pipEl.classList.remove("minimized");
+      }
+    }
+  },
+
+  closeVideoPip() {
+    this.isVideoPipOpen = false;
+    this.isPipMinimized = false;
+    this.updatePipState();
+    this.renderCurrentState();
+  },
+
+  updatePipState() {
+    const pipEl = document.getElementById("diFloatingVideoPip");
+    const pipIframe = document.getElementById("diPipIframe");
+    const pipTitle = document.getElementById("diPipTitle");
+
+    if (!pipEl) return;
+
+    if (this.isVideoPipOpen && this.currentTrack.id) {
+      pipEl.style.display = "block";
+      if (pipTitle) pipTitle.innerText = this.currentTrack.title || "Video Bài Giảng";
+      if (pipIframe) {
+        const targetSrc = `https://www.youtube.com/embed/${this.currentTrack.id}?autoplay=1&enablejsapi=1&playsinline=1`;
+        if (pipIframe.src !== targetSrc) {
+          pipIframe.src = targetSrc;
+        }
+      }
+    } else {
+      pipEl.style.display = "none";
+      if (pipIframe) pipIframe.src = "";
     }
   },
 
