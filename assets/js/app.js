@@ -6347,7 +6347,7 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
             🔔 Thông Báo Cá Nhân <span class="badge-tab-count">${allNotifs.length}</span>
           </button>
           <button class="hub-tab-btn ${activeTab === 'changelog' ? 'active' : ''}" onclick="App.notifTab = 'changelog'; App.renderNotificationsView(document.getElementById('mainContent'));">
-            📢 Bản Tin Cập Nhật Hệ Thống <span class="badge-tab-count">v2.6 Pro</span>
+            📢 Bản Tin Cập Nhật Hệ Thống <span class="badge-tab-count">v3.1.1 Pro</span>
           </button>
         </div>
 
@@ -6433,31 +6433,35 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
         ` : `
           <!-- Tab Bản Tin Cập Nhật Hệ Thống (Release Notes & Changelog) -->
           <div style="display: flex; flex-direction: column; gap: 18px;">
-            <!-- Phiên bản 2.6 Pro -->
+            <!-- Phiên bản 3.1.1 Pro -->
             <div class="changelog-card" style="border-left: 4px solid var(--brand-primary); background: linear-gradient(135deg, var(--surface) 0%, #f0fdf4 100%);">
               <div class="changelog-card-header">
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                  <span class="changelog-tag" style="background: #0284c7; color: #ffffff; font-weight: 800;">Phiên bản 2.6 Pro · Mới nhất</span>
-                  <strong style="font-size: 16.5px; color: var(--text-primary);">Nâng Cấp Lịch Sử Thi 10 Bài, Tự Động Xóa 30 Ngày & Công Bố Điều Khoản Dịch Vụ</strong>
+                  <span class="changelog-tag" style="background: #0284c7; color: #ffffff; font-weight: 800;">Phiên bản 3.1.1 Pro · Mới nhất</span>
+                  <strong style="font-size: 16.5px; color: var(--text-primary);">Nâng Cấp Hệ Thống Nhận Diện PDF Tự Động & Lịch Sử Thi 10 Bài</strong>
                 </div>
                 <span style="font-size: 12.5px; color: var(--text-tertiary);">18/08/2026</span>
               </div>
               <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.75;">
                 <li>
                   <strong>📜 Ban Hành Điều Khoản Dịch Vụ & Thỏa Thuận Sử Dụng (ToS)</strong>:
-                  Công bố chính thức văn bản pháp lý 6 Điều khoản độc lập bảo vệ bản quyền tác giả <strong>Shina (Bùi Văn Khang)</strong>, cam kết bảo mật quyền riêng tư không thương mại hóa dữ liệu và thiết lập cơ chế tiếp nhận gỡ bỏ bản quyền khẩn cấp (Takedown Policy 24h - 48h).
+                  Công bố chính thức văn bản pháp lý 6 Điều khoản độc lập bảo vệ bản quyền tác giả <strong>Shina (Bùi Văn Khang)</strong>, cam kết bảo mật quyền riêng tư không thương mại hóa dữ liệu và thiết lập cơ chế tiếp nhận gỡ bỏ bản quyền khẩn cấp.
+                </li>
+                <li>
+                  <strong>🚀 Cập nhật Engine PDF.js lõi lên chuẩn 3.11</strong>:
+                  Cải thiện hiệu suất bóc tách tài liệu, tự động phân giải cấu trúc PDF/Word tốc độ cao.
                 </li>
                 <li>
                   <strong>🚀 Nâng Giới Hạn Lưu Trữ Lịch Sử Thi Lên 10 Lần</strong>:
-                  Mở rộng dung lượng từ 3 bài lên tối đa <strong>10 bài thi thử gần nhất</strong> cho mỗi tài khoản, tự động luân chuyển bài mới theo cơ chế FIFO giúp học viên theo dõi tiến trình và so sánh kết quả học tập dài hạn.
+                  Mở rộng dung lượng từ 3 bài lên tối đa <strong>10 bài thi thử gần nhất</strong> cho mỗi tài khoản, tự động luân chuyển bài mới theo cơ chế FIFO.
                 </li>
                 <li>
                   <strong>⏳ Tính Năng Tự Động Xóa Bài Thi Sau 30 Ngày (TTL 30 Days)</strong>:
-                  Hệ thống tự động lọc và xóa sạch các bài thi đã nộp quá 30 ngày để tối ưu hóa hiệu năng bộ nhớ LocalStorage của trình duyệt và bảo đảm quyền riêng tư dữ liệu cá nhân.
+                  Hệ thống tự động lọc và xóa sạch các bài thi đã nộp quá 30 ngày để tối ưu hóa hiệu năng bộ nhớ LocalStorage.
                 </li>
                 <li>
                   <strong>🛡️ Chốt Chặn Pháp Lý Clickwrap & Tự Động Lưu Nháp Form</strong>:
-                  Tích hợp Checkbox bắt buộc đồng ý điều khoản khi đăng ký tài khoản mới, hỗ trợ xem tóm tắt điều khoản trực tiếp qua Popup Modal tại chỗ và tự động lưu nháp dữ liệu biểu mẫu chống mất thông tin.
+                  Tích hợp Checkbox bắt buộc đồng ý điều khoản khi đăng ký tài khoản mới, hỗ trợ xem tóm tắt điều khoản trực tiếp qua Popup Modal tại chỗ.
                 </li>
               </ul>
               <div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--border); display: flex; gap: 10px; flex-wrap: wrap;">
