@@ -343,7 +343,7 @@ const App = {
                   <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('history');">
                     <span class="drawer-icon">📜</span>
                     <span class="drawer-label">Lịch Sử Thi & Nhật Ký</span>
-                    ${examHistory.length > 0 ? `<span class="badge" style="background:#eff6ff; color:#1d4ed8; font-weight:700;">${examHistory.length}/3</span>` : `<span class="drawer-arrow">➔</span>`}
+                    ${examHistory.length > 0 ? `<span class="badge" style="background:#eff6ff; color:#1d4ed8; font-weight:700;">${examHistory.length}/10</span>` : `<span class="drawer-arrow">➔</span>`}
                   </button>
 
                   <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('manage');">
@@ -6347,7 +6347,7 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
             🔔 Thông Báo Cá Nhân <span class="badge-tab-count">${allNotifs.length}</span>
           </button>
           <button class="hub-tab-btn ${activeTab === 'changelog' ? 'active' : ''}" onclick="App.notifTab = 'changelog'; App.renderNotificationsView(document.getElementById('mainContent'));">
-            📢 Bản Tin Cập Nhật Hệ Thống <span class="badge-tab-count">v2.2</span>
+            📢 Bản Tin Cập Nhật Hệ Thống <span class="badge-tab-count">v2.6 Pro</span>
           </button>
         </div>
 
@@ -6433,11 +6433,48 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
         ` : `
           <!-- Tab Bản Tin Cập Nhật Hệ Thống (Release Notes & Changelog) -->
           <div style="display: flex; flex-direction: column; gap: 18px;">
+            <!-- Phiên bản 2.6 Pro -->
+            <div class="changelog-card" style="border-left: 4px solid var(--brand-primary); background: linear-gradient(135deg, var(--surface) 0%, #f0fdf4 100%);">
+              <div class="changelog-card-header">
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                  <span class="changelog-tag" style="background: #0284c7; color: #ffffff; font-weight: 800;">Phiên bản 2.6 Pro · Mới nhất</span>
+                  <strong style="font-size: 16.5px; color: var(--text-primary);">Nâng Cấp Lịch Sử Thi 10 Bài, Tự Động Xóa 30 Ngày & Công Bố Điều Khoản Dịch Vụ</strong>
+                </div>
+                <span style="font-size: 12.5px; color: var(--text-tertiary);">18/08/2026</span>
+              </div>
+              <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.75;">
+                <li>
+                  <strong>📜 Ban Hành Điều Khoản Dịch Vụ & Thỏa Thuận Sử Dụng (ToS)</strong>:
+                  Công bố chính thức văn bản pháp lý 6 Điều khoản độc lập bảo vệ bản quyền tác giả <strong>Shina (Bùi Văn Khang)</strong>, cam kết bảo mật quyền riêng tư không thương mại hóa dữ liệu và thiết lập cơ chế tiếp nhận gỡ bỏ bản quyền khẩn cấp (Takedown Policy 24h - 48h).
+                </li>
+                <li>
+                  <strong>🚀 Nâng Giới Hạn Lưu Trữ Lịch Sử Thi Lên 10 Lần</strong>:
+                  Mở rộng dung lượng từ 3 bài lên tối đa <strong>10 bài thi thử gần nhất</strong> cho mỗi tài khoản, tự động luân chuyển bài mới theo cơ chế FIFO giúp học viên theo dõi tiến trình và so sánh kết quả học tập dài hạn.
+                </li>
+                <li>
+                  <strong>⏳ Tính Năng Tự Động Xóa Bài Thi Sau 30 Ngày (TTL 30 Days)</strong>:
+                  Hệ thống tự động lọc và xóa sạch các bài thi đã nộp quá 30 ngày để tối ưu hóa hiệu năng bộ nhớ LocalStorage của trình duyệt và bảo đảm quyền riêng tư dữ liệu cá nhân.
+                </li>
+                <li>
+                  <strong>🛡️ Chốt Chặn Pháp Lý Clickwrap & Tự Động Lưu Nháp Form</strong>:
+                  Tích hợp Checkbox bắt buộc đồng ý điều khoản khi đăng ký tài khoản mới, hỗ trợ xem tóm tắt điều khoản trực tiếp qua Popup Modal tại chỗ và tự động lưu nháp dữ liệu biểu mẫu chống mất thông tin.
+                </li>
+              </ul>
+              <div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--border); display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-sm btn-primary" onclick="App.navigateTo('terms')" style="font-weight: 700;">
+                  📜 Đọc Toàn Văn 6 Điều Khoản Dịch Vụ ➔
+                </button>
+                <button class="btn btn-sm" onclick="App.navigateTo('history')">
+                  📜 Xem Lịch Sử Thi Của Bạn (${StorageService.getUserExamHistory().length}/10)
+                </button>
+              </div>
+            </div>
+
             <!-- Phiên bản 2.2 -->
             <div class="changelog-card">
               <div class="changelog-card-header">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                  <span class="changelog-tag">Phiên bản 2.2 · Mới nhất</span>
+                  <span class="changelog-tag" style="background:#f1f5f9; color:#475569;">Phiên bản 2.2</span>
                   <strong style="font-size: 16.5px; color: var(--text-primary);">Hệ Thống Điểm Cống Hiến Sản Lượng & Trung Tâm Thông Báo</strong>
                 </div>
                 <span style="font-size: 12.5px; color: var(--text-tertiary);">Tháng 8/2026</span>
