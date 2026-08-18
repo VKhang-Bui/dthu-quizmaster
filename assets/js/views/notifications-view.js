@@ -157,64 +157,35 @@ Object.assign(App, {
         ` : `
           <!-- Tab Bản Tin Cập Nhật Hệ Thống (Release Notes & Changelog) -->
           <div style="display: flex; flex-direction: column; gap: 18px;">
-            <!-- Phiên bản 3.2.0 -->
-            <div class="changelog-card" style="border-left: 4px solid #8b5cf6; background: linear-gradient(135deg, var(--surface) 0%, #f5f3ff 100%);">
+            <!-- Phiên bản 3.1.2 -->
+            <div class="changelog-card" style="border-left: 4px solid var(--brand-primary); background: linear-gradient(135deg, var(--surface) 0%, #eff6ff 100%);">
               <div class="changelog-card-header">
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                  <span class="changelog-tag" style="background: #7c3aed; color: #ffffff; font-weight: 800;">Phiên bản 3.2.0 · Mới nhất</span>
-                  <strong style="font-size: 16.5px; color: var(--text-primary);">Ra Mắt Dynamic Island Học Tập, Hệ Thống Vector SVG & 12 Biểu Tượng Thành Viên</strong>
+                  <span class="changelog-tag" style="background: #2563eb; color: #ffffff; font-weight: 800;">Phiên bản 3.1.2 · Mới nhất</span>
+                  <strong style="font-size: 16.5px; color: var(--text-primary);">Đảo Âm Thanh Học Tập (Dynamic Island), Đại Tu Vector SVG & Thư Viện Tài Liệu Số</strong>
                 </div>
                 <span style="font-size: 12.5px; color: var(--text-tertiary);">18/08/2026</span>
               </div>
               <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.75;">
                 <li>
                   <strong>🏝️ Dynamic Island - Đảo Âm Thanh & Đa Phương Tiện Học Tập</strong>:
-                  Tích hợp thanh đa phương tiện thông minh cố định tại đỉnh màn hình với các bài nhạc sóng não tập trung cao độ (Lo-fi Study, Baroque Focus, Deep Binaural Beats, White Noise, Mưa Đêm). Tự động thu gọn thành dải viền gợn sóng tím/đen tinh tế ở mép trên màn hình sau khoảng thời gian rảnh.
+                  Tích hợp thanh đa phương tiện thông minh cố định tại đỉnh màn hình với các bài nhạc sóng não tập trung cao độ (Lo-fi Study, Baroque Focus, Deep Binaural Beats, White Noise, Mưa Đêm). Tự động thu gọn thành dải viền gợn sóng tím/đen tinh tế ở mép trên màn hình khi làm bài.
                 </li>
                 <li>
                   <strong>⚙️ Tùy Biến Toàn Diện Dynamic Island</strong>:
-                  Cho phép cấu hình công tắc Bật/Tắt triệt để, tùy chỉnh thời gian tự ẩn (10s, 30s, 60s, Vô hiệu hóa), thanh trượt âm lượng mượt mà, tự động phát nhạc và chọn màu viền gợn sóng trong <em>Cài Đặt Hệ Thống</em>.
+                  Cấu hình công tắc Bật/Tắt triệt để, tùy chỉnh thời gian tự ẩn (10s, 30s, 60s, Vô hiệu hóa), thanh trượt âm lượng mượt mà, tự động phát nhạc và chọn màu viền gợn sóng trong <em>Cài Đặt Hệ Thống</em>.
                 </li>
                 <li>
-                  <strong>✨ Đại Tu Toàn Diện Hệ Thống Vector SVG</strong>:
-                  Thay thế 100% emoji thô trên toàn bộ hệ thống (Header, Footer, Bảng xếp hạng, Quản trị, Lịch sử thi, Thông báo,...) bằng bộ biểu tượng Vector nét thanh bo tròn chuẩn Apple SF Symbols.
+                  <strong>✨ Đại Tu Toàn Diện Hệ Thống Vector SVG & 12 Biểu Tượng Thành Viên</strong>:
+                  Thay thế 100% emoji thô bằng bộ Vector SVG siêu nét và ra mắt bộ 12 biểu tượng nhận diện thành viên dạng Gradient 3D độc quyền (Sinh viên, Lập trình, Học giả, Thủ khoa, Thiên tài, Nghiên cứu, Mục tiêu, Chiến binh, Thủ lĩnh, Bảo mật, Tập trung, Tốc độ).
                 </li>
-                <li>
-                  <strong>👑 Bộ 12 Biểu Tượng Thành Viên Vector Gradient 3D (Member Avatar System)</strong>:
-                  Cung cấp 12 biểu tượng nhận diện thành viên dạng Gradient 3D độc quyền khi đăng ký tài khoản (Sinh viên, Lập trình, Học giả, Thủ khoa, Thiên tài, Nghiên cứu, Mục tiêu, Chiến binh, Thủ lĩnh, Bảo mật, Tập trung, Tốc độ).
-                </li>
-                <li>
-                  <strong>🎨 Logo Thương Hiệu Nổi Bật Trên Mọi Nền</strong>:
-                  Tối ưu hóa logo Mũ Cử Nhân học thuật màu trắng tinh khôi trên khối Gradient Cyan-Royal Blue, hiển thị sắc nét và sang trọng trên cả giao diện Sáng & Tối.
-                </li>
-              </ul>
-              <div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--border); display: flex; gap: 10px; flex-wrap: wrap;">
-                <button class="btn btn-sm btn-primary" onclick="App.renderDrawerLevel('settings-island'); App.openUserDrawer();" style="font-weight: 700; display:inline-flex; align-items:center; gap:5px;">
-                  ${Icons.get('volume2', 13)} <span>Cài Đặt Dynamic Island</span> ➔
-                </button>
-                <button class="btn btn-sm" onclick="App.navigateTo('guide')" style="display:inline-flex; align-items:center; gap:5px;">
-                  ${Icons.get('bookOpen', 13)} <span>Xem Hướng Dẫn Sử Dụng</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Phiên bản 3.1.2 -->
-            <div class="changelog-card" style="border-left: 4px solid var(--brand-primary); background: var(--surface);">
-              <div class="changelog-card-header">
-                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                  <span class="changelog-tag" style="background: #2563eb; color: #ffffff; font-weight: 800;">Phiên bản 3.1.2</span>
-                  <strong style="font-size: 16.5px; color: var(--text-primary);">Nâng Cấp Thư Viện Tài Liệu Số (DocMaster), Menu Chuột Phải & Quản Lý Phím Tắt</strong>
-                </div>
-                <span style="font-size: 12.5px; color: var(--text-tertiary);">18/08/2026</span>
-              </div>
-              <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.75;">
                 <li>
                   <strong>📚 Trình Đọc Học Liệu Số & Cây Thư Mục Đa Cấp (DocMaster)</strong>:
                   Xây dựng không gian đọc chuyên dụng hỗ trợ Markdown phong phú, chế độ bảo vệ mắt <strong>📜 Sepia</strong>, chỉnh cỡ chữ linh hoạt, thẻ học lật mặt <strong>🎴 Flashcards</strong> và tính năng <strong>🚀 Bóc tách 1-click</strong> sang Smart Parser để tạo đề thi.
                 </li>
                 <li>
                   <strong>🖱️ Menu Chuột Phải Chuẩn VS Code (Right-Click Context Menu)</strong>:
-                  Thay thế các nút bấm hover thừa bằng menu chuột phải hình chữ nhật hiện đại ngay tại con trỏ: <em>Mở/Đóng, Tạo File mới, Tạo Thư mục con, Cắt (Ctrl+X), Sao chép (Ctrl+C), Dán (Ctrl+V), Đổi tên (F2), Xóa (Del)</em>.
+                  Menu chuột phải hiện đại ngay tại con trỏ: <em>Mở/Đóng, Tạo File mới, Tạo Thư mục con, Cắt (Ctrl+X), Sao chép (Ctrl+C), Dán (Ctrl+V), Đổi tên (F2), Xóa (Del)</em>.
                 </li>
                 <li>
                   <strong>🔒 Giới Hạn Phạm Vi Phím Tắt An Toàn</strong>:
@@ -230,11 +201,17 @@ Object.assign(App, {
                 </li>
               </ul>
               <div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--border); display: flex; gap: 10px; flex-wrap: wrap;">
-                <button class="btn btn-sm btn-primary" onclick="App.navigateTo('materials')" style="font-weight: 700;">
-                  📚 Trải Nghiệm Thư Viện Tài Liệu ➔
+                <button class="btn btn-sm btn-primary" onclick="App.renderDrawerLevel('settings-island'); App.openUserDrawer();" style="font-weight: 700; display:inline-flex; align-items:center; gap:5px;">
+                  ${Icons.get('volume2', 13)} <span>Cài Đặt Dynamic Island</span> ➔
                 </button>
-                <button class="btn btn-sm" onclick="App.renderDrawerLevel('settings-shortcuts'); App.openUserDrawer();">
-                  ⌨️ Cài Đặt Phím Tắt
+                <button class="btn btn-sm" onclick="App.navigateTo('materials')" style="display:inline-flex; align-items:center; gap:5px;">
+                  ${Icons.get('bookOpen', 13)} <span>Thư Viện Tài Liệu</span>
+                </button>
+                <button class="btn btn-sm" onclick="App.navigateTo('guide')" style="display:inline-flex; align-items:center; gap:5px;">
+                  ${Icons.get('helpCircle', 13)} <span>Hướng Dẫn Sử Dụng</span>
+                </button>
+                <button class="btn btn-sm" onclick="App.renderDrawerLevel('settings-shortcuts'); App.openUserDrawer();" style="display:inline-flex; align-items:center; gap:5px;">
+                  ${Icons.get('keyboard', 13)} <span>Cài Đặt Phím Tắt</span>
                 </button>
               </div>
             </div>
