@@ -1,7 +1,7 @@
 # 🗺️ KẾ HOẠCH & TÀI LIỆU KIẾN TRÚC DỰ ÁN DTHU QUIZMASTER (V2.0 CLOUD-NATIVE)
 
-> **Dự án:** DThu QuizMaster – Nền tảng Ôn tập, Thi trắc nghiệm & Thư viện Tài liệu Sinh viên  
-> **Tác giả:** Bùi Văn Khang (CNSH – Đại học Đồng Tháp)  
+> **Dự án:** Shinora QuizMaster – Nền tảng Ôn tập, Thi trắc nghiệm & Thư viện Tài liệu Sinh viên  
+> **Tác giả:** Bùi Văn Khang (CNSH – Shinora Academy)  
 > **Mục tiêu:** Nâng cấp từ ứng dụng LocalStorage tĩnh thành Hệ thống Học tập Trực tuyến Đa người dùng 100% Miễn phí, 24/7 Uptime, hỗ trợ Đăng nhập, Lịch sử làm bài, Đóng góp & Duyệt đề thi, Bảng xếp hạng và Kho tài liệu học tập (.txt, hình ảnh).
 
 ---
@@ -76,7 +76,7 @@
 
 ## 🗄️ 3. THIẾT KẾ CƠ SỞ DỮ LIỆU (DATABASE SCHEMA)
 
-Xem chi tiết script khởi tạo SQL hoàn chỉnh tại: [`docs/DATABASE_SCHEMA.sql`](file:///home/vkhang-bui/1.HocViec/projects/dthu-quizmaster/docs/DATABASE_SCHEMA.sql)
+Xem chi tiết script khởi tạo SQL hoàn chỉnh tại: [`docs/DATABASE_SCHEMA.sql`](file:///home/vkhang-bui/1.HocViec/projects/shinora-quizmaster/docs/DATABASE_SCHEMA.sql)
 
 ### Tóm tắt các bảng chính:
 1. `profiles`: Thông tin sinh viên, quyền hạn (`role`), điểm tích lũy (`total_exp`).
@@ -109,5 +109,5 @@ Xem chi tiết script khởi tạo SQL hoàn chỉnh tại: [`docs/DATABASE_SCHE
 
 ### Giai đoạn 4: Deploy & Vận hành 24/7
 - [ ] Kết nối GitHub repository với [Cloudflare Pages](https://pages.cloudflare.com/) hoặc [Vercel](https://vercel.com).
-- [ ] Thiết lập tên miền chính thức miễn phí (ví dụ: `dthu-quizmaster.pages.dev`).
-- [ ] Chia sẻ cho sinh viên và các giảng viên Đại học Đồng Tháp cùng sử dụng!
+- [ ] Thiết lập tên miền chính thức miễn phí (ví dụ: `shinora-quizmaster.pages.dev`).
+- [ ] Chia sẻ cho sinh viên và các giảng viên Shinora Academy cùng sử dụng!

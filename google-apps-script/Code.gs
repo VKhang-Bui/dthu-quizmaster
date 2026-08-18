@@ -1,10 +1,10 @@
 /**
  * ═════════════════════════════════════════════════════════════════════════════
- * DTHU QUIZMASTER - GOOGLE APPS SCRIPT BACKEND SERVICE
+ * SHINORA QUIZMASTER - GOOGLE APPS SCRIPT BACKEND SERVICE
  * ═════════════════════════════════════════════════════════════════════════════
  * Hệ thống tự động gửi Email OTP (Hiệu lực 300s) và Phiếu hỗ trợ CSKH đến Admin.
  * 
- * Tác giả: Bùi Văn Khang (Admin - Khoa Nông nghiệp & Sinh học DThu)
+ * Tác giả: Shina (Bùi Văn Khang) - Shinora Academic Studio
  * Phiên bản: 2.0 (Google Workspace / Gmail Integration)
  * ═════════════════════════════════════════════════════════════════════════════
  */
@@ -12,7 +12,7 @@
 // Cấu hình Email Quản Trị Viên & CSKH Mặc Định
 const CONFIG = {
   ADMIN_EMAIL: "vkhg.bui@gmail.com, giaosukhang621@gmail.com",
-  ADMIN_NAME: "Bùi Văn Khang",
+  ADMIN_NAME: "Shina (Bùi Văn Khang)",
   ADMIN_CLASS: "ĐHCNSH24A",
   ADMIN_MSSV: "0024418475",
   ADMIN_PHONE: "0354616301",

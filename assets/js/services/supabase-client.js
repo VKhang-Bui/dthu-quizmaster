@@ -1,7 +1,7 @@
 /**
  * SUPABASE CLIENT SERVICE
  * Tích hợp giao tiếp trực tiếp với Supabase PostgreSQL REST API.
- * Hỗ trợ đồng bộ đa thiết bị (Máy tính, Điện thoại) cho DThu QuizMaster.
+ * Hỗ trợ đồng bộ đa thiết bị (Máy tính, Điện thoại) cho Shinora QuizMaster.
  */
 const SupabaseClient = {
   getHeaders() {
@@ -69,7 +69,7 @@ const SupabaseClient = {
       full_name: userData.fullName ? userData.fullName.trim() : "",
       email: userData.email ? userData.email.trim().toLowerCase() : "",
       phone: userData.phone ? userData.phone.trim() : "",
-      department: userData.department || "Khoa Kỹ thuật - Công nghệ",
+      department: userData.department || "Shinora Academy",
       role: userData.role || "student",
       pin_code: userData.pinCode || "123456",
       avatar: userData.avatar || "👨‍🎓",
@@ -131,8 +131,8 @@ const SupabaseClient = {
       id: subject.id,
       code: subject.code || subject.id,
       name: subject.name,
-      department: subject.department || "Khoa Kỹ thuật - Công nghệ",
-      author: subject.author || "Ban Biên Tập DThu",
+      department: subject.department || "Shinora Academy",
+      author: subject.author || "Ban Biên Tập Shinora",
       description: subject.description || "",
       icon: subject.icon || "📚",
       chapters: subject.chapters || [],
@@ -163,8 +163,8 @@ const SupabaseClient = {
     const payload = {
       id: draft.id || ("DRAFT-" + Date.now()),
       name: draft.name,
-      department: draft.department || "Khoa Kỹ thuật - Công nghệ",
-      author: draft.author || "Sinh viên đóng góp",
+      department: draft.department || "Shinora Academy",
+      author: draft.author || "Học viên đóng góp",
       student_id: draft.studentId || "",
       email: draft.email || "",
       note: draft.note || "",
@@ -181,8 +181,8 @@ const SupabaseClient = {
   async updateDraftSubject(draftId, updates) {
     const payload = {
       name: updates.name,
-      department: updates.department || "Khoa Kỹ thuật - Công nghệ",
-      author: updates.author || "Sinh viên đóng góp",
+      department: updates.department || "Shinora Academy",
+      author: updates.author || "Học viên đóng góp",
       chapters: updates.chapters || [],
       questions: updates.questions || [],
       description: updates.description || "",
@@ -210,7 +210,7 @@ const SupabaseClient = {
       id: history.id || ("HIST-" + Date.now()),
       user_id: history.userId || null,
       student_id: history.studentId || "",
-      user_name: history.userName || "Sinh viên DThu",
+      user_name: history.userName || "Học viên Shinora",
       subject_id: history.subjectId,
       subject_name: history.subjectName || history.subjectId,
       mode: history.mode || "practice",
@@ -240,7 +240,7 @@ const SupabaseClient = {
       id: "TICKET-" + Date.now(),
       ticket_id: ticket.ticketId || ("TICKET-" + Date.now()),
       user_id: ticket.userId || null,
-      full_name: ticket.fullName || "Sinh viên DThu",
+      full_name: ticket.fullName || "Người dùng Shinora",
       student_id: ticket.studentId || "",
       contact: ticket.contact || "",
       email: ticket.email || "",

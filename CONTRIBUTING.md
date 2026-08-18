@@ -1,15 +1,15 @@
-# 📖 Cẩm Nang Hướng Dẫn Đóng Góp Đề Thi — DThu QuizMaster
+# 📖 Cẩm Nang Hướng Dẫn Đóng Góp Đề Thi — Shinora QuizMaster
 
-Chào mừng bạn đến với dự án **DThu QuizMaster**! Dự án được xây dựng nhằm tạo ra một thư viện ngân hàng đề thi trắc nghiệm mở, giúp sinh viên Trường Đại học Đồng Tháp (DThu) cùng nhau ôn tập và chuẩn bị tốt cho các kỳ thi học phần.
+Chào mừng bạn đến với dự án **Shinora QuizMaster**! Dự án được xây dựng nhằm tạo ra một thư viện ngân hàng đề thi trắc nghiệm mở, giúp sinh viên Cộng đồng Tự học & Ôn thi Shinora (DThu) cùng nhau ôn tập và chuẩn bị tốt cho các kỳ thi học phần.
 
 ---
 
 ## 🚀 Cách 1: Đóng góp qua Web App & GitHub Issue (Dễ nhất cho sinh viên)
 
-1. Mở trang web **DThu QuizMaster** trực tuyến.
+1. Mở trang web **Shinora QuizMaster** trực tuyến.
 2. Vào mục **`📝 Nhập đề (Parser)`**, dán đề thi dạng văn bản vào để hệ thống tự động bóc tách thành chuẩn JSON.
 3. Bấm **`📥 Tải file JSON (.json)`** về máy của bạn.
-4. Truy cập vào mục **[Issues trên GitHub](https://github.com/VKhang-Bui/dthu-quizmaster/issues/new/choose)**.
+4. Truy cập vào mục **[Issues trên GitHub](https://github.com/VKhang-Bui/shinora-quizmaster/issues/new/choose)**.
 5. Chọn **"📤 Đóng góp Bộ Đề Thi Mới"**, điền tên môn học và đính kèm file `.json` vừa tải.
 6. Admin (**Bùi Văn Khang**) sẽ kiểm tra và tích hợp môn học của bạn vào hệ thống chính thức!
 
@@ -24,5 +24,5 @@ Chào mừng bạn đến với dự án **DThu QuizMaster**! Dự án được 
 
 ---
 
-**Biên soạn & Quản trị dự án:** Bùi Văn Khang (Sinh viên CNSH - Trường Đại học Đồng Tháp)  
+**Biên soạn & Quản trị dự án:** Bùi Văn Khang (Sinh viên CNSH - Cộng đồng Tự học & Ôn thi Shinora)  
 **Email liên hệ:** `vkhang.bui.dthu@gmail.com`

@@ -469,7 +469,6 @@ const StorageService = {
             validList[adminIdx] = Object.assign({}, validList[adminIdx], this.DEFAULT_USERS[0]);
             this.saveAllUsers(validList);
           } else if (adminIdx === -1 && this.DEFAULT_USERS.length > 0) {
-            // Đảm bảo luôn có ít nhất 1 tài khoản Admin chính nếu danh sách chưa có Admin
             validList.unshift(this.DEFAULT_USERS[0]);
             this.saveAllUsers(validList);
           }
@@ -479,7 +478,6 @@ const StorageService = {
       }
     } catch (e) {}
 
-    // Lần đầu tiên khởi tạo khi chưa có USERS_LIST trong localStorage
     this.saveAllUsers(this.DEFAULT_USERS);
     return this.DEFAULT_USERS;
   },
@@ -495,13 +493,11 @@ const StorageService = {
   },
 
   getUserByStudentId(studentId) {
-    if (!studentId) return null;
     const list = this.getAllUsers();
     return list.find(u => u.studentId && u.studentId.trim().toLowerCase() === studentId.trim().toLowerCase()) || null;
   },
 
   getUserByEmail(email) {
-    if (!email) return null;
     const list = this.getAllUsers();
     return list.find(u => u.email && u.email.trim().toLowerCase() === email.trim().toLowerCase()) || null;
   },
@@ -511,7 +507,7 @@ const StorageService = {
     const clean = identifier.trim().toLowerCase();
     const list = this.getAllUsers();
     return list.find(u => 
-      (u.studentId && u.studentId.trim().toLowerCase() === clean) ||
+      (u.studentId && u.studentId.trim().toLowerCase() === clean) || 
       (u.email && u.email.trim().toLowerCase() === clean)
     ) || null;
   },
@@ -531,7 +527,7 @@ const StorageService = {
             fullName: u.full_name,
             email: u.email,
             phone: u.phone || "",
-            department: u.department || "Khoa Kỹ thuật - Công nghệ",
+            department: u.department || "Shinora Academy",
             role: u.role || "student",
             pinCode: u.pin_code || "123456",
             avatar: u.avatar || "👨‍🎓",
@@ -732,7 +728,7 @@ const StorageService = {
     return list.filter(u => u.status !== "pending_approval" && u.status !== "rejected");
   },
 
-  approveUserRegistration(userId, adminName = "Bùi Văn Khang") {
+  approveUserRegistration(userId, adminName = "Shina (Bùi Văn Khang)") {
     const user = this.getUserById(userId);
     if (!user) return null;
     return this.updateUser(userId, {
@@ -766,7 +762,7 @@ const StorageService = {
       id: "REQ-" + Date.now(),
       ticketId: data.ticketId || ("TICKET-" + Math.floor(100000 + Math.random() * 900000)),
       studentId: data.studentId || "",
-      fullName: data.fullName || "Sinh viên",
+      fullName: data.fullName || "Học viên",
       contact: data.contact || data.email || data.phone || "",
       email: data.email || "",
       phone: data.phone || "",
@@ -812,7 +808,7 @@ const StorageService = {
 
     // Đồng bộ trạng thái phiếu trên Supabase Cloud
     if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
-      SupabaseClient.updateSupportTicket(req.ticketId, { status: "resolved", resolved_by: "Admin Bùi Văn Khang", resolved_at: new Date().toISOString() }).catch(e => console.warn("Supabase updateSupportTicket error:", e));
+      SupabaseClient.updateSupportTicket(req.ticketId, { status: "resolved", resolved_by: "Admin Shina", resolved_at: new Date().toISOString() }).catch(e => console.warn("Supabase updateSupportTicket error:", e));
     }
 
     return req;
@@ -1017,7 +1013,7 @@ const StorageService = {
       fullName: "Khách (Chưa đăng nhập)",
       studentId: "",
       email: "",
-      department: "Trường Đại học Đồng Tháp",
+      department: "Shinora Community",
       role: "guest",
       avatar: "👤",
       totalExp: 0,
@@ -1138,7 +1134,7 @@ const StorageService = {
       this.addNotification(profile.id, {
         type: "cp_reward",
         title: points > 0 ? `🌟 Thưởng +${points} Điểm Cống Hiến (CP)` : `🌟 Khấu trừ ${Math.abs(points)} Điểm Cống Hiến`,
-        message: reason || "Đóng góp dữ liệu đề thi & tài liệu học tập cho trường Đại học Đồng Tháp.",
+        message: reason || "Đóng góp dữ liệu đề thi & tài liệu học tập cho Shinora QuizMaster.",
         pointsDelta: points,
         pointType: "CP"
       });
@@ -1664,7 +1660,7 @@ const StorageService = {
       id: "season-2026-hk1",
       code: "HK1-2026",
       name: "Học Kỳ 1 (2026 - 2027)",
-      description: "Mùa thi đua rèn luyện học kỳ 1 năm học 2026 - 2027 dành cho toàn thể sinh viên Trường Đại học Đồng Tháp.",
+      description: "Mùa thi đua rèn luyện học tập và ôn thi trực tuyến trên Shinora QuizMaster.",
       startDate: "2026-08-01T00:00:00.000Z",
       endDate: "2026-12-31T23:59:59.000Z",
       status: "active", // 'active' | 'upcoming' | 'completed'
@@ -1673,7 +1669,7 @@ const StorageService = {
       top2Title: "🥈 Hạng 2 (Top 2)",
       top3Title: "🥉 Hạng 3 (Top 3)",
       createdAt: "2026-08-01T00:00:00.000Z",
-      createdBy: "Bùi Văn Khang"
+      createdBy: "Shina (Bùi Văn Khang)"
     }
   ],
 
@@ -2247,7 +2243,7 @@ const StorageService = {
           studentId: u.studentId || "Chưa cập nhật",
           className: u.className || "Chưa cập nhật",
           email: u.email || "",
-          department: u.department || "ĐH Đồng Tháp",
+          department: u.department || "Shinora Academy",
           status: u.status || "active",
           kickedReason: u.kickedReason || null,
           cp: cpVal,
@@ -2283,7 +2279,7 @@ const StorageService = {
         studentId: u.studentId || "Chưa cập nhật",
         className: u.className || "Chưa cập nhật",
         email: u.email || "",
-        department: u.department || "ĐH Đồng Tháp",
+        department: u.department || "Shinora Academy",
         status: u.status || "active",
         kickedReason: u.kickedReason || null,
         exp: expVal,
@@ -2407,7 +2403,7 @@ const StorageService = {
   // ── 9. Sao Lưu & Phục Hồi Toàn Diện Dữ Liệu (Backup & Restore) ──
   exportFullBackupData() {
     return {
-      app: "DThu QuizMaster",
+      app: "Shinora QuizMaster",
       version: "2.0",
       exportDate: new Date().toISOString(),
       userProfile: this.getUserProfile(),

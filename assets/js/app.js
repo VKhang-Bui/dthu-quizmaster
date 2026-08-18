@@ -1,6 +1,6 @@
 /**
- * DTHU QUIZMASTER - MAIN CONTROLLER & APPLICATION ROUTER
- * Tác giả: Bùi Văn Khang - CNSH DThu
+ * SHINORA QUIZMASTER - MAIN CONTROLLER & APPLICATION ROUTER
+ * Tác giả: Shina (Bùi Văn Khang)
  */
 
 const App = {
@@ -178,8 +178,8 @@ const App = {
       <div class="header-brand" onclick="App.navigateTo('home')" title="Nhấp để quay về Trang Chủ">
         <div class="brand-icon">📚</div>
         <div class="brand-title-group">
-          <h1>DThu QuizMaster</h1>
-          <div class="brand-author">Bùi Văn Khang · CNSH DThu</div>
+          <h1>Shinora QuizMaster</h1>
+          <div class="brand-author">Phát triển bởi Shina (Bùi Văn Khang)</div>
         </div>
       </div>
 
@@ -272,7 +272,7 @@ const App = {
               <div style="font-size: 56px; margin-bottom: 14px; line-height: 1;">🔒</div>
               <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0 0 8px 0;">Chế Độ Khách</h3>
               <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin: 0 0 24px 0; max-width: 290px;">
-                Bạn đang duyệt web ở chế độ Khách. Vui lòng đăng nhập tài khoản sinh viên DThu để mở khóa toàn bộ tính năng: Ôn tập có đáp án & giải thích, Kho tài liệu (.txt), Ngân hàng câu sai, Tích lũy EXP và Đóng góp đề thi.
+                Bạn đang duyệt web ở chế độ Khách. Vui lòng đăng nhập tài khoản để mở khóa toàn bộ tính năng: Ôn tập có đáp án & giải thích, Kho tài liệu (.txt), Ngân hàng câu sai, Tích lũy EXP và Đóng góp đề thi.
               </p>
               <button class="btn btn-primary" style="width: 100%; max-width: 290px; padding: 13px; font-size: 14px; font-weight: 700;" onclick="App.closeUserDrawer(); App.openAccountSwitcherModal();">
                 🔑 Đăng Nhập / Chọn Tài Khoản ➔
@@ -695,13 +695,13 @@ const App = {
         bodyHtml = `
           <div class="drawer-slide-content" style="text-align: center; padding: 12px 0;">
             <div style="font-size: 48px; margin-bottom: 8px;">🎓</div>
-            <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0;">DThu QuizMaster</h3>
+            <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0;">Shinora QuizMaster</h3>
             <div style="font-size: 13px; color: var(--brand-text); font-weight: 700; margin-top: 2px;">Phiên bản v2.0 (Open-Core)</div>
 
             <div style="text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; margin-top: 16px; font-size: 13px; line-height: 1.6; color: var(--text-secondary);">
-              <div>🏛️ <strong>Trường:</strong> Đại học Đồng Tháp (DThu)</div>
-              <div>👨‍🎓 <strong>Tác giả:</strong> Bùi Văn Khang</div>
-              <div>🧬 <strong>Chuyên ngành:</strong> Công nghệ Sinh học</div>
+              <div>🎓 <strong>Dự án:</strong> Shinora QuizMaster (Học tập & Nghiên cứu)</div>
+              <div>👨‍💻 <strong>Tác giả:</strong> Shina (Bùi Văn Khang)</div>
+              <div>🧬 <strong>Biệt danh:</strong> Shina Sanora · Developer</div>
               <div>🚀 <strong>Mục tiêu:</strong> Nền tảng ôn thi trắc nghiệm mở, lưu trữ tài liệu .txt và chia sẻ đề thi miễn phí 100% cho sinh viên.</div>
             </div>
 
@@ -808,7 +808,7 @@ const App = {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup, null, 2));
     const a = document.createElement("a");
     a.href = dataStr;
-    a.download = `dthu-quizmaster-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `shinora-quizmaster-backup-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -1309,7 +1309,7 @@ const App = {
         <div class="home-hero">
           <div class="home-hero-text">
             <h2>Nền tảng Ôn tập & Thi thử Trắc nghiệm Đại học</h2>
-            <p>Hệ thống tự học, ngân hàng đề cương, thi thử tính giờ và lưu trữ tiến độ học tập cho sinh viên Trường Đại học Đồng Tháp.</p>
+            <p>Hệ thống tự học, ngân hàng đề thi đa môn, thi thử tính giờ và lưu trữ tiến độ học tập thông minh.</p>
           </div>
           <div class="home-hero-actions">
             <button class="btn btn-primary" onclick="App.navigateTo('parser')">
@@ -1353,7 +1353,7 @@ const App = {
           <div class="creator-card-container">
             <div class="home-mission-banner">
               <div class="home-mission-content">
-                <span class="creator-pill-tag">✨ Sứ Mệnh Học Thuật Sinh Viên DThu</span>
+                <span class="creator-pill-tag">✨ Sứ Mệnh Học Thuật & Tự Học</span>
                 <h3 class="mission-title">Hệ Thống Ôn Thi Trực Quan · Tự Học Mọi Lúc Mọi Nơi</h3>
                 <p class="mission-desc">
                   DThu QuizMaster được xây dựng phi lợi nhuận với mục tiêu chuẩn hóa ngân hàng đề thi trắc nghiệm học phần, hỗ trợ giải thích chi tiết từng câu hỏi, đồng bộ tiến độ thời gian thực và tạo môi trường thi thử nghiêm túc, công bằng.
@@ -1364,7 +1364,7 @@ const App = {
                   <span class="mission-pill">📝 <strong>${traffic.totalAttemptsFormatted}</strong> lượt thi thử</span>
                   <span class="mission-pill">⚡ Offline PWA</span>
                   <span class="mission-pill">☁️ Supabase Cloud</span>
-                  <span class="mission-pill">🎯 Đề chuẩn DThu</span>
+                  <span class="mission-pill">🎯 Đề thi chuẩn hóa</span>
                 </div>
               </div>
               <div class="home-mission-action">
@@ -2438,7 +2438,7 @@ const App = {
           <div style="font-size: 52px; margin-bottom: 14px;">📝</div>
           <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary);">Công Cụ Nhập Đề & Đóng Góp Đề Thi</h3>
           <p style="color: var(--text-secondary); margin-top: 8px; line-height: 1.6;">
-            Vui lòng đăng nhập tài khoản sinh viên DThu để sử dụng công cụ bóc tách câu hỏi thông minh và gửi đóng góp đề thi lên hệ thống (+30 EXP).
+            Vui lòng đăng nhập tài khoản để sử dụng công cụ bóc tách câu hỏi thông minh và gửi đóng góp đề thi lên hệ thống (+30 EXP).
           </p>
           <div style="display: flex; gap: 10px; justify-content: center; margin-top: 22px;">
             <button class="btn btn-primary" onclick="App.openAccountSwitcherModal()">🔑 Đăng Nhập Ngay ➔</button>
@@ -2657,7 +2657,7 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
       code: sub ? sub.code : "GEN101",
       name: sub ? sub.name : "Bộ đề mới",
       department: sub ? sub.department : profile.department,
-      author: profile.fullName + ` (MSSV: ${profile.studentId || 'DThu'})`,
+      author: profile.fullName + ` (MSSV: ${profile.studentId || 'Shinora'})`,
       authorEmail: profile.email || "",
       description: `Bộ đề gồm ${mappedQuestions.length} câu hỏi môn ${sub ? sub.name : ''} (Chương: ${chapterId}), nhập qua Parser ngày ${new Date().toLocaleDateString('vi-VN')}.`,
       icon: sub ? (sub.icon || "📝") : "📝",
@@ -2798,7 +2798,7 @@ D. Chỉ bao gồm bộ phận Kinh tế chính trị Mác - Lênin > Sai: Đây
 Câu 2: Công thức nào sau đây biểu thị đúng điều kiện cân bằng trong điều kiện kinh tế: \`P * Q = M * V\` và so sánh \`a < b & c > d\`?
 A. Điều kiện kinh tế số 1 với $100% tỷ lệ #thành_công
 * B. Phương trình \`P * Q = M * V\` và biểu thức so sánh (a < b & c > d) > Đúng: Hỗ trợ 100% ký tự toán học, code và dấu đặc biệt!
-C. Ký hiệu @author: Bùi Văn Khang (CNSH - DThu) & nhóm nghiên cứu #CNXHKH
+C. Ký hiệu @author: Shina (Bùi Văn Khang) & Shinora Community
 D. Biểu thức 'chuỗi ký tự đặc biệt': "100% chính xác?" / [Ghi chú]
 
 Câu 3: Phát kiến vĩ đại nào của *C. Mác* và *Ph. Ăng-ghen* tạo tiền đề để luận chứng sự ra đời của CNXHKH?
@@ -4174,7 +4174,7 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
           <div style="font-size: 52px; margin-bottom: 14px;">📜</div>
           <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary);">Lịch Sử Thi & Nhật Ký Làm Bài</h3>
           <p style="color: var(--text-secondary); margin-top: 8px; line-height: 1.6;">
-            Vui lòng đăng nhập tài khoản sinh viên DThu để hệ thống tự động ghi nhận và phân tích tối đa 3 lần thi thử gần nhất của bạn.
+            Vui lòng đăng nhập tài khoản để hệ thống tự động ghi nhận và phân tích tối đa 3 lần thi thử gần nhất của bạn.
           </p>
           <div style="display: flex; gap: 10px; justify-content: center; margin-top: 22px;">
             <button class="btn btn-primary" onclick="App.openAccountSwitcherModal()">🔑 Đăng Nhập Ngay ➔</button>
@@ -5873,7 +5873,7 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `DThu_QuizMaster_MuaGiai_${(season.code || season.id)}.csv`;
+    a.download = `Shinora_QuizMaster_MuaGiai_${(season.code || season.id)}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -5916,7 +5916,7 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
 
   jumpToMyRank() {
     if (!StorageService.isLoggedIn()) {
-      this.showToast("🔒 Vui lòng đăng nhập tài khoản sinh viên DThu để xem vị trí của bạn trên Bảng Xếp Hạng!", "warning", 3500);
+      this.showToast("🔒 Vui lòng đăng nhập tài khoản để xem vị trí của bạn trên Bảng Xếp Hạng!", "warning", 3500);
       this.openAccountSwitcherModal();
       return;
     }
@@ -5954,7 +5954,7 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
       "🚀 Chiến Binh Ôn Thi",
       "⭐ Gương Mặt Tiêu Biểu",
       "🏆 Quán Quân Olympic",
-      "✍️ Cây Bút Vàng DThu",
+      "✍️ Cây Bút Vàng Shinora",
       "🌟 Trưởng Ban Học Tập",
       "🔥 Siêu Sao Trắc Nghiệm",
       "NONE"
@@ -6045,7 +6045,7 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    const fileName = `BangXepHang_DThu_${activeTab.toUpperCase()}_${new Date().toISOString().slice(0, 10)}.csv`;
+    const fileName = `BangXepHang_Shinora_${activeTab.toUpperCase()}_${new Date().toISOString().slice(0, 10)}.csv`;
     link.setAttribute("href", url);
     link.setAttribute("download", fileName);
     document.body.appendChild(link);
@@ -6066,7 +6066,7 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
           <div style="font-size: 52px; margin-bottom: 14px;">📚</div>
           <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary);">Kho Tài Liệu Học Tập (.txt)</h3>
           <p style="color: var(--text-secondary); margin-top: 8px; line-height: 1.6;">
-            Vui lòng đăng nhập tài khoản sinh viên DThu để mở khóa toàn bộ kho tài liệu tóm tắt lý thuyết, đề cương ôn thi và tải về máy.
+            Vui lòng đăng nhập tài khoản để mở khóa toàn bộ kho tài liệu tóm tắt lý thuyết, đề cương ôn thi và tải về máy.
           </p>
           <div style="display: flex; gap: 10px; justify-content: center; margin-top: 22px;">
             <button class="btn btn-primary" onclick="App.openAccountSwitcherModal()">🔑 Đăng Nhập Ngay ➔</button>
@@ -6199,8 +6199,8 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
 
   saveUploadedMaterial() {
     const title = document.getElementById("matTitleInput")?.value.trim();
-    const subId = document.getElementById("matSubjectInput")?.value.trim() || "DThu";
-    const author = document.getElementById("matAuthorInput")?.value.trim() || "Sinh viên DThu";
+    const subId = document.getElementById("matSubjectInput")?.value.trim() || "Shinora";
+    const author = document.getElementById("matAuthorInput")?.value.trim() || "Học viên Shinora";
     const desc = document.getElementById("matDescInput")?.value.trim() || "";
     const content = document.getElementById("matContentInput")?.value.trim();
 
@@ -6279,7 +6279,7 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
           <div style="font-size: 54px; margin-bottom: 14px;">🔔</div>
           <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary);">Trung Tâm Thông Báo</h3>
           <p style="color: var(--text-secondary); margin-top: 8px; line-height: 1.6;">
-            Vui lòng đăng nhập tài khoản sinh viên DThu để nhận các thông báo về biến động điểm thưởng EXP, Điểm cống hiến (CP), kết quả duyệt đề thi và thông báo từ Ban quản trị.
+            Vui lòng đăng nhập tài khoản để nhận các thông báo về biến động điểm thưởng EXP, Điểm cống hiến (CP), kết quả duyệt đề thi và thông báo từ Ban quản trị.
           </p>
           <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
             <button class="btn btn-primary" onclick="App.openAccountSwitcherModal()">🔑 Đăng Nhập Ngay</button>
@@ -6885,7 +6885,7 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Danh_Sach_Thanh_Vien_DThu_QuizMaster_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `Danh_Sach_Thanh_Vien_Shinora_QuizMaster_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -7057,7 +7057,7 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
     const user = StorageService.getUserById(userId);
     if (!user) return;
     const current = StorageService.getUserProfile();
-    await StorageService.approveUserRegistration(userId, current.fullName || "Admin Bùi Văn Khang");
+    await StorageService.approveUserRegistration(userId, current.fullName || "Admin Shina");
     this.showToast(`🎉 Đã phê duyệt kích hoạt tài khoản cho sinh viên "${user.fullName}" (${user.studentId})!`, "success", 4000);
     this.renderHeader();
     await this.renderUsersManagementView(document.getElementById("mainContent"));
@@ -8687,7 +8687,7 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
       if (emailResult.isRealEmail) {
         this.showToast(`🎉 Đã gửi mã OTP đến ${email}! Vui lòng kiểm tra hộp thư.`, "success", 4500);
       } else {
-        this.showToast(`📨 [Mô phỏng Email DThu] Mã xác thực OTP của bạn là: ${res.otp}`, "info", 7000);
+        this.showToast(`📨 [Mô phỏng Email Shinora] Mã xác thực OTP của bạn là: ${res.otp}`, "info", 7000);
       }
     } catch (err) {
       this.showToast("❌ " + err.message, "danger", 4500);
@@ -8875,7 +8875,7 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
         <div style="font-size: 52px; margin-bottom: 12px; line-height: 1;">📨</div>
         <h3 style="font-size: 19px; font-weight: 800; color: var(--text-primary); margin: 0 0 8px 0;">Văn Bản Của Bạn Đã Được Chuyển Tiếp!</h3>
         <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin: 0 0 16px 0;">
-          Yêu cầu của bạn đã được gửi trực tiếp đến hộp thư của <strong>Admin Bùi Văn Khang (${EmailService.ADMIN_EMAIL})</strong>.
+          Yêu cầu của bạn đã được gửi trực tiếp đến hộp thư của <strong>Admin Shina (${EmailService.ADMIN_EMAIL})</strong>.
         </p>
 
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 14px; text-align: left; font-size: 13px; line-height: 1.7; margin-bottom: 20px;">
@@ -9049,8 +9049,8 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
           <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
             <div style="font-size: 28px;">👨‍💻</div>
             <div>
-              <strong style="font-size: 14.5px; color: #0c4a6e;">Bùi Văn Khang</strong> (Trưởng Ban Phát Triển)
-              <div style="font-size: 12px; color: #0284c7;">Lớp ĐHCNSH24A · Khoa Kỹ thuật - Công nghệ · ĐH Đồng Tháp</div>
+              <strong style="font-size: 14.5px; color: #0c4a6e;">Shina (Bùi Văn Khang)</strong> (Creator & Lead Developer)
+              <div style="font-size: 12px; color: #0284c7;">Biệt danh: Shina Sanora · Shinora Academic Studio</div>
             </div>
           </div>
           <div style="font-size: 12.5px; border-top: 1px dashed #7dd3fc; padding-top: 6px; margin-top: 6px; display: flex; flex-direction: column; gap: 3px;">
@@ -9141,7 +9141,7 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
       content
     };
 
-    this.showToast("⏳ Đang gửi lời nhắn đến Admin Bùi Văn Khang...", "info", 2000);
+    this.showToast("⏳ Đang gửi lời nhắn đến Admin Shina...", "info", 2000);
 
     // 1. Gửi qua Google Apps Script về email Admin
     await EmailService.sendSupportTicket(ticketData);
@@ -9164,7 +9164,7 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
             <div style="font-size: 40px; margin-bottom: 6px;">🎓</div>
             <h2 style="font-size: 22px; font-weight: 800; color: var(--text-primary); margin: 0;">Đăng Ký Tài Khoản Học Tập</h2>
             <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
-              Dành cho sinh viên Trường Đại học Đồng Tháp (DThu)
+              Nền tảng Tự học & Luyện thi Trắc nghiệm Thông minh
             </p>
           </div>
 
@@ -9309,7 +9309,7 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
               <div>📧 <strong>Email:</strong> ${newUser.email}</div>
               <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #fde047; font-weight: 700; color: #b45309; display: flex; align-items: center; gap: 8px;">
                 <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #f59e0b; animation: pulse 1s infinite;"></span>
-                <span>Trạng thái: Đang chờ Quản trị viên (Bùi Văn Khang) phê duyệt...</span>
+                <span>Trạng thái: Đang chờ Quản trị viên (Shina) phê duyệt...</span>
               </div>
             </div>
             <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px;">
@@ -9365,7 +9365,7 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
             quizzesCompleted: 0,
             status: "active",
             permissions: cloudUser.permissions || {},
-            approvedBy: cloudUser.approved_by || "Bùi Văn Khang",
+            approvedBy: cloudUser.approved_by || "Admin Shina",
             approvedAt: cloudUser.approved_at,
             createdAt: cloudUser.created_at
           };
@@ -9583,7 +9583,7 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
     const displaySubjectName = draft.name || (targetSubObj ? targetSubObj.name : "");
     const displaySubjectCode = draft.code || (targetSubObj ? targetSubObj.code : "POL101");
     const displayDepartment = draft.department || (targetSubObj ? targetSubObj.department : "Khoa Kỹ thuật - Công nghệ");
-    const displayAuthor = draft.author || "Sinh viên DThu";
+    const displayAuthor = draft.author || "Học viên Shinora";
     const displayDesc = draft.description || (targetSubObj ? targetSubObj.description : "");
 
     container.innerHTML = `
@@ -10239,7 +10239,7 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
         <!-- Hero Header -->
         <div class="guide-hero">
           <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-            <span class="badge badge-blue" style="font-size: 13px;">DThu QuizMaster</span>
+            <span class="badge badge-blue" style="font-size: 13px;">Shinora QuizMaster</span>
             <span class="badge badge-green">Phiên bản 2.2 (Mới Nhất)</span>
           </div>
           <h2 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin-bottom: 8px;">
@@ -10368,7 +10368,7 @@ D. Chức năng tâm lý</div>
         <div class="guide-section">
           <h3>⚡ 4. Hệ Thống Điểm Thưởng: EXP Học Tập & CP Cống Hiến Sản Lượng</h3>
           <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 16px;">
-            DThu QuizMaster áp dụng hệ thống phân định điểm số kép chặt chẽ, minh bạch và tách bạch rõ ràng giữa <strong>Điểm Mùa Này</strong> và <strong>Điểm Tổng Các Mùa (All-Time)</strong>:
+            Shinora QuizMaster áp dụng hệ thống phân định điểm số kép chặt chẽ, minh bạch và tách bạch rõ ràng giữa <strong>Điểm Mùa Này</strong> và <strong>Điểm Tổng Các Mùa (All-Time)</strong>:
           </p>
 
           <div class="guide-step-item">
@@ -10639,7 +10639,7 @@ D. Chức năng tâm lý</div>
 Câu 2: Cho biểu thức kinh tế \`P * Q = M * V\` và điều kiện \`a < b & c > d\`. Nhận định nào sau đây là chuẩn xác?
 A. Giá trị tỷ lệ $100% với hashtag #kinh_te
 * B. Biểu thức \`P * Q = M * V\` thỏa mãn điều kiện (a < b & c > d) > Đúng: Hệ thống hỗ trợ 100% công thức code & so sánh!
-C. Ký hiệu @author: Bùi Văn Khang (Sinh viên CNSH - ĐH Đồng Tháp)
+C. Ký hiệu @author: Shina (Bùi Văn Khang)
 D. Trích dẫn nguyên văn: "Quy luật giá trị thặng dư là quy luật tuyệt đối"
 
 Câu 3: Hai phát kiến vĩ đại của *C. Mác* và *Ph. Ăng-ghen* tạo tiền đề lý luận cho sự ra đời của CNXHKH là gì?
@@ -10671,7 +10671,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
 Câu 2: Cho biểu thức kinh tế \`P * Q = M * V\` và điều kiện \`a < b & c > d\`. Nhận định nào sau đây là chuẩn xác?
 A. Giá trị tỷ lệ $100% với hashtag #kinh_te
 * B. Biểu thức \`P * Q = M * V\` thỏa mãn điều kiện (a < b & c > d) > Đúng: Hệ thống hỗ trợ 100% công thức code & so sánh!
-C. Ký hiệu @author: Bùi Văn Khang (Sinh viên CNSH - ĐH Đồng Tháp)
+C. Ký hiệu @author: Shina (Bùi Văn Khang)
 D. Trích dẫn nguyên văn: "Quy luật giá trị thặng dư là quy luật tuyệt đối"
 
 Câu 3: Hai phát kiến vĩ đại của *C. Mác* và *Ph. Ăng-ghen* tạo tiền đề lý luận cho sự ra đời của CNXHKH là gì?
@@ -10738,7 +10738,7 @@ Câu 2: Nội dung câu hỏi số 2 ở đây?
       </div>
       <div class="form-group">
         <label class="form-label">Người biên soạn / Sinh viên đóng góp:</label>
-        <input type="text" id="newSubAuthor" class="form-control" placeholder="Bùi Văn Khang - CNSH DThu">
+        <input type="text" id="newSubAuthor" class="form-control" placeholder="Shina (Bùi Văn Khang)">
       </div>
       <div class="form-group">
         <label class="form-label">Mô tả môn học:</label>
@@ -10758,7 +10758,7 @@ Câu 2: Nội dung câu hỏi số 2 ở đây?
     const name = document.getElementById("newSubName")?.value.trim();
     const code = document.getElementById("newSubCode")?.value.trim().toUpperCase();
     const dept = document.getElementById("newSubDept")?.value.trim() || "Đại học Đồng Tháp";
-    const author = document.getElementById("newSubAuthor")?.value.trim() || "Sinh viên DThu";
+    const author = document.getElementById("newSubAuthor")?.value.trim() || "Shina (Bùi Văn Khang)";
     const desc = document.getElementById("newSubDesc")?.value.trim() || "";
 
     if (!name || !code) {

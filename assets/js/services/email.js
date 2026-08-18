@@ -10,10 +10,10 @@ const EmailService = {
   ADMIN_PRIMARY_EMAIL: "vkhg.bui@gmail.com",
   ADMIN_BACKUP_EMAIL: "giaosukhang621@gmail.com",
   ADMIN_PHONE: "0354616301",
-  ADMIN_NAME: "Bùi Văn Khang",
-  ADMIN_CLASS: "ĐHCNSH24A",
+  ADMIN_NAME: "Shina (Bùi Văn Khang)",
+  ADMIN_CLASS: "Shinora Dev",
   ADMIN_MSSV: "0024418475",
-  ADMIN_UNIT: "Khoa Kỹ thuật - Công nghệ",
+  ADMIN_UNIT: "Shinora Academic Studio",
   DEFAULT_EXPIRY_SECONDS: 300, // 300 giây (5 phút)
 
   getAppsScriptUrl() {
@@ -34,7 +34,7 @@ const EmailService = {
 
   /**
    * Kiểm tra định dạng và cấu trúc email (Chạy ẩn ở dưới)
-   * Chấp nhận: @dthu.edu.vn hoặc các domain email phổ biến chuẩn RFC 5322
+   * Chấp nhận: các domain email phổ biến chuẩn RFC 5322
    */
   validateEmail(email) {
     if (!email || typeof email !== "string") {
@@ -44,7 +44,7 @@ const EmailService = {
     const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     
     if (!regex.test(clean)) {
-      return { isValid: false, message: "Định dạng email không hợp lệ (Ví dụ: sinhvien@dthu.edu.vn hoặc user@gmail.com)!" };
+      return { isValid: false, message: "Định dạng email không hợp lệ (Ví dụ: user@gmail.com)!" };
     }
 
     const domain = clean.split("@")[1];
@@ -55,7 +55,7 @@ const EmailService = {
     // Các đuôi domain bị cấm hoặc rác phổ biến
     const blockedDomains = ["tempmail.com", "10minutemail.com", "fake.com", "test.com", "dispostable.com"];
     if (blockedDomains.includes(domain)) {
-      return { isValid: false, message: "Vui lòng không sử dụng email tạm thời. Hãy dùng email sinh viên DThu hoặc Gmail chính chủ!" };
+      return { isValid: false, message: "Vui lòng không sử dụng email tạm thời. Hãy dùng email chính chủ!" };
     }
 
     return { isValid: true, email: clean, message: "Email hợp lệ." };
@@ -73,7 +73,7 @@ const EmailService = {
       const payload = {
         action: "send-otp",
         email: email,
-        fullName: fullName || "Sinh viên DThu",
+        fullName: fullName || "Học viên Shinora",
         studentId: studentId || "",
         otp: otpCode,
         expirySeconds: expirySeconds
@@ -117,7 +117,7 @@ const EmailService = {
     return {
       success: true,
       isRealEmail: false,
-      message: `[Mô phỏng Email DThu] Mã OTP: ${otpCode}`,
+      message: `[Mô phỏng Email Shinora] Mã OTP: ${otpCode}`,
       otp: otpCode,
       expirySeconds: expirySeconds
     };

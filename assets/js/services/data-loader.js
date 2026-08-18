@@ -11,8 +11,8 @@ const DataLoader = {
       id: "CNXHKH",
       code: "POL102",
       name: "Chủ nghĩa Xã hội Khoa học",
-      department: "Khoa Lý luận Chính trị",
-      author: "Bùi Văn Khang (CNSH DThu)",
+      department: "Lý luận Chính trị",
+      author: "Shina (Bùi Văn Khang)",
       description: "Bộ câu hỏi ôn tập và thi thử chuẩn môn Chủ nghĩa Xã hội Khoa học gồm đầy đủ 7 chương.",
       icon: "📕",
       status: "official",
@@ -31,8 +31,8 @@ const DataLoader = {
       id: "TRIET_HOC",
       code: "POL101",
       name: "Triết học Mác - Lênin",
-      department: "Khoa Lý luận Chính trị",
-      author: "Ban Học tập & NCKH DThu",
+      department: "Lý luận Chính trị",
+      author: "Shinora Academic Community",
       description: "Ngân hàng trắc nghiệm Triết học Mác - Lênin (Chủ nghĩa duy vật biện chứng và duy vật lịch sử).",
       icon: "🏛️",
       status: "official",
@@ -47,9 +47,9 @@ const DataLoader = {
       id: "VI_SINH",
       code: "BIO201",
       name: "Vi sinh vật học đại cương",
-      department: "Khoa Sư phạm Khoa học Tự nhiên",
-      author: "Bùi Văn Khang (CNSH DThu)",
-      description: "Bộ câu hỏi ôn thi môn Vi sinh vật học đại cương dành cho sinh viên ngành Công nghệ Sinh học.",
+      department: "Khoa học Tự nhiên",
+      author: "Shina (Bùi Văn Khang)",
+      description: "Bộ câu hỏi ôn thi môn Vi sinh vật học đại cương tham khảo dành cho sinh viên ngành Sinh học.",
       icon: "🔬",
       status: "official",
       chapters: [
@@ -140,12 +140,12 @@ const DataLoader = {
       subjectId: "CNXHKH",
       title: "Tóm tắt lý thuyết trọng tâm 7 chương - CNXHKH",
       fileType: "txt",
-      author: "Bùi Văn Khang (CNSH DThu)",
+      author: "Shina (Bùi Văn Khang)",
       description: "Tóm tắt đầy đủ định nghĩa, tiền đề kinh tế - xã hội và sứ mệnh lịch sử GCCN.",
       filePath: "data/materials/cnxhkh-tom-tat.txt",
       content: `================================================================================
 TÀI LIỆU ÔN TẬP TÓM TẮT: CHỦ NGHĨA XÃ HỘI KHOA HỌC (POL102)
-Biên soạn: Bùi Văn Khang (Sinh viên CNSH - Trường Đại học Đồng Tháp)
+Biên soạn: Shina (Bùi Văn Khang)
 ================================================================================
 
 CHƯƠNG 1: NHẬP MÔN CHỦ NGHĨA XÃ HỘI KHOA HỌC
@@ -174,12 +174,12 @@ CHƯƠNG 1: NHẬP MÔN CHỦ NGHĨA XÃ HỘI KHOA HỌC
       subjectId: "VI_SINH",
       title: "Bảng tra cứu thuật ngữ & khái niệm trọng tâm - Vi sinh vật học",
       fileType: "txt",
-      author: "Bùi Văn Khang (CNSH DThu)",
+      author: "Shina (Bùi Văn Khang)",
       description: "Tra cứu cấu trúc peptidoglycan, cơ chế nhuộm Gram và 4 pha sinh trưởng vi sinh vật.",
       filePath: "data/materials/vi-sinh-thuat-ngu.txt",
       content: `================================================================================
 BẢNG TRA CỨU THUẬT NGỮ & KHÁI NIỆM TRỌNG TÂM: VI SINH VẬT HỌC (BIO201)
-Biên soạn: Bùi Văn Khang (Sinh viên CNSH - Trường Đại học Đồng Tháp)
+Biên soạn: Shina (Bùi Văn Khang)
 ================================================================================
 
 1. Peptidoglycan (Murein):

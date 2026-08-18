@@ -1,7 +1,7 @@
-# 🎓 DThu QuizMaster – Nền Tảng Ôn Tập & Thi Trắc Nghiệm Đại Học
+# 🎓 Shinora QuizMaster – Nền Tảng Ôn Tập & Thi Trắc Nghiệm Đại Học
 
 > **Tác giả:** Bùi Văn Khang  
-> **Chuyên ngành:** Công nghệ Sinh học – Trường Đại học Đồng Tháp (DThu)  
+> **Chuyên ngành:** Công nghệ Sinh học – Cộng đồng Tự học & Ôn thi Shinora (DThu)  
 > **Mục tiêu:** Hệ thống mã nguồn mở giúp sinh viên tự quản lý ngân hàng đề cương, ôn tập theo chương có giải thích tức thì, và thi thử tính giờ trực tuyến.
 
 ---
@@ -82,13 +82,13 @@
 
 ## 🚀 Hướng Dẫn Đưa Lên GitHub Pages (Online Miễn Phí 100%)
 
-1. Tạo một repository mới trên [GitHub](https://github.com) (ví dụ: `dthu-quizmaster`), chọn chế độ **Public**.
+1. Tạo một repository mới trên [GitHub](https://github.com) (ví dụ: `shinora-quizmaster`), chọn chế độ **Public**.
 2. Tải toàn bộ các thư mục và file của dự án này lên GitHub.
 3. Vào mục **Settings** của repository ➔ Chọn **Pages** (ở cột bên trái).
 4. Tại mục **Branch**, chọn nhánh `main` (hoặc `master`) ➔ Bấm **Save**.
 5. Đợi 1 phút, bạn sẽ nhận được đường link web có dạng:
    ```
-   https://<ten-tai-khoan-cua-ban>.github.io/dthu-quizmaster/
+   https://<ten-tai-khoan-cua-ban>.github.io/shinora-quizmaster/
    ```
 
 ---

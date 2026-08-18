@@ -1,6 +1,6 @@
 # 🚀 Hướng Dẫn Triển Khai Google Apps Script (Gửi Email Thật Miễn Phí 100%)
 
-Tài liệu hướng dẫn triển khai hệ thống gửi email tự động cho **DThu QuizMaster** thông qua Google Apps Script (tích hợp trực tiếp với Gmail cá nhân hoặc Google Workspace trường ĐH Đồng Tháp `@dthu.edu.vn`).
+Tài liệu hướng dẫn triển khai hệ thống gửi email tự động cho **Shinora QuizMaster** thông qua Google Apps Script (tích hợp trực tiếp với Gmail cá nhân hoặc Google Workspace trường ĐH Đồng Tháp `@dthu.edu.vn`).
 
 ---
 
@@ -20,7 +20,7 @@ Tài liệu hướng dẫn triển khai hệ thống gửi email tự động ch
 1. Ở góc trên bên phải của Google Apps Script, bấm vào nút màu xanh **`Triển khai` (Deploy)** $\rightarrow$ Chọn **`Triển khai mới` (New deployment)**.
 2. Tại cửa sổ hiện ra:
    - Bấm vào biểu tượng bánh răng ⚙️ bên cạnh dòng *Chọn loại* $\rightarrow$ Chọn **`Ứng dụng web` (Web app)**.
-   - **Mô tả (Description)**: `DThu QuizMaster Email Gateway v2.0`.
+   - **Mô tả (Description)**: `Shinora QuizMaster Email Gateway v2.0`.
    - **Thực thi dưới dạng (Execute as)**: Chọn **`Tôi` (Me - địa chỉ email của bạn)**.
    - **Ai có quyền truy cập (Who has access)**: Chọn **`Bất kỳ ai` (Anyone)** *(Quan trọng: phải chọn "Bất kỳ ai" để trình duyệt web có thể gửi OTP và báo cáo sự cố qua API mà không cần đăng nhập tài khoản Google)*.
 3. Bấm nút **`Triển khai` (Deploy)**.
@@ -32,14 +32,14 @@ Tài liệu hướng dẫn triển khai hệ thống gửi email tự động ch
 
 ---
 
-## 📌 Bước 3: Lấy URL và Dán Vào DThu QuizMaster
+## 📌 Bước 3: Lấy URL và Dán Vào Shinora QuizMaster
 
 1. Sau khi triển khai xong, Google sẽ cung cấp cho bạn một **URL Ứng dụng web** dạng:
    ```
    https://script.google.com/macros/s/AKfycbx.../exec
    ```
 2. Sao chép (Copy) đường link URL này.
-3. Mở ứng dụng **DThu QuizMaster** $\rightarrow$ Vào **Quản Lý Người Dùng** $\rightarrow$ Bấm nút **⚙️ Cấu Hình Google Apps Script** $\rightarrow$ Dán đường link URL vào và bấm **Lưu Cấu Hình**.
+3. Mở ứng dụng **Shinora QuizMaster** $\rightarrow$ Vào **Quản Lý Người Dùng** $\rightarrow$ Bấm nút **⚙️ Cấu Hình Google Apps Script** $\rightarrow$ Dán đường link URL vào và bấm **Lưu Cấu Hình**.
 
 ---
 
