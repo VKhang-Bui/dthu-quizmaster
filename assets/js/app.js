@@ -1,14 +1,9 @@
 /**
  * SHINORA QUIZMASTER - MAIN CONTROLLER & APPLICATION ROUTER
- * Tác giả: Shina (Bùi Văn Khang)
+ * Tác giả: Shina Sanora
  *
  * File này chỉ chứa: Application State, Init lifecycle, SPA Router, Modal Helpers, Global Events, Draggable Button.
  * Các View modules được phân tách trong thư mục assets/js/views/ và gán methods vào App qua Object.assign().
- */
-
-/**
- * SHINORA QUIZMASTER - MAIN CONTROLLER & APPLICATION ROUTER
- * Tác giả: Shina (Bùi Văn Khang)
  */
 
 const App = {

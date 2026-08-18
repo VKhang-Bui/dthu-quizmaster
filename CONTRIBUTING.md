@@ -11,7 +11,7 @@ Chào mừng bạn đến với dự án **Shinora QuizMaster**! Dự án đư�
 3. Bấm **`📥 Tải file JSON (.json)`** về máy của bạn.
 4. Truy cập vào mục **[Issues trên GitHub](https://github.com/VKhang-Bui/shinora-quizmaster/issues/new/choose)**.
 5. Chọn **"📤 Đóng góp Bộ Đề Thi Mới"**, điền tên môn học và đính kèm file `.json` vừa tải.
-6. Admin (**Bùi Văn Khang**) sẽ kiểm tra và tích hợp môn học của bạn vào hệ thống chính thức!
+6. Ban Quản Trị (**Shina Sanora**) sẽ kiểm tra và tích hợp môn học của bạn vào hệ thống chính thức!
 
 ---
 
@@ -24,5 +24,5 @@ Chào mừng bạn đến với dự án **Shinora QuizMaster**! Dự án đư�
 
 ---
 
-**Biên soạn & Quản trị dự án:** Bùi Văn Khang (Sinh viên CNSH - Cộng đồng Tự học & Ôn thi Shinora)  
-**Email liên hệ:** `vkhang.bui.dthu@gmail.com`
+**Biên soạn & Quản trị dự án:** Shina Sanora (Shinora Academic & Technology Studio)  
+**Kênh tiếp nhận:** Gửi Ticket trực tuyến qua trang web hoặc tạo GitHub Issue.

@@ -173,7 +173,7 @@ Object.assign(App, {
                 </li>
                 <li>
                   <strong>🌟 Chính Thức Ra Mắt Trang Giới Thiệu Dự Án (#about)</strong>:
-                  Không gian trình bày trực quan sứ mệnh giáo dục phi thương mại 100%, câu chuyện phát triển, 6 trụ cột công nghệ học tập thông minh và thông tin tác giả Shina (Bùi Văn Khang).
+                  Không gian trình bày trực quan sứ mệnh giáo dục phi thương mại 100%, câu chuyện phát triển, 6 trụ cột công nghệ học tập thông minh và thông tin tác giả Shina Sanora.
                 </li>
                 <li>
                   <strong>🚀 Chuẩn Hóa SEO &amp; Xác Minh Google Search Console</strong>:
@@ -301,8 +301,8 @@ Object.assign(App, {
               </div>
               <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.75;">
                 <li>
-                  <strong>📜 Ban Hành Điều Khoản Dịch Vụ & Thỏa Thuận Sử Dụng (ToS)</strong>:
-                  Công bố chính thức văn bản pháp lý 6 Điều khoản độc lập bảo vệ bản quyền tác giả <strong>Shina (Bùi Văn Khang)</strong>, cam kết bảo mật quyền riêng tư không thương mại hóa dữ liệu và thiết lập cơ chế tiếp nhận gỡ bỏ bản quyền khẩn cấp.
+                  <strong>📜 Ban Hành Điều Khoản Dịch Vụ &amp; Thỏa Thuận Sử Dụng (ToS)</strong>:
+                  Công bố chính thức văn bản pháp lý 6 Điều khoản độc lập bảo vệ bản quyền tác giả <strong>Shina Sanora</strong>, cam kết bảo mật quyền riêng tư không thương mại hóa dữ liệu và thiết lập cơ chế tiếp nhận gỡ bỏ bản quyền khẩn cấp.
                 </li>
                 <li>
                   <strong>🚀 Cập nhật Engine PDF.js lõi lên chuẩn 3.11</strong>:

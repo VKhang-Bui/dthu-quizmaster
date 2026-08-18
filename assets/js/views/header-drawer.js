@@ -54,7 +54,7 @@ Object.assign(App, {
         <div class="brand-icon">${Icons.get('logo', 22, '', '#ffffff')}</div>
         <div class="brand-title-group">
           <h1>Shinora QuizMaster</h1>
-          <div class="brand-author">Phát triển bởi Shina (Bùi Văn Khang)</div>
+          <div class="brand-author">Phát triển bởi Shina Sanora</div>
         </div>
       </div>
 
@@ -803,11 +803,11 @@ Object.assign(App, {
 
             <div style="text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; margin-top: 16px; font-size: 13px; line-height: 1.6; color: var(--text-secondary);">
               <div style="display: flex; align-items: center; gap: 6px;">${Icons.get('book', 14)} <strong>Dự án:</strong> Shinora QuizMaster (Học tập & Nghiên cứu)</div>
-              <div style="display: flex; align-items: center; gap: 6px;">${Icons.get('user', 14)} <strong>Tác giả:</strong> Shina (Bùi Văn Khang)</div>
-              <div style="display: flex; align-items: center; gap: 6px;">${Icons.get('sparkles', 14)} <strong>Biệt danh:</strong> Shina Sanora · Developer</div>
+              <div style="display: flex; align-items: center; gap: 6px;">${Icons.get('user', 14)} <strong>Tác giả:</strong> Shina Sanora · Lead Developer</div>
+              <div style="display: flex; align-items: center; gap: 6px;">${Icons.get('sparkles', 14)} <strong>Đơn vị:</strong> Shinora Academic Studio</div>
               <div style="display: flex; align-items: flex-start; gap: 6px; margin-top: 4px;">
                 <span style="flex-shrink: 0; margin-top: 2px;">${Icons.get('target', 14)}</span>
-                <span><strong>Mục tiêu:</strong> Nền tảng ôn thi trắc nghiệm mở, lưu trữ tài liệu số và chia sẻ đề thi phi thương mại 100% cho sinh viên.</span>
+                <span><strong>Mục tiêu:</strong> Nền tảng ôn thi trắc nghiệm mở, lưu trữ tài liệu số và chia sẻ công cụ tự học thông minh cho sinh viên.</span>
               </div>
             </div>
 

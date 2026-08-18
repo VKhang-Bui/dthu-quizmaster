@@ -4,21 +4,21 @@
  * ═════════════════════════════════════════════════════════════════════════════
  * Hệ thống tự động gửi Email OTP (Hiệu lực 300s) và Phiếu hỗ trợ CSKH đến Admin.
  * 
- * Tác giả: Shina (Bùi Văn Khang) - Shinora Academic Studio
+ * Tác giả: Shina Sanora - Shinora Academic & Technology Studio
  * Phiên bản: 2.0 (Google Workspace / Gmail Integration)
  * ═════════════════════════════════════════════════════════════════════════════
  */
 
 // Cấu hình Email Quản Trị Viên & CSKH Mặc Định
 const CONFIG = {
-  ADMIN_EMAIL: "vkhg.bui@gmail.com, giaosukhang621@gmail.com",
-  ADMIN_NAME: "Shina (Bùi Văn Khang)",
-  ADMIN_CLASS: "ĐHCNSH24A",
-  ADMIN_MSSV: "0024418475",
-  ADMIN_PHONE: "0354616301",
-  ADMIN_UNIT: "Khoa Kỹ thuật - Công nghệ · Trường Đại học Đồng Tháp",
-  APP_NAME: "DThu QuizMaster",
-  SYSTEM_TITLE: "Hệ Thống Ôn Thi Trắc Nghiệm - Đại Học Đồng Tháp"
+  ADMIN_EMAIL: "admin@example.com",
+  ADMIN_NAME: "Shina Sanora",
+  ADMIN_CLASS: "Shinora Dev",
+  ADMIN_MSSV: "ADMIN_MSSV",
+  ADMIN_PHONE: "0000000000",
+  ADMIN_UNIT: "Shinora Academic & Technology Studio",
+  APP_NAME: "Shinora QuizMaster",
+  SYSTEM_TITLE: "Hệ Thống Tự Học & Luyện Thi Trắc Nghiệm Trực Tuyến"
 };
 
 /**
@@ -178,7 +178,7 @@ function handleSendOtp(data) {
         </div>
 
         <p style="font-size: 13px; color: #64748b; margin-bottom: 0;">
-          Nếu bạn gặp sự cố, vui lòng liên hệ CSKH & Admin Bùi Văn Khang qua email: <a href="mailto:${CONFIG.ADMIN_EMAIL}" style="color: #0284c7; text-decoration: none; font-weight: 600;">${CONFIG.ADMIN_EMAIL}</a>.
+          Nếu bạn gặp sự cố, vui lòng liên hệ Ban Quản Trị qua email: <a href="mailto:${CONFIG.ADMIN_EMAIL}" style="color: #0284c7; text-decoration: none; font-weight: 600;">${CONFIG.ADMIN_EMAIL}</a>.
         </p>
       </div>
 
@@ -224,7 +224,7 @@ function handleSendCskhTicket(data) {
       <div style="background: linear-gradient(135deg, #e11d48 0%, #be123c 100%); padding: 22px 28px; text-align: center; color: #ffffff;">
         <div style="font-size: 36px; margin-bottom: 6px;">🆘</div>
         <h1 style="font-size: 19px; font-weight: 800; margin: 0;">PHIẾU BÁO CÁO SỰ CỐ & YÊU CẦU CSKH</h1>
-        <div style="font-size: 13px; opacity: 0.9; margin-top: 4px;">Gửi đến Ban Quản Trị & Admin Bùi Văn Khang</div>
+        <div style="font-size: 13px; opacity: 0.9; margin-top: 4px;">Gửi đến Ban Quản Trị Shinora Studio</div>
       </div>
 
       <!-- Info Table -->
@@ -245,18 +245,18 @@ ${content}
         </div>
 
         <div style="border-top: 1px dashed #cbd5e1; padding-top: 14px; font-size: 12.5px; color: #64748b;">
-          💡 <strong>Hướng dẫn xử lý cho Admin:</strong> Bạn có thể truy cập Bảng quản trị người dùng trên DThu QuizMaster để cấp lại mã PIN mặc định <code>123456</code> hoặc phản hồi qua email của sinh viên ở trên.
+          💡 <strong>Hướng dẫn xử lý cho Admin:</strong> Bạn có thể truy cập Bảng quản trị người dùng trên Shinora QuizMaster để cấp lại mã PIN mặc định <code>000000</code> hoặc phản hồi qua email của sinh viên ở trên.
         </div>
       </div>
 
       <!-- Footer -->
       <div style="background: #f1f5f9; border-top: 1px solid #e2e8f0; padding: 14px 28px; text-align: center; font-size: 12px; color: #64748b;">
-        Thông báo tự động từ Hệ Thống CSKH DThu QuizMaster
+        Thông báo tự động từ Hệ Thống CSKH Shinora QuizMaster
       </div>
     </div>
   `;
 
-  // Gửi email cho Admin Bùi Văn Khang
+  // Gửi email cho Ban Quản Trị
   MailApp.sendEmail({
     to: CONFIG.ADMIN_EMAIL,
     subject: subject,

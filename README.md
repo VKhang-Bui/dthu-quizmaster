@@ -1,8 +1,8 @@
 # 🎓 Shinora QuizMaster – Nền Tảng Ôn Tập & Thi Trắc Nghiệm Đại Học
 
-> **Tác giả:** Bùi Văn Khang  
-> **Chuyên ngành:** Công nghệ Sinh học – Cộng đồng Tự học & Ôn thi Shinora (DThu)  
-> **Mục tiêu:** Hệ thống mã nguồn mở giúp sinh viên tự quản lý ngân hàng đề cương, ôn tập theo chương có giải thích tức thì, và thi thử tính giờ trực tuyến.
+> **Tác giả:** Shina Sanora (Lead Developer)  
+> **Đơn vị:** Shinora Academic & Technology Studio  
+> **Mục tiêu:** Nền tảng mã nguồn mở giúp sinh viên tự học, quản lý ngân hàng câu hỏi, ôn tập theo chương có giải thích tức thì và thi thử tính giờ trực tuyến.
 
 ---
 

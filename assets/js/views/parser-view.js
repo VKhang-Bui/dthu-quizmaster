@@ -371,7 +371,7 @@ D. Chỉ bao gồm bộ phận Kinh tế chính trị Mác - Lênin > Sai: Đây
 Câu 2: Công thức nào sau đây biểu thị đúng điều kiện cân bằng trong điều kiện kinh tế: \`P * Q = M * V\` và so sánh \`a < b & c > d\`?
 A. Điều kiện kinh tế số 1 với $100% tỷ lệ #thành_công
 * B. Phương trình \`P * Q = M * V\` và biểu thức so sánh (a < b & c > d) > Đúng: Hỗ trợ 100% ký tự toán học, code và dấu đặc biệt!
-C. Ký hiệu @author: Shina (Bùi Văn Khang) & Shinora Community
+C. Ký hiệu @author: Shina Sanora &amp; Shinora Community
 D. Biểu thức 'chuỗi ký tự đặc biệt': "100% chính xác?" / [Ghi chú]
 
 Câu 3: Phát kiến vĩ đại nào của *C. Mác* và *Ph. Ăng-ghen* tạo tiền đề để luận chứng sự ra đời của CNXHKH?

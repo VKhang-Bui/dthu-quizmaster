@@ -302,7 +302,7 @@ const StorageService = {
   DEFAULT_USERS: [
     {
       id: "USR-01",
-      fullName: "Bùi Văn Khang",
+      fullName: "Shina Sanora",
       studentId: "admin",
       className: "ADMIN",
       email: "vkhg.bui@gmail.com",
@@ -768,7 +768,7 @@ const StorageService = {
     return list.filter(u => u.status !== "pending_approval" && u.status !== "rejected");
   },
 
-  approveUserRegistration(userId, adminName = "Shina (Bùi Văn Khang)") {
+  approveUserRegistration(userId, adminName = "Shina Sanora") {
     const user = this.getUserById(userId);
     if (!user) return null;
     return this.updateUser(userId, {
@@ -1821,7 +1821,7 @@ const StorageService = {
       top2Title: "🥈 Hạng 2 (Top 2)",
       top3Title: "🥉 Hạng 3 (Top 3)",
       createdAt: "2026-08-01T00:00:00.000Z",
-      createdBy: "Shina (Bùi Văn Khang)"
+      createdBy: "Shina Sanora"
     }
   ],
 

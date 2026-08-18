@@ -8,7 +8,7 @@ const DEFAULT_SUBJECTS = [
     code: "POL102",
     name: "Chủ nghĩa Xã hội Khoa học",
     department: "Lý luận Chính trị",
-    author: "Shina (Bùi Văn Khang)",
+    author: "Shina Sanora",
     description: "Bộ câu hỏi ôn tập và thi thử chuẩn môn Chủ nghĩa Xã hội Khoa học gồm đầy đủ các chương.",
     chapters: [
       { id: "c1", name: "Chương 1: Nhập môn Chủ nghĩa Xã hội Khoa học" },
@@ -262,7 +262,7 @@ const DEFAULT_SUBJECTS = [
     code: "BIO201",
     name: "Vi sinh vật học đại cương",
     department: "Công nghệ Sinh học",
-    author: "Shina (Bùi Văn Khang)",
+    author: "Shina Sanora",
     description: "Bộ câu hỏi ôn thi môn Vi sinh vật học đại cương tham khảo dành cho sinh viên ngành Sinh học/CNSH.",
     chapters: [
       { id: "c1", name: "Chương 1: Hình thái và cấu tạo tế bào vi sinh vật" },

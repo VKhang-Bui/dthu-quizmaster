@@ -12,7 +12,7 @@ const DataLoader = {
       code: "POL102",
       name: "Chủ nghĩa Xã hội Khoa học",
       department: "Lý luận Chính trị",
-      author: "Shina (Bùi Văn Khang)",
+      author: "Shina Sanora",
       description: "Bộ câu hỏi ôn tập và thi thử chuẩn môn Chủ nghĩa Xã hội Khoa học gồm đầy đủ 7 chương.",
       icon: "📕",
       status: "official",
@@ -48,7 +48,7 @@ const DataLoader = {
       code: "BIO201",
       name: "Vi sinh vật học đại cương",
       department: "Khoa học Tự nhiên",
-      author: "Shina (Bùi Văn Khang)",
+      author: "Shina Sanora",
       description: "Bộ câu hỏi ôn thi môn Vi sinh vật học đại cương tham khảo dành cho sinh viên ngành Sinh học.",
       icon: "🔬",
       status: "official",
@@ -228,7 +228,7 @@ const DataLoader = {
       subjectId: "CNXHKH",
       title: "Tóm tắt lý thuyết trọng tâm 7 chương - CNXHKH",
       fileType: "md",
-      author: "Shina (Bùi Văn Khang)",
+      author: "Shina Sanora",
       readTimeMin: 6,
       wordCount: 1850,
       tags: ["CNXHKH", "Chính trị", "Trọng tâm 7 chương"],
@@ -236,7 +236,7 @@ const DataLoader = {
       filePath: "data/materials/cnxhkh-tom-tat.txt",
       content: `# 📕 TÓM TẮT TRỌNG TÂM 7 CHƯƠNG: CHỦ NGHĨA XÃ HỘI KHOA HỌC (POL102)
 
-> **Tác giả:** Shina (Bùi Văn Khang) · **Cập nhật:** 2026 · **Dành cho sinh viên:** Đại cương toàn trường
+> **Tác giả:** Shina Sanora · **Cập nhật:** 2026 · **Dành cho sinh viên:** Đại cương toàn trường
 
 ---
 
@@ -322,14 +322,14 @@ const DataLoader = {
       subjectId: "TRIET_HOC",
       title: "Cẩm nang 2 Nguyên Lý, 3 Quy Luật & 6 Cặp Phạm Trù - Triết học Mác",
       fileType: "md",
-      author: "Shina (Bùi Văn Khang)",
+      author: "Shina Sanora",
       readTimeMin: 7,
       wordCount: 2100,
       tags: ["Triết học", "Mác - Lênin", "Phép biện chứng", "Quy luật"],
       description: "Tổng hợp cốt lõi Phép biện chứng duy vật và Chủ nghĩa duy vật lịch sử.",
       content: `# 📘 CẨM NANG TOÀN DIỆN PHÉP BIỆN CHỨNG DUY VẬT (POL101)
 
-> **Tác giả:** Shina (Bùi Văn Khang) · **Bộ môn:** Triết học Mác - Lênin
+> **Tác giả:** Shina Sanora · **Bộ môn:** Triết học Mác - Lênin
 
 ---
 
@@ -375,7 +375,7 @@ const DataLoader = {
       subjectId: "KTCT",
       title: "Bản đồ tư duy Hàng hóa, Tiền tệ & Giá trị thặng dư - KTCT Mác",
       fileType: "md",
-      author: "Shina (Bùi Văn Khang)",
+      author: "Shina Sanora",
       readTimeMin: 5,
       wordCount: 1600,
       tags: ["Kinh tế chính trị", "Hàng hóa", "Giá trị thặng dư", "Quy luật giá trị"],
@@ -408,7 +408,7 @@ const DataLoader = {
       subjectId: "VI_SINH",
       title: "Bảng tra cứu thuật ngữ & khái niệm trọng tâm - Vi sinh vật học",
       fileType: "md",
-      author: "Shina (Bùi Văn Khang)",
+      author: "Shina Sanora",
       readTimeMin: 5,
       wordCount: 1400,
       tags: ["Vi sinh", "Nhuộm Gram", "Peptidoglycan", "Pha sinh trưởng"],
@@ -439,7 +439,7 @@ const DataLoader = {
       subjectId: "HOA_SINH",
       title: "Sơ đồ chuyển hóa Glucid, Lipid & Chu trình Krebs - Hóa sinh học",
       fileType: "md",
-      author: "Shina (Bùi Văn Khang)",
+      author: "Shina Sanora",
       readTimeMin: 6,
       wordCount: 1700,
       tags: ["Hóa sinh", "Krebs", "Enzyme", "Glucid", "ATP"],
@@ -474,7 +474,7 @@ const DataLoader = {
       subjectId: "TOAN_CC",
       title: "Sổ tay công thức Ma Trận, Định Thức & Hệ Phương Trình Tuyến Tính",
       fileType: "md",
-      author: "Shina (Bùi Văn Khang)",
+      author: "Shina Sanora",
       readTimeMin: 6,
       wordCount: 1500,
       tags: ["Toán cao cấp", "Đại số tuyến tính", "Ma trận", "Định thức", "Cramer"],
@@ -509,7 +509,7 @@ const DataLoader = {
       subjectId: "IT101",
       title: "Cẩm nang các hàm Excel & Phím tắt tin học văn phòng trọng điểm",
       fileType: "md",
-      author: "Shina (Bùi Văn Khang)",
+      author: "Shina Sanora",
       readTimeMin: 4,
       wordCount: 1200,
       tags: ["Tin học", "Excel", "Phím tắt", "Hàm logic"],

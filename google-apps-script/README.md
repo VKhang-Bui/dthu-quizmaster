@@ -45,5 +45,5 @@ Tài liệu hướng dẫn triển khai hệ thống gửi email tự động ch
 
 ## ✨ Kết Quả Đạt Được:
 - **Gửi Email OTP**: Sinh viên yêu cầu đặt lại mã PIN sẽ nhận được email HTML chuẩn nhận diện ĐH Đồng Tháp trong vòng 1-2 giây với mã OTP có hiệu lực 300 giây.
-- **Báo cáo sự cố CSKH**: Khi sinh viên bấm *"Thử cách khác"* và gửi văn bản phản ánh, email sẽ tự động gửi thẳng về hòm thư của Admin (`bvkhang.cnsh@dthu.edu.vn`).
+- **Báo cáo sự cố CSKH**: Khi sinh viên bấm *"Thử cách khác"* và gửi văn bản phản ánh, email sẽ tự động gửi thẳng về hòm thư của Admin cấu hình trong `Code.gs`.
 - **Hoàn toàn miễn phí**: Giới hạn lên đến 100 - 1500 emails/ngày mà không tốn bất kỳ chi phí duy trì nào!

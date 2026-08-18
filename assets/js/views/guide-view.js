@@ -572,7 +572,7 @@ D. Chức năng tâm lý</div>
 Câu 2: Cho biểu thức kinh tế \`P * Q = M * V\` và điều kiện \`a < b & c > d\`. Nhận định nào sau đây là chuẩn xác?
 A. Giá trị tỷ lệ $100% với hashtag #kinh_te
 * B. Biểu thức \`P * Q = M * V\` thỏa mãn điều kiện (a < b & c > d) > Đúng: Hệ thống hỗ trợ 100% công thức code & so sánh!
-C. Ký hiệu @author: Shina (Bùi Văn Khang)
+C. Ký hiệu @author: Shina Sanora
 D. Trích dẫn nguyên văn: "Quy luật giá trị thặng dư là quy luật tuyệt đối"
 
 Câu 3: Hai phát kiến vĩ đại của *C. Mác* và *Ph. Ăng-ghen* tạo tiền đề lý luận cho sự ra đời của CNXHKH là gì?
@@ -604,7 +604,7 @@ Giải thích: Chủ nghĩa duy vật lịch sử và Học thuyết giá trị 
 Câu 2: Cho biểu thức kinh tế \`P * Q = M * V\` và điều kiện \`a < b & c > d\`. Nhận định nào sau đây là chuẩn xác?
 A. Giá trị tỷ lệ $100% với hashtag #kinh_te
 * B. Biểu thức \`P * Q = M * V\` thỏa mãn điều kiện (a < b & c > d) > Đúng: Hệ thống hỗ trợ 100% công thức code & so sánh!
-C. Ký hiệu @author: Shina (Bùi Văn Khang)
+C. Ký hiệu @author: Shina Sanora
 D. Trích dẫn nguyên văn: "Quy luật giá trị thặng dư là quy luật tuyệt đối"
 
 Câu 3: Hai phát kiến vĩ đại của *C. Mác* và *Ph. Ăng-ghen* tạo tiền đề lý luận cho sự ra đời của CNXHKH là gì?
@@ -668,7 +668,7 @@ Câu 2: Nội dung câu hỏi số 2 ở đây?
       </div>
       <div class="form-group">
         <label class="form-label">Người biên soạn / Sinh viên đóng góp:</label>
-        <input type="text" id="newSubAuthor" class="form-control" placeholder="Shina (Bùi Văn Khang)">
+        <input type="text" id="newSubAuthor" class="form-control" placeholder="Shina Sanora">
       </div>
       <div class="form-group">
         <label class="form-label">Mô tả môn học:</label>
@@ -688,7 +688,7 @@ Câu 2: Nội dung câu hỏi số 2 ở đây?
     const name = document.getElementById("newSubName")?.value.trim();
     const code = document.getElementById("newSubCode")?.value.trim().toUpperCase();
     const dept = document.getElementById("newSubDept")?.value.trim() || "Đại học Đồng Tháp";
-    const author = document.getElementById("newSubAuthor")?.value.trim() || "Shina (Bùi Văn Khang)";
+    const author = document.getElementById("newSubAuthor")?.value.trim() || "Shina Sanora";
     const desc = document.getElementById("newSubDesc")?.value.trim() || "";
 
     if (!name || !code) {

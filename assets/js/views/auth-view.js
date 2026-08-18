@@ -848,7 +848,7 @@ Object.assign(App, {
 
         <div class="form-group" style="margin: 0;">
           <label class="form-label">Nội dung văn bản trình bày chi tiết (*):</label>
-          <textarea id="supportContent" class="form-control" rows="5" placeholder="Kính gửi Ban Quản Trị & Admin Bùi Văn Khang,&#10;&#10;Em gặp sự cố...&#10;Kính mong Ban Quản Trị hỗ trợ cấp lại mã PIN hoặc mở khóa tài khoản giúp em. Em xin chân thành cảm ơn!" style="resize: vertical; line-height: 1.5; font-size: 13.5px;"></textarea>
+          <textarea id="supportContent" class="form-control" rows="5" placeholder="Kính gửi Ban Quản Trị &amp; Admin Shina Sanora,&#10;&#10;Em gặp sự cố...&#10;Kính mong Ban Quản Trị hỗ trợ cấp lại mã PIN hoặc mở khóa tài khoản giúp em. Em xin chân thành cảm ơn!" style="resize: vertical; line-height: 1.5; font-size: 13.5px;"></textarea>
         </div>
       </div>
     `;
@@ -1075,13 +1075,13 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
           <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
             <div style="color:#0284c7; display:flex; align-items:center;">${Icons.get('user', 28)}</div>
             <div>
-              <strong style="font-size: 14.5px; color: #0c4a6e;">Shina (Bùi Văn Khang)</strong> (Creator & Lead Developer)
-              <div style="font-size: 12px; color: #0284c7;">Biệt danh: Shina Sanora · Shinora Academic Studio</div>
+              <strong style="font-size: 14.5px; color: #0c4a6e;">Shina Sanora</strong> (Lead Developer &amp; Project Lead)
+              <div style="font-size: 12px; color: #0284c7;">Shinora Academic &amp; Technology Studio</div>
             </div>
           </div>
           <div style="font-size: 12.5px; border-top: 1px dashed #7dd3fc; padding-top: 6px; margin-top: 6px; display: flex; flex-direction: column; gap: 3px;">
-            <div>Email CSKH: <strong>vkhg.bui@gmail.com</strong> · <strong>giaosukhang621@gmail.com</strong></div>
-            <div>Hotline / Zalo hỗ trợ: <strong>0354 616 301</strong> (Hỗ trợ 24/7)</div>
+            <div>Kênh tiếp nhận: <strong>Hệ thống Ticket Trực Tuyến &amp; Email Hỗ Trợ Kỹ Thuật</strong></div>
+            <div>Thời gian tiếp nhận &amp; đối soát: <strong>Trong vòng 24 - 48 giờ làm việc</strong></div>
           </div>
         </div>
 
@@ -1126,7 +1126,7 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
 
         <div class="form-group" style="margin: 0;">
           <label class="form-label">Nội dung chi tiết (*):</label>
-          <textarea id="contactMessage" class="form-control" rows="4" placeholder="Kính gửi Ban Quản Trị DThu QuizMaster & Admin Bùi Văn Khang,&#10;&#10;Em xin phép đóng góp ý kiến..." style="resize: vertical; font-size: 13.5px; line-height: 1.5;"></textarea>
+          <textarea id="contactMessage" class="form-control" rows="4" placeholder="Kính gửi Ban Quản Trị Shinora QuizMaster &amp; Developer Shina Sanora,&#10;&#10;Em xin phép đóng góp ý kiến..." style="resize: vertical; font-size: 13.5px; line-height: 1.5;"></textarea>
         </div>
       </div>
     `;
@@ -1168,7 +1168,7 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
       content
     };
 
-    this.showToast("⏳ Đang gửi lời nhắn đến Admin Shina...", "info", 2000);
+    this.showToast("⏳ Đang gửi lời nhắn đến Ban Quản Trị...", "info", 2000);
 
     // 1. Gửi qua Google Apps Script về email Admin
     await EmailService.sendSupportTicket(ticketData);
@@ -1177,6 +1177,6 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
     StorageService.createSupportTicket(ticketData);
 
     this.closeModal();
-    this.showToast(`🎉 Cảm ơn bạn! Lời nhắn đã được chuyển tiếp thành công đến hộp thư của Admin (Bùi Văn Khang)!`, "success", 5000);
+    this.showToast(`🎉 Cảm ơn bạn! Lời nhắn đã được chuyển tiếp thành công đến Ban Quản Trị Shinora Studio!`, "success", 5000);
   }
 });

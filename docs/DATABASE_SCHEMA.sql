@@ -1,7 +1,7 @@
 -- ==============================================================================
 -- DTHU QUIZMASTER - SUPABASE POSTGRESQL DATABASE SCHEMA & RLS POLICIES
--- Tác giả: Bùi Văn Khang (Lớp ĐHCNSH24A - Khoa Kỹ thuật & Công nghệ - ĐH Đồng Tháp)
--- Dự án: Hệ thống Ôn tập & Thi trắc nghiệm Đại học Đồng Tháp
+-- Tác giả: Shina Sanora (Shinora Academic & Technology Studio)
+-- Dự án: Hệ thống Tự học & Luyện thi trắc nghiệm trực tuyến
 -- ==============================================================================
 
 -- 1. BẬT EXTENSIONS CẦN THIẾT
@@ -36,15 +36,15 @@ CREATE INDEX IF NOT EXISTS idx_users_student_id ON public.users(student_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
 CREATE INDEX IF NOT EXISTS idx_users_status ON public.users(status);
 
--- Seed Tài Khoản ADMIN Mặc Định (Bùi Văn Khang)
+-- Seed Tài Khoản ADMIN Mặc Định (Shina Sanora)
 INSERT INTO public.users (
     id, student_id, class_name, full_name, email, phone, department, role, pin_code, avatar, total_exp, streak_days, quizzes_completed, status, permissions
 ) VALUES (
     'USR-01',
     'admin',
     'ADMIN',
-    'Bùi Văn Khang',
-    'vkhg.bui@gmail.com',
+    'Shina Sanora',
+    'admin@example.com',
     '',
     'Khoa Kỹ thuật - Công nghệ',
     'admin',

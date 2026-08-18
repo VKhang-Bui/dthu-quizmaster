@@ -1,6 +1,6 @@
 /**
  * SHINORA DYNAMIC ISLAND (ĐẢO ĐỘNG THÔNG MINH TRÊN WEB)
- * Tác giả: Shina (Bùi Văn Khang)
+ * Tác giả: Shina Sanora
  * 
  * Tính năng chính:
  * 1. 🏝️ 4 Trạng thái biến hình (Stealth Notch -> Compact Pill -> Expanded Bar -> Full Widget Popover)

@@ -37,23 +37,23 @@ Object.assign(App, {
         </div>
 
         <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px;">
-          <h4 style="font-size: 14px; font-weight: 800; color: var(--brand-primary); margin: 0 0 6px 0;">ĐIỀU 3: BẢN QUYỀN & QUY TRÌNH GỠ BỎ (TAKEDOWN 24H-48H)</h4>
+          <h4 style="font-size: 14px; font-weight: 800; color: var(--brand-primary); margin: 0 0 6px 0;">ĐIỀU 3: BẢN QUYỀN &amp; QUY TRÌNH GỠ BỎ (TAKEDOWN 24H-48H)</h4>
           <p style="font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 0;">
-            Bản quyền phần mềm thuộc Nhà phát triển Shina (Bùi Văn Khang). Người dùng tự chịu trách nhiệm về tài liệu tải lên. Mọi khiếu nại bản quyền gửi về <code>vkhg.bui@gmail.com</code> sẽ được gỡ bỏ ngay trong vòng 24 - 48 giờ làm việc.
+            Bản quyền phần mềm thuộc Nhà phát triển Shina Sanora (Shinora Studio). Người dùng tự chịu trách nhiệm về tài liệu tải lên. Mọi khiếu nại bản quyền gửi qua kênh tiếp nhận sẽ được gỡ bỏ ngay trong vòng 24 - 48 giờ làm việc.
           </p>
         </div>
 
         <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px;">
-          <h4 style="font-size: 14px; font-weight: 800; color: var(--brand-primary); margin: 0 0 6px 0;">ĐIỀU 4: BẢO MẬT THÔNG TIN & KHÔNG BÁN DỮ LIỆU</h4>
+          <h4 style="font-size: 14px; font-weight: 800; color: var(--brand-primary); margin: 0 0 6px 0;">ĐIỀU 4: BẢO MẬT THÔNG TIN &amp; KHÔNG BÁN DỮ LIỆU</h4>
           <p style="font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 0;">
             Cam kết 100% không thương mại hóa, không bán danh sách sinh viên hay email cho bất kỳ bên thứ ba nào. Bạn có toàn quyền xuất file sao lưu JSON hoặc yêu cầu xóa vĩnh viễn tài khoản bất kỳ lúc nào.
           </p>
         </div>
 
         <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px;">
-          <h4 style="font-size: 14px; font-weight: 800; color: var(--brand-primary); margin: 0 0 6px 0;">ĐIỀU 5 & 6: MIỄN TRỪ BẢO ĐẢM & THÔNG TIN LIÊN HỆ</h4>
+          <h4 style="font-size: 14px; font-weight: 800; color: var(--brand-primary); margin: 0 0 6px 0;">ĐIỀU 5 &amp; 6: MIỄN TRỪ BẢO ĐẢM &amp; THÔNG TIN LIÊN HỆ</h4>
           <p style="font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 0;">
-            Cung cấp nguyên trạng "As-Is", mức bồi thường tài chính tối đa bằng 0 VNĐ. Người dùng cam kết giữ cho Nhà phát triển không bị tổn hại. Liên hệ chính thức: Email <code>vkhg.bui@gmail.com</code> · Hotline <code>0354 616 301</code>.
+            Cung cấp nguyên trạng "As-Is", mức bồi thường tài chính tối đa bằng 0 VNĐ. Người dùng cam kết giữ cho Nhà phát triển không bị tổn hại. Kênh liên hệ chính thức: Form hỗ trợ trực tuyến &amp; Ticket CSKH.
           </p>
         </div>
 
@@ -212,7 +212,7 @@ Object.assign(App, {
               <div class="terms-section-block">
                 <div class="terms-section-subheading">1.6. Tuyên bố Độc lập Tuyệt đối (Non-Affiliation Statement)</div>
                 <p class="terms-section-paragraph">
-                  Dự án được khởi xướng và phát triển độc lập bởi cá nhân <strong>Shina (Bùi Văn Khang)</strong>. Nền tảng hoàn toàn không có mối quan hệ ủy quyền, không đại diện pháp lý và không trực thuộc quyền sở hữu hay quản lý của Trường Đại học Đồng Tháp cũng như bất kỳ tổ chức giáo dục nào khác.
+                  Dự án được khởi xướng và phát triển độc lập bởi Nhà phát triển <strong>Shina Sanora (Shinora Studio)</strong>. Nền tảng hoàn toàn không có mối quan hệ ủy quyền, không đại diện pháp lý và không trực thuộc quyền sở hữu hay quản lý của bất kỳ tổ chức hay cơ sở giáo dục nào.
                 </p>
               </div>
 
@@ -224,16 +224,16 @@ Object.assign(App, {
               </div>
 
               <div class="terms-section-block">
-                <div class="terms-section-subheading">1.8. Quyền Sửa đổi, Nâng cấp & Bảo trì Kỹ thuật (Service Evolution)</div>
+                <div class="terms-section-subheading">1.8. Quyền Sửa đổi, Nâng cấp &amp; Bảo trì Kỹ thuật (Service Evolution)</div>
                 <p class="terms-section-paragraph">
                   Ban Phát triển giữ toàn quyền cập nhật thuật toán, bảo trì cơ sở dữ liệu, sửa đổi tính năng hoặc điều chỉnh nội dung thỏa thuận sử dụng để phù hợp với định hướng vận hành mà không bắt buộc phải phát đi thông báo trước.
                 </p>
               </div>
 
               <div class="terms-section-block">
-                <div class="terms-section-subheading">1.9. Địa chỉ Truy cập Chính thức và Cảnh báo Chống Mạo danh (Official URLs & Anti-Phishing)</div>
+                <div class="terms-section-subheading">1.9. Địa chỉ Truy cập Chính thức và Cảnh báo Chống Mạo danh (Official URLs &amp; Anti-Phishing)</div>
                 <p class="terms-section-paragraph">
-                  Thỏa thuận sử dụng này áp dụng độc quyền cho các địa chỉ truy cập chính thức của nền tảng Shinora QuizMaster do Nhà phát triển Shina (Bùi Văn Khang) trực tiếp quản lý, bao gồm tên miền chính thức trên GitHub Pages tại địa chỉ <code>https://vkhang-bui.github.io/dthu-quizmaster/</code> (hoặc <code>https://shinora-quizmaster.vercel.app</code>) cùng các trang định tuyến nội bộ liên kết. Ban Phát triển không chịu bất kỳ trách nhiệm pháp lý nào đối với các phiên bản phần mềm bị sao chép, chỉnh sửa mã nguồn trái phép, hoặc các trang web mạo danh hoạt động ngoài danh mục các địa chỉ chính thức nêu trên.
+                  Thỏa thuận sử dụng này áp dụng độc quyền cho các địa chỉ truy cập chính thức của nền tảng Shinora QuizMaster do Nhà phát triển Shina Sanora trực tiếp quản lý, bao gồm tên miền chính thức trên GitHub Pages tại địa chỉ <code>https://vkhang-bui.github.io/dthu-quizmaster/</code> cùng các trang định tuyến nội bộ liên kết. Ban Phát triển không chịu bất kỳ trách nhiệm pháp lý nào đối với các phiên bản phần mềm bị sao chép, chỉnh sửa mã nguồn trái phép, hoặc các trang web mạo danh hoạt động ngoài danh mục các địa chỉ chính thức nêu trên.
                 </p>
               </div>
             </section>
@@ -298,7 +298,7 @@ Object.assign(App, {
               <div class="terms-section-block">
                 <div class="terms-section-subheading">3.1. Quyền Sở hữu Trí tuệ đối với Hệ thống và Phần mềm</div>
                 <p class="terms-section-paragraph">
-                  Toàn bộ mã nguồn phần mềm, kiến trúc cơ sở dữ liệu, giao diện UI/UX, thuật toán xử lý độc quyền (Smart Parser, Shuffle Engine, Season Studio) và nhận diện thương hiệu thuộc quyền sở hữu trí tuệ duy nhất của Nhà phát triển <strong>Shina (Bùi Văn Khang)</strong>. Nghiêm cấm tuyệt đối mọi hành vi dịch ngược mã nguồn (Reverse Engineering), sao chép toàn phần hoặc từng phần nhằm mục đích thương mại khi chưa có sự chấp thuận bằng văn bản.
+                  Toàn bộ mã nguồn phần mềm, kiến trúc cơ sở dữ liệu, giao diện UI/UX, thuật toán xử lý độc quyền (Smart Parser, Shuffle Engine, Season Studio) và nhận diện thương hiệu thuộc quyền sở hữu trí tuệ duy nhất của Nhà phát triển <strong>Shina Sanora (Shinora Studio)</strong>. Nghiêm cấm tuyệt đối mọi hành vi dịch ngược mã nguồn (Reverse Engineering), sao chép toàn phần hoặc từng phần nhằm mục đích thương mại khi chưa có sự chấp thuận bằng văn bản.
                 </p>
               </div>
 
@@ -326,10 +326,10 @@ Object.assign(App, {
               <div class="terms-section-block">
                 <div class="terms-section-subheading">3.5. Trách nhiệm Trung gian và Cơ chế Gỡ bỏ Nội dung Vi phạm (Takedown Policy)</div>
                 <p class="terms-section-paragraph">
-                  Shinora QuizMaster vận hành theo nguyên tắc Cảng an toàn (Safe Harbor). Chủ sở hữu bản quyền hợp pháp khi phát hiện quyền lợi bị xâm phạm chỉ cần gửi thông báo chính thức kèm chứng cứ xác minh đến địa chỉ email: <strong>vkhg.bui@gmail.com</strong>. Ban Quản trị cam kết sẽ tiến hành đối soát và thực thi gỡ bỏ ngay lập tức nội dung bị khiếu nại trong vòng <strong>24 đến 48 giờ làm việc</strong> một cách thiện chí.
+                  Shinora QuizMaster vận hành theo nguyên tắc Cảng an toàn (Safe Harbor). Chủ sở hữu bản quyền hợp pháp khi phát hiện quyền lợi bị xâm phạm chỉ cần gửi thông báo chính thức kèm chứng cứ xác minh qua Form Liên Hệ trực tuyến hoặc Hòm thư tiếp nhận. Ban Quản trị cam kết sẽ tiến hành đối soát và thực thi gỡ bỏ ngay lập tức nội dung bị khiếu nại trong vòng <strong>24 đến 48 giờ làm việc</strong> một cách thiện chí.
                 </p>
                 <div class="terms-alert-box">
-                  📩 <strong>Kênh Tiếp Nhận Bản Quyền:</strong> Email tiếp nhận gỡ bỏ khẩn cấp: <code>vkhg.bui@gmail.com</code> hoặc Hotline <code>0354 616 301</code>.
+                  📩 <strong>Kênh Tiếp Nhận Bản Quyền:</strong> Gửi phiếu tiếp nhận trực tuyến qua mục <a href="javascript:void(0)" onclick="App.openContactModal()" style="color: var(--brand-primary); font-weight: 700; text-decoration: underline;">Liên Hệ &amp; Báo Lỗi</a> trên thanh điều hướng.
                 </div>
               </div>
             </section>
@@ -415,7 +415,7 @@ Object.assign(App, {
               <div class="terms-section-block">
                 <div class="terms-section-subheading">5.5. Nghĩa vụ Giữ cho Nhà Phát triển Không bị Tổn hại (Indemnification)</div>
                 <p class="terms-section-paragraph">
-                  Người dùng cam kết tự chịu trách nhiệm độc lập trước pháp luật, đồng ý bảo vệ, bồi thường và giữ cho Nhà phát triển Shina (Bùi Văn Khang) cùng đội ngũ quản trị hoàn toàn không bị tổn hại trước mọi khiếu nại, tranh chấp hay chi phí pháp lý phát sinh do hành vi vi phạm của chính Người dùng.
+                  Người dùng cam kết tự chịu trách nhiệm độc lập trước pháp luật, đồng ý bảo vệ, bồi thường và giữ cho Nhà phát triển Shina Sanora cùng đội ngũ quản trị hoàn toàn không bị tổn hại trước mọi khiếu nại, tranh chấp hay chi phí pháp lý phát sinh do hành vi vi phạm của chính Người dùng.
                 </p>
               </div>
             </section>
@@ -454,10 +454,9 @@ Object.assign(App, {
                   Thông tin đầu mối liên hệ duy nhất của nền tảng:
                 </p>
                 <div style="background: var(--surface-hover, #f8fafc); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; margin-top: 8px; font-size: 13px; line-height: 1.7; color: var(--text-secondary);">
-                  <div>👨‍💻 <strong>Tác giả & Lead Developer:</strong> Shina (Bùi Văn Khang)</div>
-                  <div>🏷️ <strong>Biệt danh:</strong> Shina Sanora · Shinora Academic Studio</div>
-                  <div>📧 <strong>Email tiếp nhận hỗ trợ & bản quyền:</strong> <a href="mailto:vkhg.bui@gmail.com" style="color: var(--brand-primary); font-weight: 700;">vkhg.bui@gmail.com</a></div>
-                  <div>📞 <strong>Hotline hỗ trợ kỹ thuật:</strong> <a href="tel:0354616301" style="color: var(--brand-primary); font-weight: 700;">0354 616 301</a></div>
+                  <div>👨‍💻 <strong>Tác giả &amp; Lead Developer:</strong> Shina Sanora</div>
+                  <div>🏷️ <strong>Đơn vị:</strong> Shinora Academic &amp; Technology Studio</div>
+                  <div>📩 <strong>Kênh tiếp nhận hỗ trợ &amp; bản quyền:</strong> <a href="javascript:void(0)" onclick="App.openContactModal()" style="color: var(--brand-primary); font-weight: 700;">Hệ thống Ticket CSKH &amp; Báo lỗi trực tuyến</a></div>
                   <div>⭐ <strong>Mã nguồn mở GitHub:</strong> <a href="https://github.com/VKhang-Bui/dthu-quizmaster" target="_blank" rel="noopener noreferrer" style="color: var(--brand-primary);">github.com/VKhang-Bui/dthu-quizmaster</a></div>
                 </div>
               </div>

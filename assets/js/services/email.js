@@ -10,7 +10,7 @@ const EmailService = {
   ADMIN_PRIMARY_EMAIL: "vkhg.bui@gmail.com",
   ADMIN_BACKUP_EMAIL: "",
   ADMIN_PHONE: "0000000000",
-  ADMIN_NAME: "Shina (Bùi Văn Khang)",
+  ADMIN_NAME: "Shina Sanora",
   ADMIN_CLASS: "Shinora Dev",
   ADMIN_MSSV: "ADMIN_MSSV",
   ADMIN_UNIT: "Shinora Academic Studio",
@@ -124,7 +124,7 @@ const EmailService = {
   },
 
   /**
-   * Gửi Phiếu Báo Cáo Sự Cố / CSKH đến Email của Admin Bùi Văn Khang
+   * Gửi Phiếu Báo Cáo Sự Cố / CSKH đến Email của Admin Shina Sanora
    */
   async sendSupportTicket(ticketData) {
     const url = this.getAppsScriptUrl();

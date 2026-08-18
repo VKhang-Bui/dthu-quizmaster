@@ -1,10 +1,10 @@
 /**
  * ABOUT VIEW MODULE — Trang Giới Thiệu Dự Án
  * Shinora QuizMaster v3.1.3
- * Tác giả: Shina (Bùi Văn Khang)
+ * Tác giả: Shina Sanora
  *
  * Trình bày câu chuyện, sứ mệnh, công nghệ và tác giả đằng sau
- * nền tảng luyện thi trắc nghiệm phi thương mại dành cho sinh viên DTHU.
+ * nền tảng luyện thi trắc nghiệm thông minh dành cho sinh viên Đại học & Cao đẳng.
  */
 
 Object.assign(App, {
@@ -49,7 +49,7 @@ Object.assign(App, {
             <div style="display: inline-flex; align-items: center; gap: 8px; margin: 8px 0 20px; flex-wrap: wrap; justify-content: center;">
               <span class="badge badge-blue" style="font-size: 12px; font-weight: 700;">v3.1.3</span>
               <span class="badge badge-green" style="font-size: 12px; font-weight: 700;">Bản phát hành ổn định</span>
-              <span class="badge" style="font-size: 12px; font-weight: 700; background: var(--surface-subtle, var(--surface)); border: 1px solid var(--border);">Phi thương mại 100%</span>
+              <span class="badge" style="font-size: 12px; font-weight: 700; background: var(--surface-subtle, var(--surface)); border: 1px solid var(--border);">Học tập độc lập</span>
             </div>
 
             <p style="
@@ -61,7 +61,7 @@ Object.assign(App, {
             ">
               Nền tảng tự học, luyện thi trắc nghiệm thông minh và chia sẻ tri thức
               <strong style="color: var(--text-primary);">phi thương mại</strong> dành cho sinh viên
-              <strong style="color: var(--text-primary);">Đại học Đồng Tháp</strong>.
+              <strong style="color: var(--text-primary);">Đại học &amp; Cao đẳng</strong>.
             </p>
 
             <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
@@ -272,10 +272,10 @@ Object.assign(App, {
 
             <div style="flex: 1; min-width: 220px;">
               <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0 0 2px;">
-                Shina (Bùi Văn Khang)
+                Shina Sanora
               </h3>
               <div style="font-size: 13px; color: var(--brand-primary); font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
-                ${Icons.get('sparkles', 13)} Shina Sanora · Creator & Developer
+                ${Icons.get('sparkles', 13)} Lead Developer &amp; System Architect
               </div>
 
               <div style="
@@ -284,19 +284,15 @@ Object.assign(App, {
               ">
                 <div style="display: flex; align-items: center; gap: 8px;">
                   ${Icons.get('home', 14)}
-                  <span>Sinh viên <strong>Đại học Đồng Tháp (DTHU)</strong></span>
+                  <span>Đơn vị: <strong>Shinora Academic &amp; Technology Studio</strong></span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
                   ${Icons.get('target', 14)}
-                  <span>Phát triển phần mềm học tập phi lợi nhuận cho cộng đồng sinh viên</span>
+                  <span>Nghiên cứu &amp; phát triển các giải pháp phần mềm tự học thông minh</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
                   ${Icons.get('contact', 14)}
-                  <a href="mailto:vkhg.bui@gmail.com" style="color: var(--brand-primary); font-weight: 600;">vkhg.bui@gmail.com</a>
-                </div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  ${Icons.get('zap', 14)}
-                  <span>Hotline: <a href="tel:0354616301" style="color: var(--brand-primary); font-weight: 700;">0354 616 301</a></span>
+                  <a href="javascript:void(0)" onclick="App.openContactModal()" style="color: var(--brand-primary); font-weight: 600;">Hỗ trợ &amp; Góp ý qua Form Ticket trực tuyến</a>
                 </div>
               </div>
 

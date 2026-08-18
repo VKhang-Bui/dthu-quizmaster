@@ -1,7 +1,7 @@
 # 🗺️ KẾ HOẠCH & TÀI LIỆU KIẾN TRÚC DỰ ÁN DTHU QUIZMASTER (V2.0 CLOUD-NATIVE)
 
 > **Dự án:** Shinora QuizMaster – Nền tảng Ôn tập, Thi trắc nghiệm & Thư viện Tài liệu Sinh viên  
-> **Tác giả:** Bùi Văn Khang (CNSH – Shinora Academy)  
+> **Tác giả:** Shina Sanora (Shinora Academic & Technology Studio)  
 > **Mục tiêu:** Nâng cấp từ ứng dụng LocalStorage tĩnh thành Hệ thống Học tập Trực tuyến Đa người dùng 100% Miễn phí, 24/7 Uptime, hỗ trợ Đăng nhập, Lịch sử làm bài, Đóng góp & Duyệt đề thi, Bảng xếp hạng và Kho tài liệu học tập (.txt, hình ảnh).
 
 ---
