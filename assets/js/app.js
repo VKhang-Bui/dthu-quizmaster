@@ -1163,6 +1163,10 @@ const App = {
       this.previousView = this.currentView;
       this.previousViewData = this.currentViewData || {};
     }
+    if (this.currentView && this.currentView !== view) {
+      this.previousView = this.currentView;
+    }
+    this.activeRouteData = data || {};
     this.currentView = view;
     this.currentViewData = data;
     this.updateActiveNav(view);
@@ -9167,6 +9171,112 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
   // ═════════════════════════════════════════════════════════════════════════
   // MÀN HÌNH ĐIỀU KHOẢN DỊCH VỤ & THỎA THUẬN SỬ DỤNG (TERMS OF SERVICE VIEW)
   // ═════════════════════════════════════════════════════════════════════════
+
+  // ── MỞ POPUP XEM ĐIỀU KHOẢN TẠI CHỖ (MODAL TERMS OF SERVICE) ──────────────
+  openTermsModal() {
+    // Tự động lưu nháp dữ liệu đang điền dở ở form đăng ký nếu có
+    this.saveRegisterFormDraft();
+
+    const modal = document.getElementById("appModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+    if (!modal || !title || !body || !footer) return;
+
+    title.innerHTML = "📜 Điều Khoản Dịch Vụ & Thỏa Thuận Sử Dụng";
+    body.innerHTML = `
+      <div style="max-height: 65vh; overflow-y: auto; padding: 6px 4px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 12px 14px; font-size: 13px; color: #166534; line-height: 1.5;">
+          ⚖️ <strong>Shinora QuizMaster</strong> là nền tảng tự học & luyện thi trắc nghiệm phi thương mại, 100% miễn phí. Bằng việc đăng ký tài khoản, bạn đồng ý với các điều khoản dưới đây.
+        </div>
+
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px;">
+          <h4 style="font-size: 14px; font-weight: 800; color: var(--brand-primary); margin: 0 0 6px 0;">ĐIỀU 1: PHẠM VI DỊCH VỤ & BẢN CHẤT TỰ HỌC</h4>
+          <p style="font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 0;">
+            Hệ thống cung cấp bộ câu hỏi rèn luyện, môi trường giả lập thi bấm giờ, trình bóc tách đề (Smart Parser) và lưu trữ cá nhân. Toàn bộ nội dung mang tính chất bài tập tham khảo, không đại diện cho đề thi chính thức hay cơ quan giáo dục nào.
+          </p>
+        </div>
+
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px;">
+          <h4 style="font-size: 14px; font-weight: 800; color: var(--brand-primary); margin: 0 0 6px 0;">ĐIỀU 2: TÀI KHOẢN, MÃ PIN 6 SỐ & BẢO MẬT</h4>
+          <p style="font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 0;">
+            Hệ thống chỉ dùng Mã PIN 6 số do bạn tự đặt, tuyệt đối <strong>KHÔNG</strong> thu thập mật khẩu email, mật khẩu cổng sinh viên hay ngân hàng. Ban Phát triển hoàn toàn miễn trừ trách nhiệm nếu bạn tự làm lộ mã PIN hoặc đặt trùng với mã PIN dịch vụ khác.
+          </p>
+        </div>
+
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px;">
+          <h4 style="font-size: 14px; font-weight: 800; color: var(--brand-primary); margin: 0 0 6px 0;">ĐIỀU 3: BẢN QUYỀN & QUY TRÌNH GỠ BỎ (TAKEDOWN 24H-48H)</h4>
+          <p style="font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 0;">
+            Bản quyền phần mềm thuộc Nhà phát triển Shina (Bùi Văn Khang). Người dùng tự chịu trách nhiệm về tài liệu tải lên. Mọi khiếu nại bản quyền gửi về <code>vkhg.bui@gmail.com</code> sẽ được gỡ bỏ ngay trong vòng 24 - 48 giờ làm việc.
+          </p>
+        </div>
+
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px;">
+          <h4 style="font-size: 14px; font-weight: 800; color: var(--brand-primary); margin: 0 0 6px 0;">ĐIỀU 4: BẢO MẬT THÔNG TIN & KHÔNG BÁN DỮ LIỆU</h4>
+          <p style="font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 0;">
+            Cam kết 100% không thương mại hóa, không bán danh sách sinh viên hay email cho bất kỳ bên thứ ba nào. Bạn có toàn quyền xuất file sao lưu JSON hoặc yêu cầu xóa vĩnh viễn tài khoản bất kỳ lúc nào.
+          </p>
+        </div>
+
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px;">
+          <h4 style="font-size: 14px; font-weight: 800; color: var(--brand-primary); margin: 0 0 6px 0;">ĐIỀU 5 & 6: MIỄN TRỪ BẢO ĐẢM & THÔNG TIN LIÊN HỆ</h4>
+          <p style="font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 0;">
+            Cung cấp nguyên trạng "As-Is", mức bồi thường tài chính tối đa bằng 0 VNĐ. Người dùng cam kết giữ cho Nhà phát triển không bị tổn hại. Liên hệ chính thức: Email <code>vkhg.bui@gmail.com</code> · Hotline <code>0354 616 301</code>.
+          </p>
+        </div>
+
+        <div style="text-align: center; margin-top: 4px;">
+          <a href="javascript:void(0)" onclick="App.closeModal(); App.navigateTo('terms', { fromView: 'register' });" style="font-size: 12.5px; color: var(--brand-primary); font-weight: 700; text-decoration: underline;">
+            📖 Nhấp để đọc toàn văn đầy đủ 6 Điều khoản chi tiết tại trang riêng ➔
+          </a>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Đóng</button>
+      <button class="btn btn-primary" style="font-weight: 700;" onclick="App.acceptTermsFromModal()">
+        ✅ Tôi Đã Đọc & Đồng Ý
+      </button>
+    `;
+
+    modal.classList.add("active");
+  },
+
+  acceptTermsFromModal() {
+    const check = document.getElementById("regTermsAgree");
+    if (check) {
+      check.checked = true;
+    }
+    this.toggleRegisterSubmitState();
+    this.saveRegisterFormDraft();
+    this.closeModal();
+    this.showToast("✅ Đã xác nhận đồng ý với Điều khoản Dịch vụ!", "success", 3000);
+  },
+
+  // ── LƯU NHÁP & PHỤC HỒI DỮ LIỆU BIỂU MẪU ĐĂNG KÝ (AUTO-DRAFT) ──────────────
+  saveRegisterFormDraft() {
+    const fullName = document.getElementById("regFullName")?.value || "";
+    const studentId = document.getElementById("regStudentId")?.value || "";
+    const email = document.getElementById("regEmail")?.value || "";
+    const dept = document.getElementById("regDept")?.value || "";
+    const pin = document.getElementById("regPin")?.value || "";
+    const pinConfirm = document.getElementById("regPinConfirm")?.value || "";
+    const avatar = document.getElementById("selectedRegAvatar")?.value || "👨‍🎓";
+    const termsAgree = document.getElementById("regTermsAgree")?.checked || false;
+
+    this.registerFormDraft = {
+      fullName,
+      studentId,
+      email,
+      department: dept,
+      pinCode: pin,
+      pinConfirm,
+      avatar,
+      termsAgree
+    };
+  },
+
   renderTermsView(container) {
     container.innerHTML = `
       <div class="view-terms">
@@ -9179,9 +9289,15 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
             <button class="btn btn-sm" onclick="window.print()" title="In hoặc xuất văn bản PDF">
               🖨️ In / Lưu PDF
             </button>
-            <button class="btn btn-sm btn-primary" onclick="App.navigateTo('home')">
-              ← Quay Lại Trang Chủ
-            </button>
+            ${(this.previousView === 'register' || (this.activeRouteData && this.activeRouteData.fromView === 'register')) ? `
+              <button class="btn btn-sm btn-primary" onclick="App.navigateTo('register')" title="Quay lại biểu mẫu đăng ký mà không mất dữ liệu">
+                ← Quay Lại Form Đăng Ký
+              </button>
+            ` : `
+              <button class="btn btn-sm btn-primary" onclick="App.navigateTo('home')">
+                ← Quay Lại Trang Chủ
+              </button>
+            `}
           </div>
         </div>
 
@@ -9518,6 +9634,10 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
   },
 
   renderRegisterView(container) {
+    const draft = this.registerFormDraft || {};
+    const selectedAvatar = draft.avatar || "👨‍🎓";
+    const isTermsAgreed = !!draft.termsAgree;
+
     container.innerHTML = `
       <div class="view-register">
         <div class="auth-card">
@@ -9536,42 +9656,44 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
 
             <div class="form-group" style="margin: 0;">
               <label class="form-label">Họ và tên sinh viên (*):</label>
-              <input type="text" id="regFullName" class="form-control" placeholder="Ví dụ: Lê Thị Thu Thảo">
+              <input type="text" id="regFullName" class="form-control" placeholder="Ví dụ: Lê Thị Thu Thảo" value="${draft.fullName || ''}" oninput="App.saveRegisterFormDraft()">
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
               <div class="form-group" style="margin: 0;">
                 <label class="form-label">Mã số sinh viên (MSSV) (*):</label>
-                <input type="text" id="regStudentId" class="form-control" placeholder="Ví dụ: 220105888">
+                <input type="text" id="regStudentId" class="form-control" placeholder="Ví dụ: 220105888" value="${draft.studentId || ''}" oninput="App.saveRegisterFormDraft()">
               </div>
               <div class="form-group" style="margin: 0;">
                 <label class="form-label">Email sinh viên / Cá nhân (*):</label>
-                <input type="email" id="regEmail" class="form-control" placeholder="Ví dụ: 220105888@dthu.edu.vn">
+                <input type="email" id="regEmail" class="form-control" placeholder="Ví dụ: user@gmail.com" value="${draft.email || ''}" oninput="App.saveRegisterFormDraft()">
               </div>
             </div>
 
             <div class="form-group" style="margin: 0;">
               <label class="form-label">Khoa / Chuyên ngành:</label>
-              <select id="regDept" class="form-control">
-                <option value="Khoa Nông nghiệp - Sinh học">Khoa Nông nghiệp - Sinh học</option>
-                <option value="Khoa Sư phạm Khoa học Xã hội">Khoa Sư phạm Khoa học Xã hội</option>
-                <option value="Khoa Sư phạm Khoa học Tự nhiên">Khoa Sư phạm Khoa học Tự nhiên</option>
-                <option value="Khoa Kỹ thuật - Công nghệ">Khoa Kỹ thuật - Công nghệ</option>
-                <option value="Khoa Kinh tế - Quản trị">Khoa Kinh tế - Quản trị</option>
-                <option value="Khoa Ngoại ngữ">Khoa Ngoại ngữ</option>
-                <option value="Khoa Giáo dục Tiểu học - Mầm non">Khoa Giáo dục Tiểu học - Mầm non</option>
-                <option value="Khác">Khoa / Chuyên ngành khác</option>
+              <select id="regDept" class="form-control" onchange="App.saveRegisterFormDraft()">
+                ${[
+                  "Khoa Nông nghiệp - Sinh học",
+                  "Khoa Sư phạm Khoa học Xã hội",
+                  "Khoa Sư phạm Khoa học Tự nhiên",
+                  "Khoa Kỹ thuật - Công nghệ",
+                  "Khoa Kinh tế - Quản trị",
+                  "Khoa Ngoại ngữ",
+                  "Khoa Giáo dục Tiểu học - Mầm non",
+                  "Khác"
+                ].map(dept => `<option value="${dept}" ${draft.department === dept ? 'selected' : ''}>${dept}</option>`).join('')}
               </select>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
               <div class="form-group" style="margin: 0;">
                 <label class="form-label">Tạo Mã PIN Đăng nhập (6 số) (*):</label>
-                <input type="password" id="regPin" class="form-control" placeholder="Mã PIN 6 số" maxlength="6">
+                <input type="password" id="regPin" class="form-control" placeholder="Mã PIN 6 số" maxlength="6" value="${draft.pinCode || ''}" oninput="App.saveRegisterFormDraft()">
               </div>
               <div class="form-group" style="margin: 0;">
                 <label class="form-label">Xác nhận Mã PIN (*):</label>
-                <input type="password" id="regPinConfirm" class="form-control" placeholder="Nhập lại mã PIN" maxlength="6">
+                <input type="password" id="regPinConfirm" class="form-control" placeholder="Nhập lại mã PIN" maxlength="6" value="${draft.pinConfirm || ''}" oninput="App.saveRegisterFormDraft()">
               </div>
             </div>
 
@@ -9579,22 +9701,22 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
             <div class="form-group" style="margin: 0;">
               <label class="form-label">Chọn Avatar đại diện:</label>
               <div class="avatar-picker-grid" id="regAvatarPicker">
-                ${['👨‍🎓', '👩‍🎓', '🧑‍💻', '👩‍💻', '🧪', '🧬', '🌟', '📚', '🎯', '🦁', '🦉', '🚀'].map((av, idx) => `
-                  <button type="button" class="avatar-choice-btn ${idx === 0 ? 'active' : ''}" onclick="App.selectRegAvatar('${av}', this)">
+                ${['👨‍🎓', '👩‍🎓', '🧑‍💻', '👩‍💻', '🧪', '🧬', '🌟', '📚', '🎯', '🦁', '🦉', '🚀'].map((av) => `
+                  <button type="button" class="avatar-choice-btn ${selectedAvatar === av ? 'active' : ''}" onclick="App.selectRegAvatar('${av}', this)">
                     ${av}
                   </button>
                 `).join('')}
               </div>
-              <input type="hidden" id="selectedRegAvatar" value="👨‍🎓">
+              <input type="hidden" id="selectedRegAvatar" value="${selectedAvatar}">
             </div>
 
             <!-- Khối Checkbox Chấp thuận Điều khoản Bắt buộc (Clickwrap) -->
             <div class="terms-checkbox-group">
               <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 12.5px; line-height: 1.5; color: var(--text-secondary); margin: 0;">
-                <input type="checkbox" id="regTermsAgree" onchange="App.toggleRegisterSubmitState()" style="margin-top: 3px; cursor: pointer; width: 16px; height: 16px;">
+                <input type="checkbox" id="regTermsAgree" onchange="App.toggleRegisterSubmitState(); App.saveRegisterFormDraft();" style="margin-top: 3px; cursor: pointer; width: 16px; height: 16px;" ${isTermsAgreed ? 'checked' : ''}>
                 <span>
                   Tôi xác nhận đã đủ năng lực hành vi dân sự, đã đọc kỹ, hiểu rõ và hoàn toàn đồng ý với 
-                  <a href="javascript:void(0)" onclick="App.navigateTo('terms')" style="color: var(--brand-primary); font-weight: 700; text-decoration: underline;">
+                  <a href="javascript:void(0)" onclick="App.openTermsModal()" style="color: var(--brand-primary); font-weight: 700; text-decoration: underline;" title="Nhấp để xem tóm tắt điều khoản ngay tại chỗ">
                     Điều khoản Dịch vụ & Thỏa thuận Sử dụng
                   </a> 
                   của Shinora QuizMaster.
@@ -9602,7 +9724,7 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
               </label>
             </div>
 
-            <button id="btnSubmitRegister" class="btn btn-primary" style="padding: 12px; font-size: 14px; font-weight: 700; width: 100%; opacity: 0.55; cursor: not-allowed;" onclick="App.submitRegistration()" disabled>
+            <button id="btnSubmitRegister" class="btn btn-primary" style="padding: 12px; font-size: 14px; font-weight: 700; width: 100%; opacity: ${isTermsAgreed ? '1' : '0.55'}; cursor: ${isTermsAgreed ? 'pointer' : 'not-allowed'};" onclick="App.submitRegistration()" ${isTermsAgreed ? '' : 'disabled'}>
               🚀 Gửi Yêu Cầu Đăng Ký Tài Khoản ➔
             </button>
 
@@ -9621,6 +9743,7 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
     btn.classList.add("active");
     const hidden = document.getElementById("selectedRegAvatar");
     if (hidden) hidden.value = avatar;
+    this.saveRegisterFormDraft();
   },
 
   toggleRegisterSubmitState() {
@@ -9691,6 +9814,7 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
         avatar
       });
 
+      this.registerFormDraft = null; // Xóa nháp sau khi gửi thành công
       const formContainer = document.getElementById("registerFormContainer");
       if (formContainer) {
         formContainer.innerHTML = `
