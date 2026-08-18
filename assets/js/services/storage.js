@@ -699,6 +699,9 @@ const StorageService = {
       streakDays: 1,
       quizzesCompleted: 0,
       status: "pending_approval", // ⏳ Chờ Admin hoặc người quản lý duyệt
+      termsAccepted: true,
+      termsAcceptedAt: new Date().toISOString(),
+      termsVersion: "2026-08-18",
       registeredAt: new Date().toISOString(),
       createdAt: new Date().toISOString()
     };
