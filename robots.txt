@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://vkhang-bui.github.io/dthu-quizmaster/sitemap.xml
