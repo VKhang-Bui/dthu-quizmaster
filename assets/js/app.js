@@ -235,10 +235,10 @@ const App = {
       }
     }
 
-    // Ẩn nút hướng dẫn nổi khi vào phòng thi (quiz), hiển thị ở các màn hình khác
+    // Hiển thị nút tiện ích nổi đa năng (Floating Study Dock) ở các màn hình
     const floatingGuideBtn = document.getElementById("floatingGuideBtn");
     if (floatingGuideBtn) {
-      floatingGuideBtn.style.display = (view === "quiz") ? "none" : "flex";
+      floatingGuideBtn.style.display = "flex";
     }
 
     // Hủy timer nếu rời khỏi phòng thi
@@ -444,10 +444,16 @@ const App = {
   },
 
   initDraggableGuideButton() {
+    // Khởi tạo Trung Tâm Tiện Ích Học Tập Nổi (Shinora Floating Study Dock v3.2 Pro)
+    if (typeof StudyDockView !== "undefined" && typeof StudyDockView.init === "function") {
+      StudyDockView.init();
+      return;
+    }
+
     const btn = document.getElementById("floatingGuideBtn");
     if (!btn) return;
 
-    // Đọc vị trí đã lưu từ LocalStorage nếu có
+    // Fallback cho nút hướng dẫn cũ nếu không nạp StudyDockView
     let savedPos = null;
     try {
       const stored = localStorage.getItem("dthu_guide_btn_pos");
@@ -461,8 +467,8 @@ const App = {
 
       const minLeft = 14;
       const maxLeft = Math.max(minLeft, window.innerWidth - btnW - 14);
-      const minTop = 64; // Dưới Header
-      const maxTop = Math.max(minTop, window.innerHeight - btnH - 24); // Trên đáy
+      const minTop = 64;
+      const maxTop = Math.max(minTop, window.innerHeight - btnH - 24);
 
       let clampedLeft = Math.max(minLeft, Math.min(left, maxLeft));
       let clampedTop = Math.max(minTop, Math.min(top, maxTop));
@@ -475,158 +481,24 @@ const App = {
 
       btn.style.left = `${clampedLeft}px`;
       btn.style.top = `${clampedTop}px`;
-      btn.style.right = "auto";
-      btn.style.bottom = "auto";
-
       return { left: clampedLeft, top: clampedTop };
     };
 
-    // Khởi tạo vị trí ban đầu
     const initBtnPos = () => {
       const btnW = btn.offsetWidth || 120;
       const btnH = btn.offsetHeight || 40;
       if (savedPos && typeof savedPos.left === "number" && typeof savedPos.top === "number") {
         clampAndSetPosition(savedPos.left, savedPos.top, false);
       } else {
-        // Mặc định: Góc dưới bên phải
         const defaultLeft = window.innerWidth - btnW - 20;
         const defaultTop = window.innerHeight - btnH - 30;
         clampAndSetPosition(defaultLeft, defaultTop, false);
       }
     };
-
-    // Chờ một nhịp nhỏ để DOM render kích thước thật của button
     setTimeout(initBtnPos, 50);
 
-    // Trạng thái kéo thả
-    let isPointerDown = false;
-    let isDragging = false;
-    let startPointerX = 0;
-    let startPointerY = 0;
-    let startBtnLeft = 0;
-    let startBtnTop = 0;
-
-    const onPointerStart = (clientX, clientY) => {
-      const rect = btn.getBoundingClientRect();
-      startPointerX = clientX;
-      startPointerY = clientY;
-      startBtnLeft = rect.left;
-      startBtnTop = rect.top;
-      isPointerDown = true;
-      isDragging = false;
-    };
-
-    const onPointerMove = (clientX, clientY, e) => {
-      if (!isPointerDown) return;
-
-      const dx = clientX - startPointerX;
-      const dy = clientY - startPointerY;
-
-      if (!isDragging && Math.hypot(dx, dy) > 6) {
-        isDragging = true;
-        btn.classList.add("is-dragging");
-      }
-
-      if (isDragging) {
-        if (e && e.cancelable) e.preventDefault();
-
-        const btnRect = btn.getBoundingClientRect();
-        const minLeft = 10;
-        const maxLeft = Math.max(minLeft, window.innerWidth - btnRect.width - 10);
-        const minTop = 60;
-        const maxTop = Math.max(minTop, window.innerHeight - btnRect.height - 18);
-
-        const currentLeft = Math.max(minLeft, Math.min(startBtnLeft + dx, maxLeft));
-        const currentTop = Math.max(minTop, Math.min(startBtnTop + dy, maxTop));
-
-        btn.style.left = `${currentLeft}px`;
-        btn.style.top = `${currentTop}px`;
-        btn.style.right = "auto";
-        btn.style.bottom = "auto";
-      }
-    };
-
-    const onPointerEnd = () => {
-      if (!isPointerDown) return;
-      isPointerDown = false;
-      btn.classList.remove("is-dragging");
-
-      if (!isDragging) {
-        // Thao tác Click -> Điều hướng đến màn hình Hướng dẫn
-        App.navigateTo("guide");
-        return;
-      }
-
-      // Thao tác Kéo thả xong -> Kích hoạt Hút Sát Cạnh Gần Nhất (Snap-to-Edge Magnetism)
-      const rect = btn.getBoundingClientRect();
-      const btnW = rect.width || 120;
-      const btnH = rect.height || 40;
-      const centerX = rect.left + btnW / 2;
-
-      // Khoảng cách tới cạnh trái vs cạnh phải
-      let targetLeft = 16;
-      if (centerX >= window.innerWidth / 2) {
-        targetLeft = window.innerWidth - btnW - 16;
-      }
-
-      const minTop = 64;
-      const maxTop = Math.max(minTop, window.innerHeight - btnH - 24);
-      const targetTop = Math.max(minTop, Math.min(rect.top, maxTop));
-
-      const finalPos = clampAndSetPosition(targetLeft, targetTop, true);
-
-      // Lưu lại vị trí để khi F5 / mở lại web vẫn ở đúng vị trí
-      try {
-        localStorage.setItem("dthu_guide_btn_pos", JSON.stringify(finalPos));
-      } catch (e) {}
-    };
-
-    // Sự kiện Chuột (Mouse)
-    btn.addEventListener("mousedown", (e) => {
-      if (e.button !== 0) return; // Chỉ nhận chuột trái
-      onPointerStart(e.clientX, e.clientY);
-
-      const onMouseMove = (moveEv) => onPointerMove(moveEv.clientX, moveEv.clientY, moveEv);
-      const onMouseUp = () => {
-        window.removeEventListener("mousemove", onMouseMove);
-        window.removeEventListener("mouseup", onMouseUp);
-        onPointerEnd();
-      };
-
-      window.addEventListener("mousemove", onMouseMove);
-      window.addEventListener("mouseup", onMouseUp);
-    });
-
-    // Sự kiện Cảm Ứng Điện Thoại (Touch)
-    btn.addEventListener("touchstart", (e) => {
-      if (!e.touches || e.touches.length === 0) return;
-      const t = e.touches[0];
-      onPointerStart(t.clientX, t.clientY);
-    }, { passive: true });
-
-    btn.addEventListener("touchmove", (e) => {
-      if (!e.touches || e.touches.length === 0) return;
-      const t = e.touches[0];
-      onPointerMove(t.clientX, t.clientY, e);
-    }, { passive: false });
-
-    btn.addEventListener("touchend", () => {
-      onPointerEnd();
-    }, { passive: true });
-
-    btn.addEventListener("touchcancel", () => {
-      onPointerEnd();
-    }, { passive: true });
-
-    // Tự động canh chỉnh khi Resize màn hình hoặc xoay ngang/dọc điện thoại
-    window.addEventListener("resize", () => {
-      const rect = btn.getBoundingClientRect();
-      const centerX = rect.left + (rect.width || 120) / 2;
-      let targetLeft = 16;
-      if (centerX >= window.innerWidth / 2) {
-        targetLeft = window.innerWidth - (rect.width || 120) - 16;
-      }
-      clampAndSetPosition(targetLeft, rect.top, false);
+    btn.addEventListener("click", () => {
+      App.navigateTo("guide");
     });
   }
 };

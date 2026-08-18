@@ -28,12 +28,8 @@
   <!-- Main Dynamic View Container -->
   <main id="mainContent" class="app-main"></main>
 
-  <!-- Floating Draggable Guide Button (Nút Nổi Kéo Thả Hút Cạnh) -->
-  <button class="floating-guide-btn" id="floatingGuideBtn" title="💡 Nhấp để xem Hướng dẫn · Nhấn giữ để kéo thả">
-    <span class="guide-btn-icon">💡</span>
-    <span class="guide-btn-text">Hướng dẫn</span>
-    <span class="guide-btn-drag-handle" title="Kéo thả">⠿</span>
-  </button>
+  <!-- Shinora Floating Study Dock Container (Thanh Tiện Ích Nổi Học Tập Đa Năng) -->
+  <div id="studyDockContainer"></div>
 
   <!-- User Side Drawer (Thanh Trượt Bên Phải) -->
   <div class="drawer-overlay" id="userDrawerOverlay" onclick="App.closeUserDrawer()"></div>
@@ -179,6 +175,7 @@
   <script src="assets/js/services/quiz-engine.js"></script>
   <script src="assets/js/services/import-export.js"></script>
   <script src="assets/js/services/parser.js"></script>
+  <script src="assets/js/services/audio-fx.js"></script>
 
   <!-- App Core (State, Router, Init, Global Events) -->
   <script src="assets/js/app.js"></script>
@@ -199,6 +196,7 @@
   <script src="assets/js/views/register-terms-view.js"></script>
   <script src="assets/js/views/manage-view.js"></script>
   <script src="assets/js/views/guide-view.js"></script>
+  <script src="assets/js/views/study-dock.js"></script>
 
   <!-- Khởi chạy ứng dụng sau khi toàn bộ Services, App Core và View Modules đã nạp đủ -->
   <script>
