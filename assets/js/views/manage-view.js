@@ -16,22 +16,22 @@ Object.assign(App, {
       <div style="padding: 32px 28px; max-width: 1000px; margin: 0 auto; width: 100%;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
           <div>
-            <h2 style="font-size: 22px; font-weight: 800;">⚙️ Quản Lý Bộ Đề</h2>
+            <h2 style="font-size: 22px; font-weight: 800; display:flex; align-items:center; gap:8px;">${Icons.get('manage', 22)} <span>Quản Lý Bộ Đề</span></h2>
             <p style="color: var(--text-secondary); margin-top: 4px;">Quản lý toàn bộ ngân hàng đề thi chính thức và duyệt đề đóng góp từ cộng đồng.</p>
           </div>
           <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <button class="btn btn-primary" onclick="App.navigateTo('parser')">📝 Nhập đề (Parser)</button>
-            <button class="btn" onclick="App.openCreateSubjectModal()">➕ Thêm môn học</button>
-            <button class="btn" onclick="App.refreshCloudSubjects()">🔄 Làm mới Cloud</button>
-            <button class="btn" onclick="ImportExportService.exportAll()">💾 Sao lưu (.json)</button>
+            <button class="btn btn-primary" onclick="App.navigateTo('parser')" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('upload', 14)} <span>Nhập đề (Parser)</span></button>
+            <button class="btn" onclick="App.openCreateSubjectModal()" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('plus', 14)} <span>Thêm môn học</span></button>
+            <button class="btn" onclick="App.refreshCloudSubjects()" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('refresh', 14)} <span>Làm mới Cloud</span></button>
+            <button class="btn" onclick="ImportExportService.exportAll()" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('download', 14)} <span>Sao lưu (.json)</span></button>
           </div>
         </div>
 
         <div class="hub-tabs" style="margin-bottom: 20px;">
-          <button class="hub-tab-btn ${activeTab === 'official' ? 'active' : ''}" onclick="App.switchManageTab('official')">
-            📚 Bộ Đề Chính Thức <span class="badge-tab-count">${subjects.length}</span>
+          <button class="hub-tab-btn ${activeTab === 'official' ? 'active' : ''}" onclick="App.switchManageTab('official')" style="display:inline-flex; align-items:center; gap:6px;">
+            <span style="color:#10b981; display:flex; align-items:center;">${Icons.get('shieldCheck', 14)}</span> <span>Bộ Đề Chính Thức</span> <span class="badge-tab-count">${subjects.length}</span>
           </button>
-          ${canApprove ? '<button class="hub-tab-btn ' + (activeTab === 'drafts' ? 'active' : '') + '" onclick="App.switchManageTab(\'drafts\')">⏳ Chờ Phê Duyệt <span class="badge-tab-count">' + drafts.length + '</span></button>' : ''}
+          ${canApprove ? `<button class="hub-tab-btn ${activeTab === 'drafts' ? 'active' : ''}" onclick="App.switchManageTab('drafts')" style="display:inline-flex; align-items:center; gap:6px;"><span style="color:#f59e0b; display:flex; align-items:center;">${Icons.get('clock', 14)}</span> <span>Chờ Phê Duyệt</span> <span class="badge-tab-count">${drafts.length}</span></button>` : ''}
         </div>
 
         <div id="manageTabContent">
@@ -48,7 +48,7 @@ Object.assign(App, {
 
   renderManageOfficialTab(subjects) {
     if (subjects.length === 0) {
-      return '<div style="text-align: center; padding: 48px; color: var(--text-tertiary); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);"><div style="font-size: 40px; margin-bottom: 10px;">📭</div><h3>Chưa có môn học chính thức nào.</h3><p style="margin-top: 6px;">Bấm "➕ Thêm môn học" hoặc nhập đề qua Parser.</p></div>';
+      return `<div style="text-align: center; padding: 48px; color: var(--text-tertiary); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);"><div style="color: var(--text-tertiary); margin-bottom: 10px; display:flex; justify-content:center;">${Icons.get('fileText', 40)}</div><h3>Chưa có môn học chính thức nào.</h3><p style="margin-top: 6px;">Bấm "Thêm môn học" hoặc nhập đề qua Parser.</p></div>`;
     }
     return '<div style="display: flex; flex-direction: column; gap: 14px;">' +
       subjects.map(sub => '<div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">' +
@@ -58,34 +58,34 @@ Object.assign(App, {
           '<div style="font-size: 12.5px; color: var(--text-tertiary);">' + (sub.questions ? sub.questions.length : 0) + ' câu hỏi · ' + (sub.chapters ? sub.chapters.length : 0) + ' chương · Tác giả: <strong>' + (sub.author || 'Chưa cập nhật') + '</strong></div>' +
         '</div>' +
         '<div style="display: flex; gap: 8px; flex-wrap: wrap;">' +
-          '<button class="btn btn-sm btn-primary" onclick="App.openQuizConfigModal(\'' + sub.id + '\')">👁️ Ôn Thi</button>' +
-          '<button class="btn btn-sm" onclick="App.navigateTo(\'subject-detail\', { subjectId: \'' + sub.id + '\' })">⚙️ Quản lý</button>' +
-          '<button class="btn btn-sm" onclick="ImportExportService.exportSubject(\'' + sub.id + '\')">📥 JSON</button>' +
-          '<button class="btn btn-danger btn-sm" onclick="App.deleteSubjectConfirm(\'' + sub.id + '\')">🗑️ Xóa</button>' +
+          '<button class="btn btn-sm btn-primary" onclick="App.openQuizConfigModal(\'' + sub.id + '\')" style="display:inline-flex; align-items:center; gap:4px;">' + Icons.get('target', 13) + ' <span>Ôn Thi</span></button>' +
+          '<button class="btn btn-sm" onclick="App.navigateTo(\'subject-detail\', { subjectId: \'' + sub.id + '\' })" style="display:inline-flex; align-items:center; gap:4px;">' + Icons.get('manage', 13) + ' <span>Quản lý</span></button>' +
+          '<button class="btn btn-sm" onclick="ImportExportService.exportSubject(\'' + sub.id + '\')" style="display:inline-flex; align-items:center; gap:4px;">' + Icons.get('download', 13) + ' <span>JSON</span></button>' +
+          '<button class="btn btn-danger btn-sm" onclick="App.deleteSubjectConfirm(\'' + sub.id + '\')" style="display:inline-flex; align-items:center; gap:4px;">' + Icons.get('trash', 13) + ' <span>Xóa</span></button>' +
         '</div>' +
       '</div>').join('') + '</div>';
   },
 
   renderManageDraftsTab(drafts) {
     if (drafts.length === 0) {
-      return '<div style="text-align: center; padding: 48px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);"><div style="font-size: 40px; margin-bottom: 10px;">🎉</div><h3>Không có đề thi nào đang chờ duyệt!</h3><p style="margin-top: 6px; color: var(--text-secondary);">Mọi đóng góp từ cộng đồng đã được xử lý.</p></div>';
+      return `<div style="text-align: center; padding: 48px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);"><div style="color: #10b981; margin-bottom: 10px; display:flex; justify-content:center;">${Icons.get('checkCircle', 40)}</div><h3>Không có đề thi nào đang chờ duyệt!</h3><p style="margin-top: 6px; color: var(--text-secondary);">Mọi đóng góp từ cộng đồng đã được xử lý.</p></div>`;
     }
     return '<div class="moderation-list">' +
       drafts.map(d => '<div class="moderation-card">' +
         '<div class="moderation-card-header">' +
           '<div class="moderation-title-group">' +
-            '<h3>' + (d.icon || '🧪') + ' ' + d.name + ' <span class="badge" style="background:#fef3c7; color:#b45309;">' + (d.code || d.id) + '</span></h3>' +
+            '<h3><span style="color:#f59e0b; display:inline-flex; align-items:center; margin-right:4px;">' + Icons.get('sparkles', 16) + '</span> ' + d.name + ' <span class="badge" style="background:#fef3c7; color:#b45309;">' + (d.code || d.id) + '</span></h3>' +
             '<div class="moderation-meta">' +
-              '<span>🏛️ ' + (d.department || 'ĐH Đồng Tháp') + '</span>' +
-              '<span>👤 Người gửi: <strong>' + (d.author || 'Ẩn danh') + '</strong></span>' +
-              '<span>📅 Ngày gửi: <strong>' + (d.submissionDate || 'Gần đây') + '</strong></span>' +
-              '<span>❓ Số câu hỏi: <strong>' + (d.questions ? d.questions.length : 0) + ' câu</strong></span>' +
+              '<span style="display:inline-flex; align-items:center; gap:4px;">' + Icons.get('home', 12) + ' ' + (d.department || 'ĐH Đồng Tháp') + '</span>' +
+              '<span style="display:inline-flex; align-items:center; gap:4px;">' + Icons.get('user', 12) + ' Người gửi: <strong>' + (d.author || 'Ẩn danh') + '</strong></span>' +
+              '<span style="display:inline-flex; align-items:center; gap:4px;">' + Icons.get('clock', 12) + ' Ngày gửi: <strong>' + (d.submissionDate || 'Gần đây') + '</strong></span>' +
+              '<span style="display:inline-flex; align-items:center; gap:4px;">' + Icons.get('fileText', 12) + ' Số câu hỏi: <strong>' + (d.questions ? d.questions.length : 0) + ' câu</strong></span>' +
             '</div>' +
           '</div>' +
           '<div class="moderation-actions">' +
-            '<button class="btn btn-sm" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-weight:700;" onclick="App.navigateTo(\'draft-review\', { draftId: \'' + d.id + '\' })">👁️ Xem & Sửa Đề</button>' +
-            '<button class="btn btn-primary" onclick="App.approveDraft(\'' + d.id + '\')">✅ Duyệt Chính Thức</button>' +
-            '<button class="btn btn-danger btn-sm" onclick="App.rejectDraftConfirm(\'' + d.id + '\')">❌ Từ chối</button>' +
+            '<button class="btn btn-sm" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-weight:700; display:inline-flex; align-items:center; gap:4px;" onclick="App.navigateTo(\'draft-review\', { draftId: \'' + d.id + '\' })">' + Icons.get('edit', 13) + ' <span>Xem & Sửa Đề</span></button>' +
+            '<button class="btn btn-primary" style="display:inline-flex; align-items:center; gap:4px;" onclick="App.approveDraft(\'' + d.id + '\')">' + Icons.get('checkCircle', 13) + ' <span>Duyệt Chính Thức</span></button>' +
+            '<button class="btn btn-danger btn-sm" style="display:inline-flex; align-items:center; gap:4px;" onclick="App.rejectDraftConfirm(\'' + d.id + '\')">' + Icons.get('close', 13) + ' <span>Từ chối</span></button>' +
           '</div>' +
         '</div>' +
         '<div style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px;">' + (d.description || 'Không có mô tả chi tiết.') + '</div>' +

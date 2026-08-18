@@ -63,6 +63,11 @@ const App = {
       this.bindGlobalEvents();
       this.initDraggableGuideButton();
 
+      // Khởi tạo Shinora Dynamic Island (Đảo Động Thông Minh)
+      if (typeof DynamicIsland !== "undefined" && typeof DynamicIsland.init === "function") {
+        DynamicIsland.init();
+      }
+
       // Ghi nhận lượt truy cập và khởi động cập nhật lưu lượng trực tuyến
       if (typeof StorageService !== "undefined" && typeof StorageService.recordVisit === "function") {
         StorageService.recordVisit();
@@ -245,6 +250,9 @@ const App = {
     if (this.timerInterval && view !== "quiz") {
       clearInterval(this.timerInterval);
       this.timerInterval = null;
+      if (typeof DynamicIsland !== "undefined" && typeof DynamicIsland.removeActivity === "function") {
+        DynamicIsland.removeActivity("quiz-timer");
+      }
     }
 
     // Hủy registration watcher nếu rời khỏi trang đăng ký

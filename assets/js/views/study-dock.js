@@ -140,7 +140,7 @@ const StudyDockView = {
     container.innerHTML = `
       <!-- Nút Nổi Viên Thuốc Đa Năng -->
       <div class="floating-dock-pill" id="floatingGuideBtn" role="button" aria-label="Trung tâm tiện ích học tập" title="💡 Nhấp để mở Tiện ích · Nhấn giữ để kéo thả">
-        <span class="dock-pill-icon" id="dockPillIcon">✨</span>
+        <span class="dock-pill-icon" id="dockPillIcon" style="display:flex; align-items:center;">${Icons.get('sparkles', 18)}</span>
         <span class="dock-pill-label" id="dockPillLabel">Tiện ích</span>
         <span class="dock-pill-badge" id="dockPillBadge" style="display: none;"></span>
         <span class="dock-pill-handle" title="Kéo thả vị trí">⠿</span>
@@ -156,13 +156,13 @@ const StudyDockView = {
         <div class="dock-master-pane" id="dockMasterPane">
           <div class="dock-header">
             <div class="dock-header-title">
-              <span class="dock-logo-icon">✨</span>
+              <span class="dock-logo-icon" style="display:flex; align-items:center; color:var(--brand-primary);">${Icons.get('sparkles', 20)}</span>
               <div>
                 <h4>Tiện Ích Học Tập</h4>
                 <p>Danh mục công cụ ôn thi</p>
               </div>
             </div>
-            <button class="dock-close-btn" onclick="StudyDockView.close()" title="Đóng">&times;</button>
+            <button class="dock-close-btn" onclick="StudyDockView.close()" title="Đóng" style="display:flex; align-items:center; justify-content:center;">${Icons.get('close', 14)}</button>
           </div>
 
           <!-- Danh sách các mục tiện ích -->
@@ -174,11 +174,11 @@ const StudyDockView = {
         <!-- 2. CỬA SỔ CON MỞ SANG PHẢI (DETAIL PANE - GIAO DIỆN CHỨC NĂNG) -->
         <div class="dock-detail-pane ${this.isDetailOpen ? 'active' : ''}" id="dockDetailPane">
           <div class="dock-detail-header">
-            <button class="dock-detail-back-btn" onclick="StudyDockView.closeDetailPane()" title="Quay lại danh mục">
-              ← Danh mục
+            <button class="dock-detail-back-btn" onclick="StudyDockView.closeDetailPane()" title="Quay lại danh mục" style="display:inline-flex; align-items:center; gap:4px;">
+              ${Icons.get('chevronLeft', 13)} <span>Danh mục</span>
             </button>
             <h4 id="dockDetailTitle">${this.getDetailTitle(this.activeDetailId)}</h4>
-            <button class="dock-detail-close-btn" onclick="StudyDockView.closeDetailPane()" title="Thu nhỏ">&times;</button>
+            <button class="dock-detail-close-btn" onclick="StudyDockView.closeDetailPane()" title="Thu nhỏ" style="display:flex; align-items:center; justify-content:center;">${Icons.get('close', 14)}</button>
           </div>
 
           <div class="dock-detail-body" id="dockDetailBody">
@@ -198,7 +198,7 @@ const StudyDockView = {
     const items = [
       {
         id: "pomodoro",
-        icon: "⏱️",
+        icon: Icons.get('timer', 20),
         iconClass: "icon-red",
         title: "Thời Gian Pomodoro",
         desc: p.isRunning ? `Đang chạy: ${this.formatTime(p.timeLeft)}` : `${p.totalSessionsCompleted} hiệp đã hoàn thành`,
@@ -207,21 +207,21 @@ const StudyDockView = {
       },
       {
         id: "calculator",
-        icon: "🧮",
+        icon: Icons.get('calculator', 20),
         iconClass: "icon-blue",
         title: "Máy Tính Bỏ Túi",
         desc: "Tính toán số liệu, điểm số, căn bậc hai"
       },
       {
         id: "notes",
-        icon: "📝",
+        icon: Icons.get('fileText', 20),
         iconClass: "icon-amber",
         title: "Sổ Nháp Nhanh",
         desc: "Ghi chú công thức, từ khóa (Tự lưu máy)"
       },
       {
         id: "sounds",
-        icon: "🎧",
+        icon: Icons.get('volume2', 20),
         iconClass: "icon-purple",
         title: "Âm Thanh Môi Trường",
         desc: isRain ? "Mưa rào (Đang phát)" : "Mưa rào · Sóng biển · Gió rừng · Tích tắc",
@@ -230,7 +230,7 @@ const StudyDockView = {
       },
       {
         id: "keysound",
-        icon: "⌨️",
+        icon: Icons.get('keyboard', 20),
         iconClass: "icon-green",
         title: "Âm Thanh Chạm & Phím",
         desc: isKey ? `Đang bật (${AudioFXService.keySoundProfile === 'thock' ? 'Cream Thock' : 'Blue Clicky'})` : "Mô phỏng tiếng gõ phím cơ đã tai",
@@ -239,28 +239,28 @@ const StudyDockView = {
       },
       {
         id: "experience",
-        icon: "👁️",
+        icon: Icons.get('sun', 20),
         iconClass: "icon-amber",
         title: "Trải Nghiệm & Đèn Đêm",
         desc: "Chế độ Zen Focus & Lọc ánh sáng ấm dịu mắt"
       },
       {
         id: "fortune",
-        icon: "🥠",
+        icon: Icons.get('star', 20),
         iconClass: "icon-purple",
         title: "Quẻ May Mắn Hôm Nay",
         desc: "1 lần / ngày (Reset 00:00 Giờ Việt Nam)"
       },
       {
         id: "cheatsheet",
-        icon: "⌨️",
+        icon: Icons.get('keyboard', 20),
         iconClass: "icon-blue",
         title: "Bảng Tra Phím Tắt",
         desc: "Phím tắt phòng thi & Cú pháp soạn đề"
       },
       {
         id: "guide",
-        icon: "💡",
+        icon: Icons.get('helpCircle', 20),
         iconClass: "icon-amber",
         title: "Cẩm Nang Hướng Dẫn",
         desc: "Xem tài liệu hướng dẫn sử dụng web toàn tập",
@@ -271,13 +271,13 @@ const StudyDockView = {
     return items.map(item => `
       <div class="dock-master-item ${this.activeDetailId === item.id && this.isDetailOpen ? 'active' : ''}" 
            onclick="StudyDockView.selectMasterItem('${item.id}')">
-        <div class="dock-item-icon ${item.iconClass}">${item.icon}</div>
+        <div class="dock-item-icon ${item.iconClass}" style="display:flex; align-items:center; justify-content:center;">${item.icon}</div>
         <div class="dock-item-info">
           <h5>${item.title}</h5>
           <p>${item.desc}</p>
         </div>
         ${item.badge ? `<span class="dock-item-badge ${item.badgeClass}">${item.badge}</span>` : ''}
-        <span class="dock-item-arrow">→</span>
+        <span class="dock-item-arrow" style="display:flex; align-items:center;">${Icons.get('chevronRight', 12)}</span>
       </div>
     `).join("");
   },
@@ -842,10 +842,27 @@ const StudyDockView = {
     this.pomodoro.isRunning = true;
     AudioFXService.playKeyClick();
 
+    if (typeof DynamicIsland !== "undefined" && typeof DynamicIsland.pushActivity === "function") {
+      DynamicIsland.pushActivity({
+        id: "pomodoro",
+        type: "pomodoro",
+        priority: 2,
+        icon: "🍅",
+        title: "Pomodoro",
+        subtitle: this.formatTime(this.pomodoro.timeLeft)
+      });
+    }
+
     this.pomodoro.timerId = setInterval(() => {
       if (this.pomodoro.timeLeft > 0) {
         this.pomodoro.timeLeft--;
         this.updatePillBadge();
+
+        if (typeof DynamicIsland !== "undefined" && typeof DynamicIsland.updateActivity === "function") {
+          DynamicIsland.updateActivity("pomodoro", {
+            subtitle: this.formatTime(this.pomodoro.timeLeft)
+          });
+        }
 
         const timeEl = document.getElementById("pomoTimeDisplay");
         const barEl = document.getElementById("pomoProgressBar");
@@ -872,6 +889,11 @@ const StudyDockView = {
       this.pomodoro.timerId = null;
     }
     AudioFXService.playKeyClick();
+
+    if (typeof DynamicIsland !== "undefined" && typeof DynamicIsland.removeActivity === "function") {
+      DynamicIsland.removeActivity("pomodoro");
+    }
+
     this.updatePillBadge();
     this.refreshDetailPane();
     this.refreshMasterList();
@@ -888,6 +910,17 @@ const StudyDockView = {
   finishPomodoro() {
     this.pausePomodoro();
     AudioFXService.playBell();
+
+    if (typeof DynamicIsland !== "undefined" && typeof DynamicIsland.flashActivity === "function") {
+      DynamicIsland.flashActivity({
+        id: "pomodoro-done-" + Date.now(),
+        type: "combo",
+        priority: 4,
+        icon: "🔔",
+        title: "Hoàn thành hiệp Pomodoro!",
+        subtitle: this.pomodoro.mode === "work" ? "Hãy thư giãn mắt 5 phút nhé" : "Bắt đầu hiệp học tập trung mới"
+      }, 4000);
+    }
 
     if (this.pomodoro.mode === "work") {
       this.pomodoro.totalSessionsCompleted++;

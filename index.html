@@ -28,6 +28,9 @@
   <!-- Main Dynamic View Container -->
   <main id="mainContent" class="app-main"></main>
 
+  <!-- Shinora Dynamic Island Container (Đảo Động Thông Minh Biến Hình) -->
+  <div id="dynamicIslandContainer"></div>
+
   <!-- Shinora Floating Study Dock Container (Thanh Tiện Ích Nổi Học Tập Đa Năng) -->
   <div id="studyDockContainer"></div>
 
@@ -62,7 +65,9 @@
         <!-- Col 1: Thương Hiệu & Trạng Thái Hệ Thống -->
         <div class="footer-col footer-col-brand">
           <div class="footer-brand-title">
-            <span class="footer-brand-icon">🎓</span>
+            <span class="footer-brand-icon" style="background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%); color:#fff; display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:6px; box-shadow:0 2px 8px rgba(2,132,199,0.35);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
+            </span>
             <span class="footer-brand-text">Shinora QuizMaster <span class="footer-pro-badge">v3.1.2</span></span>
           </div>
           <p class="footer-brand-desc">
@@ -79,68 +84,86 @@
           <!-- Khối Thống Kê Lưu Lượng & Truy Cập Trực Tuyến -->
           <div class="footer-traffic-box">
             <div class="traffic-box-header">
-              <span>📊 Thống Kê Lưu Lượng Học Tập</span>
+              <span style="display:inline-flex; align-items:center; gap:5px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path></svg>
+                <span>Thống Kê Lưu Lượng Học Tập</span>
+              </span>
             </div>
             <div class="traffic-metrics-grid">
               <div class="traffic-metric-item">
                 <span class="traffic-metric-num" id="trafficVisitsCount">28.650</span>
-                <span class="traffic-metric-label">👁️ Lượt xem</span>
+                <span class="traffic-metric-label" style="display:inline-flex; align-items:center; gap:3px;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <span>Lượt xem</span>
+                </span>
               </div>
               <div class="traffic-metric-item highlight-live">
-                <span class="traffic-metric-num text-green" id="trafficOnlineCount">🟢 46</span>
+                <span class="traffic-metric-num text-green" id="trafficOnlineCount">● 46</span>
                 <span class="traffic-metric-label">Đang online</span>
               </div>
               <div class="traffic-metric-item">
                 <span class="traffic-metric-num" id="trafficAttemptsCount">4.280</span>
-                <span class="traffic-metric-label">📝 Lượt làm đề</span>
+                <span class="traffic-metric-label" style="display:inline-flex; align-items:center; gap:3px;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                  <span>Lượt làm đề</span>
+                </span>
               </div>
             </div>
           </div>
 
           <div class="footer-version-tag">
-            <span>⚡ Local-First PWA</span> · <span>🔒 Shinora Academic Studio</span>
+            <span>Local-First PWA</span> · <span>Shinora Academic Studio</span>
           </div>
         </div>
 
         <!-- Col 2: Về Nền Tảng & Liên Kết Tự Học -->
         <div class="footer-col">
-          <h4 class="footer-col-title">📚 Góc Học Tập & Liên Kết</h4>
+          <h4 class="footer-col-title" style="display:flex; align-items:center; gap:6px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path></svg>
+            <span>Góc Học Tập & Liên Kết</span>
+          </h4>
           <ul class="footer-links-list">
-            <li><a href="javascript:void(0)" onclick="App.navigateTo('materials')">📖 Thư viện tài liệu học tập (.txt)</a></li>
-            <li><a href="javascript:void(0)" onclick="App.navigateTo('leaderboard')">🏆 Bảng Xếp Hạng & Bảng Vàng</a></li>
-            <li><a href="javascript:void(0)" onclick="App.navigateTo('guide')">💡 Hướng dẫn sử dụng & Mẹo học</a></li>
-            <li><a href="javascript:void(0)" onclick="App.navigateTo('syntax-guide')">📝 Cẩm nang ký tự & công thức</a></li>
-            <li><a href="javascript:void(0)" onclick="App.navigateTo('terms')" style="color: #38bdf8; font-weight: 700;">📜 Điều khoản Dịch vụ & Thỏa thuận</a></li>
+            <li><a href="javascript:void(0)" onclick="App.navigateTo('materials')" style="display:inline-flex; align-items:center; gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg> <span>Thư viện tài liệu học tập (.txt)</span></a></li>
+            <li><a href="javascript:void(0)" onclick="App.navigateTo('leaderboard')" style="display:inline-flex; align-items:center; gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.45 1-1 1H7v4h10v-4h-2c-.55 0-1-.45-1-1v-2.34"></path><path d="M6 2h12v7a6 6 0 0 1-12 0V2z"></path></svg> <span>Bảng Xếp Hạng & Bảng Vàng</span></a></li>
+            <li><a href="javascript:void(0)" onclick="App.navigateTo('guide')" style="display:inline-flex; align-items:center; gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg> <span>Hướng dẫn sử dụng & Mẹo học</span></a></li>
+            <li><a href="javascript:void(0)" onclick="App.navigateTo('syntax-guide')" style="display:inline-flex; align-items:center; gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg> <span>Cẩm nang ký tự & công thức</span></a></li>
+            <li><a href="javascript:void(0)" onclick="App.navigateTo('terms')" style="color: #38bdf8; font-weight: 700; display:inline-flex; align-items:center; gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> <span>Điều khoản Dịch vụ & Thỏa thuận</span></a></li>
           </ul>
         </div>
 
         <!-- Col 3: Trung Tâm Khảo Thí & Học Tập -->
         <div class="footer-col">
-          <h4 class="footer-col-title">🎯 Ôn Tập & Khảo Thí</h4>
+          <h4 class="footer-col-title" style="display:flex; align-items:center; gap:6px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+            <span>Ôn Tập & Khảo Thí</span>
+          </h4>
           <ul class="footer-links-list">
-            <li><a href="javascript:void(0)" onclick="App.switchHubTab('official'); App.navigateTo('home'); window.scrollTo({ top: 380, behavior: 'smooth' });">🟢 Ngân hàng đề thi chuẩn hóa</a></li>
-            <li><a href="javascript:void(0)" onclick="App.switchHubTab('drafts'); App.navigateTo('home'); window.scrollTo({ top: 380, behavior: 'smooth' });">🟡 Ngân hàng đề thi cộng đồng</a></li>
-            <li><a href="javascript:void(0)" onclick="App.navigateTo('parser')">📝 Bóc tách & Tạo đề mới (Parser)</a></li>
-            <li><a href="javascript:void(0)" onclick="App.navigateTo('mistakes')">🎯 Ngân hàng câu làm sai (Mistakes)</a></li>
-            <li><a href="javascript:void(0)" onclick="App.openForgotPasswordModal()">🔑 Khôi phục mã PIN qua OTP Email</a></li>
-            <li><a href="javascript:void(0)" onclick="App.openContactModal()">📩 Soạn phiếu báo lỗi & CSKH</a></li>
+            <li><a href="javascript:void(0)" onclick="App.switchHubTab('official'); App.navigateTo('home'); window.scrollTo({ top: 380, behavior: 'smooth' });" style="display:inline-flex; align-items:center; gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg> <span>Ngân hàng đề thi chuẩn hóa</span></a></li>
+            <li><a href="javascript:void(0)" onclick="App.switchHubTab('drafts'); App.navigateTo('home'); window.scrollTo({ top: 380, behavior: 'smooth' });" style="display:inline-flex; align-items:center; gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> <span>Ngân hàng đề thi cộng đồng</span></a></li>
+            <li><a href="javascript:void(0)" onclick="App.navigateTo('parser')" style="display:inline-flex; align-items:center; gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg> <span>Bóc tách & Tạo đề mới (Parser)</span></a></li>
+            <li><a href="javascript:void(0)" onclick="App.navigateTo('mistakes')" style="display:inline-flex; align-items:center; gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg> <span>Ngân hàng câu làm sai (Mistakes)</span></a></li>
+            <li><a href="javascript:void(0)" onclick="App.openForgotPasswordModal()" style="display:inline-flex; align-items:center; gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 2-2 2m-1.5 1.5L14 9l-1.5-1.5L11 9l-1.5-1.5L8 9a5.5 5.5 0 1 0 7.78 7.78L21 12l2-2v-4l-2-2z"></path></svg> <span>Khôi phục mã PIN qua OTP Email</span></a></li>
+            <li><a href="javascript:void(0)" onclick="App.openContactModal()" style="display:inline-flex; align-items:center; gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg> <span>Soạn phiếu báo lỗi & CSKH</span></a></li>
           </ul>
         </div>
 
         <!-- Col 4: Tác Giả & Phát Triển -->
         <div class="footer-col">
-          <h4 class="footer-col-title">👨‍💻 Tác Giả & Phát Triển</h4>
+          <h4 class="footer-col-title" style="display:flex; align-items:center; gap:6px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <span>Tác Giả & Phát Triển</span>
+          </h4>
           <div class="footer-author-box">
             <div class="footer-author-name">Shina (Bùi Văn Khang) <span class="footer-author-badge">Creator & Dev</span></div>
             <div class="footer-author-sub">Biệt danh: <strong>Shina Sanora</strong> · Developer</div>
-            <div class="footer-author-dept">🎓 Dự án học tập & nghiên cứu công nghệ cá nhân</div>
-            <div class="footer-author-email">📧 <a href="mailto:vkhg.bui@gmail.com">vkhg.bui@gmail.com</a></div>
-            <div class="footer-hotline-text">📞 Hotline: <a href="tel:0354616301" style="color:#38bdf8; font-weight:800;">0354 616 301</a></div>
+            <div class="footer-author-dept">Dự án học tập & nghiên cứu công nghệ cá nhân</div>
+            <div class="footer-author-email" style="display:flex; align-items:center; gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg> <a href="mailto:vkhg.bui@gmail.com">vkhg.bui@gmail.com</a></div>
+            <div class="footer-hotline-text">Hotline: <a href="tel:0354616301" style="color:#38bdf8; font-weight:800;">0354 616 301</a></div>
             
             <div class="footer-social-links">
-              <a href="https://github.com/VKhang-Bui/dthu-quizmaster" target="_blank" rel="noopener noreferrer" class="footer-soc-btn gh" title="Mã nguồn GitHub">⭐ GitHub</a>
-              <a href="https://www.linkedin.com/in/khang-trang-179557425/" target="_blank" rel="noopener noreferrer" class="footer-soc-btn in" title="LinkedIn">💼 LinkedIn</a>
-              <a href="https://www.youtube.com/@Shina18475" target="_blank" rel="noopener noreferrer" class="footer-soc-btn yt" title="Kênh YouTube">▶️ YouTube</a>
+              <a href="https://github.com/VKhang-Bui/dthu-quizmaster" target="_blank" rel="noopener noreferrer" class="footer-soc-btn gh" title="Mã nguồn GitHub">GitHub</a>
+              <a href="https://www.linkedin.com/in/khang-trang-179557425/" target="_blank" rel="noopener noreferrer" class="footer-soc-btn in" title="LinkedIn">LinkedIn</a>
+              <a href="https://www.youtube.com/@Shina18475" target="_blank" rel="noopener noreferrer" class="footer-soc-btn yt" title="Kênh YouTube">YouTube</a>
             </div>
           </div>
         </div>
@@ -151,7 +174,7 @@
         <div class="footer-copy-text">
           <div>© 2026 <strong>Shinora QuizMaster</strong> · Phát triển bởi <strong>Shina (Bùi Văn Khang)</strong>. Dự án học tập phi lợi nhuận. <a href="javascript:void(0)" onclick="App.navigateTo('terms')" style="color: var(--brand-primary, #0284c7); font-weight: 700; margin-left: 6px; text-decoration: underline;">Điều khoản Dịch vụ</a></div>
           <div style="font-size: 0.75rem; color: var(--text-muted, #94a3b8); margin-top: 4px;">
-            ⚠️ <em>Tuyên bố miễn trừ: Shinora QuizMaster là phần mềm học tập cá nhân/cộng đồng phục vụ mục đích tự ôn bài, không phải cổng thông tin hay hệ thống khảo thí chính thức của bất kỳ cơ sở giáo dục nào.</em>
+            <em>Tuyên bố miễn trừ: Shinora QuizMaster là phần mềm học tập cá nhân/cộng đồng phục vụ mục đích tự ôn bài, không phải cổng thông tin hay hệ thống khảo thí chính thức của bất kỳ cơ sở giáo dục nào.</em>
           </div>
         </div>
         <div class="footer-bottom-right">
@@ -166,6 +189,7 @@
   </footer>
 
   <!-- Core JavaScript Modules (Tuần tự để hỗ trợ chạy file:// offline) -->
+  <script src="assets/js/services/icons.js"></script>
   <script src="assets/js/services/api-config.js"></script>
   <script src="assets/js/services/supabase-client.js"></script>
   <script src="assets/js/data/default-banks.js"></script>
@@ -176,6 +200,7 @@
   <script src="assets/js/services/import-export.js"></script>
   <script src="assets/js/services/parser.js"></script>
   <script src="assets/js/services/audio-fx.js"></script>
+  <script src="assets/js/services/dynamic-island.js"></script>
 
   <!-- App Core (State, Router, Init, Global Events) -->
   <script src="assets/js/app.js"></script>

@@ -10,14 +10,14 @@ Object.assign(App, {
     if (!isLogged) {
       container.innerHTML = `
         <div style="text-align: center; padding: 70px 20px; max-width: 550px; margin: 0 auto;">
-          <div style="font-size: 54px; margin-bottom: 14px;">🔔</div>
+          <div style="color: var(--text-tertiary); margin-bottom: 14px; display:flex; justify-content:center;">${Icons.get('bell', 54)}</div>
           <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary);">Trung Tâm Thông Báo</h3>
           <p style="color: var(--text-secondary); margin-top: 8px; line-height: 1.6;">
             Vui lòng đăng nhập tài khoản để nhận các thông báo về biến động điểm thưởng EXP, Điểm cống hiến (CP), kết quả duyệt đề thi và thông báo từ Ban quản trị.
           </p>
           <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
-            <button class="btn btn-primary" onclick="App.openAccountSwitcherModal()">🔑 Đăng Nhập Ngay</button>
-            <button class="btn" onclick="App.navigateTo('home')">🏠 Về Trang Chủ</button>
+            <button class="btn btn-primary" onclick="App.openAccountSwitcherModal()" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('key', 14)} <span>Đăng Nhập Ngay</span></button>
+            <button class="btn" onclick="App.navigateTo('home')" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('home', 14)} <span>Về Trang Chủ</span></button>
           </div>
         </div>
       `;
@@ -46,7 +46,7 @@ Object.assign(App, {
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid var(--border); padding-bottom: 16px;">
           <div>
             <h2 style="font-size: 22px; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
-              <span>🔔</span>
+              <span>${Icons.get('bell', 22)}</span>
               <span>Trung Tâm Thông Báo & Cập Nhật</span>
               ${unreadCount > 0 ? `<span class="badge" style="background:#ef4444; color:#fff; font-size:12px; font-weight:800;">${unreadCount} chưa đọc</span>` : ''}
             </h2>
@@ -56,22 +56,22 @@ Object.assign(App, {
           </div>
 
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button class="btn btn-sm" onclick="StorageService.markAllNotificationsAsRead('${profile.id}'); App.renderHeader(); App.renderNotificationsView(document.getElementById('mainContent'));">
-              ✔️ Đánh dấu đã đọc tất cả
+            <button class="btn btn-sm" onclick="StorageService.markAllNotificationsAsRead('${profile.id}'); App.renderHeader(); App.renderNotificationsView(document.getElementById('mainContent'));" style="display:inline-flex; align-items:center; gap:5px;">
+              ${Icons.get('check', 13)} <span>Đánh dấu đã đọc tất cả</span>
             </button>
-            <button class="btn btn-sm btn-danger" onclick="App.clearAllNotificationsConfirm('${profile.id}')">
-              🗑️ Xóa thông báo
+            <button class="btn btn-sm btn-danger" onclick="App.clearAllNotificationsConfirm('${profile.id}')" style="display:inline-flex; align-items:center; gap:5px;">
+              ${Icons.get('trash', 13)} <span>Xóa thông báo</span>
             </button>
           </div>
         </div>
 
         <!-- Tabs: Thông Báo Cá Nhân vs Bản Tin Cập Nhật -->
         <div class="hub-tabs" style="margin-bottom: 24px;">
-          <button class="hub-tab-btn ${activeTab === 'personal' ? 'active' : ''}" onclick="App.notifTab = 'personal'; App.renderNotificationsView(document.getElementById('mainContent'));">
-            🔔 Thông Báo Cá Nhân <span class="badge-tab-count">${allNotifs.length}</span>
+          <button class="hub-tab-btn ${activeTab === 'personal' ? 'active' : ''}" onclick="App.notifTab = 'personal'; App.renderNotificationsView(document.getElementById('mainContent'));" style="display:inline-flex; align-items:center; gap:6px;">
+            ${Icons.get('bell', 14)} <span>Thông Báo Cá Nhân</span> <span class="badge-tab-count">${allNotifs.length}</span>
           </button>
-          <button class="hub-tab-btn ${activeTab === 'changelog' ? 'active' : ''}" onclick="App.notifTab = 'changelog'; App.renderNotificationsView(document.getElementById('mainContent'));">
-            📢 Bản Tin Cập Nhật Hệ Thống <span class="badge-tab-count">v3.1.2</span>
+          <button class="hub-tab-btn ${activeTab === 'changelog' ? 'active' : ''}" onclick="App.notifTab = 'changelog'; App.renderNotificationsView(document.getElementById('mainContent'));" style="display:inline-flex; align-items:center; gap:6px;">
+            ${Icons.get('sparkles', 14)} <span>Bản Tin Cập Nhật Hệ Thống</span> <span class="badge-tab-count">v3.1.2</span>
           </button>
         </div>
 
@@ -85,39 +85,39 @@ Object.assign(App, {
             <button class="btn btn-sm ${activeFilter === 'unread' ? 'btn-primary' : ''}" onclick="App.notifFilter = 'unread'; App.renderNotificationsView(document.getElementById('mainContent'));">
               Chưa đọc (${unreadCount})
             </button>
-            <button class="btn btn-sm ${activeFilter === 'points' ? 'btn-primary' : ''}" onclick="App.notifFilter = 'points'; App.renderNotificationsView(document.getElementById('mainContent'));">
-              ⚡/🌟 Biến động điểm (${allNotifs.filter(n => n.pointsDelta !== null).length})
+            <button class="btn btn-sm ${activeFilter === 'points' ? 'btn-primary' : ''}" onclick="App.notifFilter = 'points'; App.renderNotificationsView(document.getElementById('mainContent'));" style="display:inline-flex; align-items:center; gap:4px;">
+              ${Icons.get('zap', 12)} <span>Biến động điểm</span> (${allNotifs.filter(n => n.pointsDelta !== null).length})
             </button>
-            <button class="btn btn-sm ${activeFilter === 'admin' ? 'btn-primary' : ''}" onclick="App.notifFilter = 'admin'; App.renderNotificationsView(document.getElementById('mainContent'));">
-              🛡️ Từ Quản trị viên (${allNotifs.filter(n => n.type === 'admin_adjust').length})
+            <button class="btn btn-sm ${activeFilter === 'admin' ? 'btn-primary' : ''}" onclick="App.notifFilter = 'admin'; App.renderNotificationsView(document.getElementById('mainContent'));" style="display:inline-flex; align-items:center; gap:4px;">
+              ${Icons.get('shield', 12)} <span>Từ Quản trị viên</span> (${allNotifs.filter(n => n.type === 'admin_adjust').length})
             </button>
           </div>
 
           <!-- Danh sách thông báo cá nhân -->
           ${filteredNotifs.length === 0 ? `
             <div style="text-align: center; padding: 56px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);">
-              <div style="font-size: 42px; margin-bottom: 10px;">📭</div>
+              <div style="color: var(--text-tertiary); margin-bottom: 10px; display:flex; justify-content:center;">${Icons.get('bell', 42)}</div>
               <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">Không có thông báo nào trong mục này</h3>
               <p style="color: var(--text-secondary); margin-top: 4px; font-size: 13px;">Hãy làm bài thi thử hoặc đóng góp tài liệu để nhận thông báo thưởng điểm nhé!</p>
             </div>
           ` : `
             <div style="display: flex; flex-direction: column; gap: 12px;">
               ${filteredNotifs.map(n => {
-                let icon = "🔔";
+                let iconHtml = Icons.get('bell', 18, '', 'var(--brand-primary)');
                 let badgeClass = "badge-gray";
                 let pointBadge = "";
 
                 if (n.type === "exp_reward") {
-                  icon = "⚡";
+                  iconHtml = Icons.get('zap', 18, '', '#b45309');
                   badgeClass = "badge-blue";
                 } else if (n.type === "cp_reward") {
-                  icon = "🌟";
+                  iconHtml = Icons.get('star', 18, '', '#15803d');
                   badgeClass = "badge-success";
                 } else if (n.type === "admin_adjust") {
-                  icon = "🛡️";
+                  iconHtml = Icons.get('shieldCheck', 18, '', '#7c3aed');
                   badgeClass = "badge-purple";
                 } else if (n.type === "draft_approved") {
-                  icon = "🎉";
+                  iconHtml = Icons.get('checkCircle', 18, '', '#15803d');
                   badgeClass = "badge-success";
                 }
 
@@ -132,7 +132,7 @@ Object.assign(App, {
 
                 return `
                   <div class="notif-card ${!n.read ? 'unread' : ''}" onclick="StorageService.markNotificationAsRead('${profile.id}', '${n.id}'); App.renderHeader(); this.classList.remove('unread');" style="cursor: pointer;">
-                    <div class="notif-card-icon">${icon}</div>
+                    <div class="notif-card-icon" style="display:flex; align-items:center; justify-content:center;">${iconHtml}</div>
                     <div style="flex: 1; min-width: 0;">
                       <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 4px; flex-wrap: wrap;">
                         <div style="display: flex; align-items: center; gap: 8px;">
@@ -146,8 +146,8 @@ Object.assign(App, {
                         ${n.message}
                       </p>
                     </div>
-                    <button class="btn btn-sm" style="padding: 4px 8px; font-size: 11px; opacity: 0.7;" onclick="event.stopPropagation(); StorageService.deleteNotification('${profile.id}', '${n.id}'); App.renderHeader(); App.renderNotificationsView(document.getElementById('mainContent'));" title="Xóa thông báo này">
-                      ✕
+                    <button class="btn btn-sm" style="padding: 4px 8px; font-size: 11px; opacity: 0.7; display:flex; align-items:center; justify-content:center;" onclick="event.stopPropagation(); StorageService.deleteNotification('${profile.id}', '${n.id}'); App.renderHeader(); App.renderNotificationsView(document.getElementById('mainContent'));" title="Xóa thông báo này">
+                      ${Icons.get('close', 11)}
                     </button>
                   </div>
                 `;

@@ -13,18 +13,18 @@ Object.assign(App, {
     const timeout = duration || settings.toastDuration || 3500;
 
     const icons = {
-      success: "✓",
-      info: "ℹ️",
-      warning: "⚠️",
-      danger: "✕"
+      success: (typeof Icons !== "undefined") ? Icons.get("checkCircle", 16, "", "#16a34a") : "✓",
+      info: (typeof Icons !== "undefined") ? Icons.get("info", 16, "", "#0284c7") : "ℹ️",
+      warning: (typeof Icons !== "undefined") ? Icons.get("alertTriangle", 16, "", "#d97706") : "⚠️",
+      danger: (typeof Icons !== "undefined") ? Icons.get("close", 16, "", "#dc2626") : "✕"
     };
 
     const toast = document.createElement("div");
     toast.className = `toast-item ${type}`;
     toast.innerHTML = `
-      <div class="toast-icon">${icons[type] || 'ℹ️'}</div>
+      <div class="toast-icon" style="display:flex; align-items:center; justify-content:center;">${icons[type] || icons.info}</div>
       <div class="toast-msg">${message}</div>
-      <button class="toast-close" title="Đóng">&times;</button>
+      <button class="toast-close" title="Đóng" style="display:flex; align-items:center; justify-content:center;">${(typeof Icons !== "undefined") ? Icons.get("close", 12) : '&times;'}</button>
       <div class="toast-progress"></div>
     `;
 
@@ -66,18 +66,18 @@ Object.assign(App, {
     if (existing) existing.remove();
 
     const icons = {
-      warning: "⚠️",
-      danger: "🚫",
-      info: "ℹ️",
-      success: "✓"
+      warning: (typeof Icons !== "undefined") ? Icons.get("alertTriangle", 16, "", "#d97706") : "⚠️",
+      danger: (typeof Icons !== "undefined") ? Icons.get("close", 16, "", "#dc2626") : "🚫",
+      info: (typeof Icons !== "undefined") ? Icons.get("info", 16, "", "#0284c7") : "ℹ️",
+      success: (typeof Icons !== "undefined") ? Icons.get("checkCircle", 16, "", "#16a34a") : "✓"
     };
 
     const alertEl = document.createElement("div");
     alertEl.className = `inline-alert-bar ${type}`;
     alertEl.innerHTML = `
-      <span>${icons[type] || '⚠️'}</span>
+      <span style="display:flex; align-items:center;">${icons[type] || icons.warning}</span>
       <span style="flex: 1;">${message}</span>
-      <button style="background:none; border:none; cursor:pointer; font-size:16px; color:inherit; padding:0 4px;" onclick="this.parentElement.remove()">&times;</button>
+      <button style="background:none; border:none; cursor:pointer; font-size:16px; color:inherit; padding:0 4px; display:flex; align-items:center;" onclick="this.parentElement.remove()">${(typeof Icons !== "undefined") ? Icons.get("close", 13) : '&times;'}</button>
     `;
 
     container.insertBefore(alertEl, container.firstChild);
@@ -116,7 +116,7 @@ Object.assign(App, {
 
   resetAllWarnings() {
     StorageService.resetSuppressedWarnings();
-    this.showToast("✅ Đã khôi phục toàn bộ các cảnh báo gốc của hệ thống!", "success");
+    this.showToast("Đã khôi phục toàn bộ các cảnh báo gốc của hệ thống!", "success");
     this.renderDrawerLevel("settings-alerts");
   },
 
@@ -124,7 +124,7 @@ Object.assign(App, {
     const {
       title = "Xác nhận hành động",
       message = "Bạn có chắc chắn muốn thực hiện hành động này?",
-      icon = "⚠️",
+      icon = null,
       confirmText = "Xác nhận",
       cancelText = "Hủy bỏ",
       isDanger = false,
@@ -146,9 +146,11 @@ Object.assign(App, {
 
     titleEl.textContent = title;
 
+    const displayIcon = icon || (typeof Icons !== "undefined" ? (isDanger ? Icons.get("alertTriangle", 32, "", "#dc2626") : Icons.get("info", 32, "", "#0284c7")) : "⚠️");
+
     bodyEl.innerHTML = `
       <div style="display: flex; gap: 16px; align-items: flex-start;">
-        <div style="font-size: 32px; line-height: 1;">${icon}</div>
+        <div style="font-size: 32px; line-height: 1; display:flex; align-items:center;">${displayIcon}</div>
         <div style="flex: 1;">
           <div style="font-size: 14.5px; color: var(--text-primary); line-height: 1.55; margin-bottom: 16px;">
             ${message}

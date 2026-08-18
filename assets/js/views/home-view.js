@@ -35,29 +35,29 @@ Object.assign(App, {
             <p>Hệ thống tự học, ngân hàng đề thi đa môn, thi thử tính giờ và lưu trữ tiến độ học tập thông minh.</p>
           </div>
           <div class="home-hero-actions">
-            <button class="btn btn-primary" onclick="App.navigateTo('parser')">
-              📝 Đóng góp đề mới
+            <button class="btn btn-primary" onclick="App.navigateTo('parser')" style="display: inline-flex; align-items: center; gap: 6px;">
+              ${Icons.get('upload', 16)} <span>Đóng góp đề mới</span>
             </button>
-            <button class="btn" onclick="App.navigateTo('materials')">
-              📚 Đọc tài liệu (.txt)
+            <button class="btn" onclick="App.navigateTo('materials')" style="display: inline-flex; align-items: center; gap: 6px;">
+              ${Icons.get('bookOpen', 16)} <span>Đọc tài liệu (.txt)</span>
             </button>
           </div>
         </div>
 
         <!-- Hub Tabs: Chính thức vs Đề Cộng đồng (Drafts) -->
         <div class="hub-tabs">
-          <button class="hub-tab-btn ${this.currentHubTab === 'official' ? 'active' : ''}" onclick="App.switchHubTab('official')">
-            🟢 Ngân hàng Chính thức <span class="badge-tab-count">${officialSubjects.length}</span>
+          <button class="hub-tab-btn ${this.currentHubTab === 'official' ? 'active' : ''}" onclick="App.switchHubTab('official')" style="display: inline-flex; align-items: center; gap: 6px;">
+            <span style="color:#10b981; display:flex; align-items:center;">${Icons.get('shieldCheck', 16)}</span> <span>Ngân hàng Chính thức</span> <span class="badge-tab-count">${officialSubjects.length}</span>
           </button>
-          <button class="hub-tab-btn ${this.currentHubTab === 'drafts' ? 'active' : ''}" onclick="App.switchHubTab('drafts')">
-            ${isLogged ? `🟡 Đề Cộng đồng (Thử nghiệm) <span class="badge-tab-count">${draftSubjects.length}</span>` : `🔒 Đề Cộng đồng (${draftSubjects.length})`}
+          <button class="hub-tab-btn ${this.currentHubTab === 'drafts' ? 'active' : ''}" onclick="App.switchHubTab('drafts')" style="display: inline-flex; align-items: center; gap: 6px;">
+            ${isLogged ? `<span style="color:#f59e0b; display:flex; align-items:center;">${Icons.get('users', 16)}</span> <span>Đề Cộng đồng (Thử nghiệm)</span> <span class="badge-tab-count">${draftSubjects.length}</span>` : `<span style="color:#94a3b8; display:flex; align-items:center;">${Icons.get('lock', 16)}</span> <span>Đề Cộng đồng</span> <span class="badge-tab-count">${draftSubjects.length}</span>`}
           </button>
         </div>
 
         <!-- Search & Filter Bar -->
         <div class="search-filter-bar">
           <div class="search-input-wrapper">
-            <span class="search-icon">🔍</span>
+            <span class="search-icon" style="display:flex; align-items:center; color:var(--text-tertiary);">${Icons.get('search', 16)}</span>
             <input type="text" id="searchInput" class="form-control" placeholder="Tìm kiếm theo tên môn, mã môn..." oninput="App.onSearchSubjects()">
           </div>
           <select id="deptFilter" class="form-control" style="width: auto; min-width: 200px;" onchange="App.onSearchSubjects()">
@@ -76,24 +76,25 @@ Object.assign(App, {
           <div class="creator-card-container">
             <div class="home-mission-banner">
               <div class="home-mission-content">
-                <span class="creator-pill-tag">✨ Sứ Mệnh Học Thuật & Tự Học</span>
+                <span class="creator-pill-tag" style="display: inline-flex; align-items: center; gap: 4px;">${Icons.get('sparkles', 13)} Sứ Mệnh Học Thuật & Tự Học</span>
                 <h3 class="mission-title">Hệ Thống Ôn Thi Trực Quan · Tự Học Mọi Lúc Mọi Nơi</h3>
                 <p class="mission-desc">
                   DThu QuizMaster được xây dựng phi lợi nhuận với mục tiêu chuẩn hóa ngân hàng đề thi trắc nghiệm học phần, hỗ trợ giải thích chi tiết từng câu hỏi, đồng bộ tiến độ thời gian thực và tạo môi trường thi thử nghiêm túc, công bằng.
                 </p>
                 <div class="mission-pills-row">
-                  <span class="mission-pill" id="heroLiveTrafficPill">👥 <strong>${traffic.onlineNow}</strong> sinh viên online</span>
-                  <span class="mission-pill">👁️ <strong>${traffic.totalVisitsFormatted}</strong> lượt xem</span>
-                  <span class="mission-pill">📝 <strong>${traffic.totalAttemptsFormatted}</strong> lượt thi thử</span>
-                  <span class="mission-pill">⚡ Offline PWA</span>
-                  <span class="mission-pill">☁️ Supabase Cloud</span>
-                  <span class="mission-pill">🎯 Đề thi chuẩn hóa</span>
+                  <span class="mission-pill" id="heroLiveTrafficPill" style="display:inline-flex; align-items:center; gap:5px;">${Icons.get('users', 14)} <span><strong>${traffic.onlineNow}</strong> sinh viên online</span></span>
+                  <span class="mission-pill" style="display:inline-flex; align-items:center; gap:5px;">${Icons.get('target', 14)} <span><strong>${traffic.totalVisitsFormatted}</strong> lượt xem</span></span>
+                  <span class="mission-pill" style="display:inline-flex; align-items:center; gap:5px;">${Icons.get('fileText', 14)} <span><strong>${traffic.totalAttemptsFormatted}</strong> lượt thi thử</span></span>
+                  <span class="mission-pill" style="display:inline-flex; align-items:center; gap:5px;">${Icons.get('zap', 14)} <span>Offline PWA</span></span>
+                  <span class="mission-pill" style="display:inline-flex; align-items:center; gap:5px;">${Icons.get('database', 14)} <span>Supabase Cloud</span></span>
+                  <span class="mission-pill" style="display:inline-flex; align-items:center; gap:5px;">${Icons.get('shieldCheck', 14)} <span>Đề thi chuẩn hóa</span></span>
                 </div>
               </div>
               <div class="home-mission-action">
-                <button class="btn btn-primary btn-lg" onclick="App.openContactModal()" style="white-space: nowrap; padding: 14px 22px; font-weight: 800; font-size: 13.5px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25);">
-                  <span>📩 Gửi Góp Ý / Báo Lỗi Đề Thi</span>
-                  <span>➔</span>
+                <button class="btn btn-primary btn-lg" onclick="App.openContactModal()" style="white-space: nowrap; padding: 14px 22px; font-weight: 800; font-size: 13.5px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25); display: inline-flex; align-items: center; gap: 8px;">
+                  ${Icons.get('contact', 16)}
+                  <span>Gửi Góp Ý / Báo Lỗi Đề Thi</span>
+                  ${Icons.get('arrowRight', 14)}
                 </button>
               </div>
             </div>
@@ -125,10 +126,10 @@ Object.assign(App, {
         <div class="subject-card" style="${isDraft ? 'border-top: 3px solid #f59e0b;' : ''}">
           <div class="subject-card-top">
             <span class="subject-code-badge">${sub.code || sub.id}</span>
-            ${isDraft ? '<span class="badge" style="background:#fef3c7; color:#b45309; font-weight:700;">🧪 Thử nghiệm</span>' : `<span class="badge badge-gray">${cCount} chương</span>`}
+            ${isDraft ? `<span class="badge" style="background:#fef3c7; color:#b45309; font-weight:700; display:inline-flex; align-items:center; gap:3px;">${Icons.get('sparkles', 11)} Thử nghiệm</span>` : `<span class="badge badge-gray">${cCount} chương</span>`}
           </div>
           <h3>${sub.name}</h3>
-          <div class="subject-card-dept">🏛️ ${sub.department || 'Đại học Đồng Tháp'}</div>
+          <div class="subject-card-dept" style="display:flex; align-items:center; gap:4px;">${Icons.get('home', 12)} <span>${sub.department || 'Đại học Đồng Tháp'}</span></div>
 
           <div class="subject-meta-stats">
             <span>Tổng câu: <strong>${qCount}</strong></span>
@@ -139,8 +140,8 @@ Object.assign(App, {
             <div class="last-score-text">
               ${latest ? `Lần thi gần nhất: <strong>${latest.score10}/10</strong>` : `Chưa làm bài thi nào`}
             </div>
-            <button class="btn btn-primary btn-sm" onclick="App.openQuizConfigModal('${sub.id}')">
-              Vào Ôn Thi ➔
+            <button class="btn btn-primary btn-sm" onclick="App.openQuizConfigModal('${sub.id}')" style="display:inline-flex; align-items:center; gap:5px;">
+              <span>Vào Ôn Thi</span> ${Icons.get('arrowRight', 13)}
             </button>
           </div>
         </div>

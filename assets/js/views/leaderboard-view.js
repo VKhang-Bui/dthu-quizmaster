@@ -72,7 +72,7 @@ Object.assign(App, {
         ${isAdmin ? `
           <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
             <button class="btn btn-sm" style="background:#fefce8; color:#854d0e; border:1px solid #facc15; font-weight:700; display:inline-flex; align-items:center; gap:6px;" onclick="App.navigateTo('leaderboard-admin')">
-              <span>👑</span> <span>Trang Quản Trị BXH & Mùa Giải ➔</span>
+              ${Icons.get('crown', 14)} <span>Trang Quản Trị BXH & Mùa Giải</span> ${Icons.get('arrowRight', 12)}
             </button>
           </div>
         ` : ''}
@@ -80,20 +80,23 @@ Object.assign(App, {
         <!-- Header & Season Pill -->
         <div style="margin-bottom: 22px; text-align: center;">
           <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 14px; background: #e0f2fe; color: #0369a1; border-radius: 20px; font-size: 12.5px; font-weight: 700; margin-bottom: 8px;">
-            <span>🗓️</span> <span>Mùa giải: <strong>${settings.seasonName || 'Học Kỳ 1 (2026 - 2027)'}</strong></span>
+            <span>${Icons.get('clock', 13)}</span> <span>Mùa giải: <strong>${settings.seasonName || 'Học Kỳ 1 (2026 - 2027)'}</strong></span>
           </div>
-          <h2 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 0;">🏆 Bảng Xếp Hạng Sinh Viên DThu</h2>
+          <h2 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 0; display:flex; align-items:center; justify-content:center; gap:8px;">
+            <span style="color:#d97706;">${Icons.get('trophy', 26)}</span>
+            <span>Bảng Xếp Hạng Sinh Viên DThu</span>
+          </h2>
           <p style="color: var(--text-secondary); margin-top: 6px; font-size: 13.5px; max-width: 680px; margin-left: auto; margin-right: auto;">
             Tôn vinh sinh viên có thành tích rèn luyện thi thử xuất sắc và đóng góp xây dựng ngân hàng tài liệu học tập toàn diện cho trường Đại học Đồng Tháp.
           </p>
 
           <!-- Bộ Chọn Phạm Vi: Mùa Giải Hiện Tại vs Tổng Các Mùa (All-Time) -->
           <div style="display: inline-flex; background: var(--surface-subtle); padding: 4px; border-radius: 24px; border: 1px solid var(--border); margin-top: 10px; gap: 4px;">
-            <button class="btn btn-sm ${isSeason ? 'btn-primary' : ''}" style="border-radius: 20px; font-size: 12.5px; font-weight: 700; padding: 5px 14px;" onclick="App.leaderboardScope = 'season'; App.renderLeaderboardView(document.getElementById('mainContent'));">
-              🗓️ Điểm Mùa Này (${settings.seasonName || 'Mùa Hiện Tại'})
+            <button class="btn btn-sm ${isSeason ? 'btn-primary' : ''}" style="border-radius: 20px; font-size: 12.5px; font-weight: 700; padding: 5px 14px; display:inline-flex; align-items:center; gap:5px;" onclick="App.leaderboardScope = 'season'; App.renderLeaderboardView(document.getElementById('mainContent'));">
+              ${Icons.get('clock', 13)} <span>Điểm Mùa Này (${settings.seasonName || 'Mùa Hiện Tại'})</span>
             </button>
-            <button class="btn btn-sm ${!isSeason ? 'btn-primary' : ''}" style="border-radius: 20px; font-size: 12.5px; font-weight: 700; padding: 5px 14px;" onclick="App.leaderboardScope = 'all_time'; App.renderLeaderboardView(document.getElementById('mainContent'));">
-              👑 Điểm Tổng Các Mùa (All-Time)
+            <button class="btn btn-sm ${!isSeason ? 'btn-primary' : ''}" style="border-radius: 20px; font-size: 12.5px; font-weight: 700; padding: 5px 14px; display:inline-flex; align-items:center; gap:5px;" onclick="App.leaderboardScope = 'all_time'; App.renderLeaderboardView(document.getElementById('mainContent'));">
+              ${Icons.get('crown', 13)} <span>Điểm Tổng Các Mùa (All-Time)</span>
             </button>
           </div>
         </div>
@@ -101,28 +104,28 @@ Object.assign(App, {
         <!-- 📊 Ruy-băng Thống Kê Tổng Quan Toàn Trường -->
         <div class="leaderboard-stats-ribbon">
           <div class="leaderboard-stat-item">
-            <div class="leaderboard-stat-icon">👨‍🎓</div>
+            <div class="leaderboard-stat-icon" style="color: var(--brand-primary); display:flex; align-items:center; justify-content:center;">${Icons.get('student', 24)}</div>
             <div>
               <div class="leaderboard-stat-num">${stats.totalStudents}</div>
               <div class="leaderboard-stat-label">Sinh viên tranh tài</div>
             </div>
           </div>
           <div class="leaderboard-stat-item">
-            <div class="leaderboard-stat-icon" style="color: #b45309;">⚡</div>
+            <div class="leaderboard-stat-icon" style="color: #b45309; display:flex; align-items:center; justify-content:center;">${Icons.get('zap', 24)}</div>
             <div>
               <div class="leaderboard-stat-num" style="color: #b45309;">${stats.totalExp.toLocaleString()}</div>
               <div class="leaderboard-stat-label">Tổng EXP (${isSeason ? 'Mùa này' : 'All-Time'})</div>
             </div>
           </div>
           <div class="leaderboard-stat-item">
-            <div class="leaderboard-stat-icon" style="color: #15803d;">🌟</div>
+            <div class="leaderboard-stat-icon" style="color: #15803d; display:flex; align-items:center; justify-content:center;">${Icons.get('star', 24)}</div>
             <div>
               <div class="leaderboard-stat-num" style="color: #15803d;">${stats.totalCp.toLocaleString()}</div>
               <div class="leaderboard-stat-label">Tổng CP (${isSeason ? 'Mùa này' : 'All-Time'})</div>
             </div>
           </div>
           <div class="leaderboard-stat-item">
-            <div class="leaderboard-stat-icon" style="color: #0284c7;">📝</div>
+            <div class="leaderboard-stat-icon" style="color: #0284c7; display:flex; align-items:center; justify-content:center;">${Icons.get('fileText', 24)}</div>
             <div>
               <div class="leaderboard-stat-num" style="color: #0284c7;">${stats.totalQuestions.toLocaleString()}</div>
               <div class="leaderboard-stat-label">Câu hỏi ngân hàng</div>
@@ -132,11 +135,11 @@ Object.assign(App, {
 
         <!-- Tab Selector: EXP Học Tập vs CP Cống Hiến -->
         <div class="hub-tabs" style="max-width: 520px; margin: 0 auto 24px auto;">
-          <button class="hub-tab-btn ${activeTab === 'exp' ? 'active' : ''}" onclick="App.leaderboardTab = 'exp'; App.renderLeaderboardView(document.getElementById('mainContent'));">
-            ⚡ Top Học Tập (EXP)
+          <button class="hub-tab-btn ${activeTab === 'exp' ? 'active' : ''}" onclick="App.leaderboardTab = 'exp'; App.renderLeaderboardView(document.getElementById('mainContent'));" style="display:inline-flex; align-items:center; justify-content:center; gap:6px;">
+            ${Icons.get('zap', 14)} <span>Top Học Tập (EXP)</span>
           </button>
-          <button class="hub-tab-btn ${activeTab === 'cp' ? 'active' : ''}" onclick="App.leaderboardTab = 'cp'; App.renderLeaderboardView(document.getElementById('mainContent'));">
-            🌟 Top Cống Hiến (CP)
+          <button class="hub-tab-btn ${activeTab === 'cp' ? 'active' : ''}" onclick="App.leaderboardTab = 'cp'; App.renderLeaderboardView(document.getElementById('mainContent'));" style="display:inline-flex; align-items:center; justify-content:center; gap:6px;">
+            ${Icons.get('star', 14)} <span>Top Cống Hiến (CP)</span>
           </button>
         </div>
 
@@ -144,17 +147,17 @@ Object.assign(App, {
         <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 24px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
           <div style="display: flex; gap: 10px; flex: 1; min-width: 280px; flex-wrap: wrap;">
             <div class="search-input-wrapper" style="flex: 1; min-width: 180px;">
-              <span class="search-icon">🔍</span>
+              <span class="search-icon" style="display:flex; align-items:center;">${Icons.get('search', 15)}</span>
               <input type="text" id="leaderboardSearchInput" class="form-control" placeholder="Tìm theo tên, MSSV..." value="${this.leaderboardSearch}" oninput="App.onSearchLeaderboard(this.value)">
             </div>
             <select id="leaderboardDeptFilter" class="form-control" style="width: auto; min-width: 200px;" onchange="App.onFilterLeaderboardDept(this.value)">
-              <option value="all" ${this.leaderboardDept === 'all' ? 'selected' : ''}>🏛️ Tất cả Khoa / Viện</option>
+              <option value="all" ${this.leaderboardDept === 'all' ? 'selected' : ''}>Tất cả Khoa / Viện</option>
               ${departments.map(d => `<option value="${d}" ${this.leaderboardDept === d ? 'selected' : ''}>${d}</option>`).join('')}
             </select>
           </div>
 
           <button class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;" onclick="App.jumpToMyRank()">
-            <span>📍</span> <span>Vị trí của tôi</span>
+            ${Icons.get('target', 14)} <span>Vị trí của tôi</span>
           </button>
         </div>
 
@@ -164,42 +167,42 @@ Object.assign(App, {
             <!-- Rank 2 -->
             <div class="podium-card podium-rank-2">
               <div style="font-size: 13px; font-weight: 800; color: #64748b; margin-bottom: 6px;">
-                ${settings.top2Title || '🥈 Hạng 2 (Top 2)'}
+                ${settings.top2Title || 'Hạng 2 (Top 2)'}
               </div>
-              <div class="podium-avatar">${top2 ? (top2.isCurrentUser ? '👨‍🎓' : '🥈') : '👤'}</div>
+              <div class="podium-avatar" style="display:flex; align-items:center; justify-content:center; color:#64748b;">${Icons.get('shieldCheck', 32)}</div>
               <div class="podium-name">${top2 ? top2.name : 'Đang cập nhật'}</div>
               <div style="font-size: 12px; color: var(--text-secondary);">${top2 ? top2.department : ''}</div>
               ${top2 && top2.customBadge ? `<div style="margin-top: 4px;"><span class="custom-badge-pill">${top2.customBadge}</span></div>` : ''}
               <div class="podium-exp" style="${isCp ? 'background:#fef3c7; color:#b45309;' : ''}">
-                ${isCp ? `🌟 ${top2 ? top2.cp : 0} CP` : `⚡ ${top2 ? top2.exp : 0} EXP`}
+                ${isCp ? `CP: ${top2 ? top2.cp : 0}` : `EXP: ${top2 ? top2.exp : 0}`}
               </div>
             </div>
 
             <!-- Rank 1 (Top 1) -->
             <div class="podium-card podium-rank-1">
               <div style="font-size: 13px; font-weight: 800; color: #d97706; margin-bottom: 6px;">
-                ${settings.top1Title || '🥇 Hạng 1 (Top 1)'}
+                ${settings.top1Title || 'Hạng 1 (Quán Quân)'}
               </div>
-              <div class="podium-avatar">${top1 ? '🥇' : '👤'}</div>
+              <div class="podium-avatar" style="display:flex; align-items:center; justify-content:center; color:#d97706;">${Icons.get('crown', 36)}</div>
               <div class="podium-name" style="font-size: 18px;">${top1 ? top1.name : 'Đang cập nhật'}</div>
               <div style="font-size: 12.5px; color: var(--text-secondary);">${top1 ? top1.department : ''}</div>
               ${top1 && top1.customBadge ? `<div style="margin-top: 4px;"><span class="custom-badge-pill">${top1.customBadge}</span></div>` : ''}
               <div class="podium-exp" style="font-size: 16px; ${isCp ? 'background:#fef3c7; color:#b45309;' : ''}">
-                ${isCp ? `🌟 ${top1 ? top1.cp : 0} CP` : `⚡ ${top1 ? top1.exp : 0} EXP`}
+                ${isCp ? `CP: ${top1 ? top1.cp : 0}` : `EXP: ${top1 ? top1.exp : 0}`}
               </div>
             </div>
 
             <!-- Rank 3 -->
             <div class="podium-card podium-rank-3">
               <div style="font-size: 13px; font-weight: 800; color: #c2410c; margin-bottom: 6px;">
-                ${settings.top3Title || '🥉 Hạng 3 (Top 3)'}
+                ${settings.top3Title || 'Hạng 3 (Top 3)'}
               </div>
-              <div class="podium-avatar">${top3 ? (top3.isCurrentUser ? '👨‍🎓' : '🥉') : '👤'}</div>
+              <div class="podium-avatar" style="display:flex; align-items:center; justify-content:center; color:#c2410c;">${Icons.get('shieldCheck', 32)}</div>
               <div class="podium-name">${top3 ? top3.name : 'Đang cập nhật'}</div>
               <div style="font-size: 12px; color: var(--text-secondary);">${top3 ? top3.department : ''}</div>
               ${top3 && top3.customBadge ? `<div style="margin-top: 4px;"><span class="custom-badge-pill">${top3.customBadge}</span></div>` : ''}
               <div class="podium-exp" style="${isCp ? 'background:#fef3c7; color:#b45309;' : ''}">
-                ${isCp ? `🌟 ${top3 ? top3.cp : 0} CP` : `⚡ ${top3 ? top3.exp : 0} EXP`}
+                ${isCp ? `CP: ${top3 ? top3.cp : 0}` : `EXP: ${top3 ? top3.exp : 0}`}
               </div>
             </div>
           </div>
@@ -222,14 +225,14 @@ Object.assign(App, {
               ${leaderboard.length === 0 ? `
                 <tr>
                   <td colspan="6" style="text-align: center; padding: 48px; color: var(--text-secondary);">
-                    <div style="font-size: 36px; margin-bottom: 8px;">🔍</div>
+                    <div style="color: var(--text-tertiary); margin-bottom: 8px; display:flex; justify-content:center;">${Icons.get('search', 36)}</div>
                     <strong>Không tìm thấy sinh viên nào phù hợp với bộ lọc!</strong>
                   </td>
                 </tr>
               ` : leaderboard.map(item => `
                 <tr id="${item.isCurrentUser ? 'leaderboard-my-row' : 'leaderboard-row-' + item.id}" class="${item.isCurrentUser ? 'current-user-row' : ''}">
                   <td style="text-align: center; font-weight: 800;">
-                    ${item.rank === 1 ? '🥇 1' : item.rank === 2 ? '🥈 2' : item.rank === 3 ? '🥉 3' : item.rank}
+                    ${item.rank === 1 ? `<span style="color:#d97706; display:inline-flex; align-items:center; gap:2px;">${Icons.get('crown', 14)} 1</span>` : item.rank === 2 ? `<span style="color:#64748b; display:inline-flex; align-items:center; gap:2px;">${Icons.get('shieldCheck', 14)} 2</span>` : item.rank === 3 ? `<span style="color:#c2410c; display:inline-flex; align-items:center; gap:2px;">${Icons.get('shieldCheck', 14)} 3</span>` : item.rank}
                   </td>
                   <td>
                     <div>
@@ -242,7 +245,7 @@ Object.assign(App, {
                     ${isCp ? `<strong>${(item.questions || 0).toLocaleString()}</strong> câu · <strong>${(item.chars || 0).toLocaleString()}</strong> chữ` : `${item.quizzes || 0} bài`}
                   </td>
                   <td style="text-align: right; font-weight: 800; color: ${isCp ? '#15803d' : '#b45309'};">
-                    ${isCp ? `🌟 ${item.cp || 0} CP` : `⚡ ${item.exp || 0} EXP`}
+                    ${isCp ? `+${(item.cp || 0).toLocaleString()} CP` : `+${(item.exp || 0).toLocaleString()} EXP`}
                   </td>
                   <td style="text-align: center;">
                     ${item.customBadge ? `
@@ -268,12 +271,12 @@ Object.assign(App, {
     if (!isAdmin) {
       container.innerHTML = `
         <div style="max-width: 600px; margin: 60px auto; text-align: center; padding: 32px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);">
-          <div style="font-size: 48px; margin-bottom: 16px;">🔒</div>
+          <div style="color: #dc2626; margin-bottom: 16px; display:flex; justify-content:center;">${Icons.get('lock', 48)}</div>
           <h3 style="font-size: 20px; font-weight: 800; color: #b91c1c;">Khu Vực Hạn Chế Truy Cập</h3>
           <p style="color: var(--text-secondary); margin: 8px 0 20px 0; font-size: 14px;">
             Trang Quản Trị Bảng Xếp Hạng & Mùa Giải chỉ dành riêng cho Quản Trị Viên (Admin) và Ban Điều Hành hệ thống.
           </p>
-          <button class="btn btn-primary" onclick="App.navigateTo('leaderboard')">➔ Quay Lại Bảng Xếp Hạng</button>
+          <button class="btn btn-primary" onclick="App.navigateTo('leaderboard')" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('trophy', 14)} <span>Quay Lại Bảng Xếp Hạng</span></button>
         </div>
       `;
       return;
@@ -325,28 +328,28 @@ Object.assign(App, {
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid var(--border); padding-bottom: 16px;">
           <div>
             <div style="display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; background: #fef08a; color: #854d0e; border-radius: 12px; font-size: 12px; font-weight: 800; margin-bottom: 6px;">
-              <span>👑</span> <span>TRUNG TÂM QUẢN TRỊ ADMIN TOÀN DIỆN</span>
+              <span>${Icons.get('crown', 14)}</span> <span>TRUNG TÂM QUẢN TRỊ ADMIN TOÀN DIỆN</span>
             </div>
             <h2 style="font-size: 24px; font-weight: 800; color: var(--text-primary); margin: 0;">Quản Trị Bảng Xếp Hạng & Vòng Đời Mùa Giải</h2>
             <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Toàn quyền tạo mùa, sửa thể lệ, reset điểm, đóng băng, phân quyền, kiểm toán và quản trị thành viên.</div>
           </div>
           <div style="display: flex; gap: 8px;">
-            <button class="btn btn-sm" onclick="App.navigateTo('leaderboard')">
-              👁️ Xem BXH Công Khai ➔
+            <button class="btn btn-sm" onclick="App.navigateTo('leaderboard')" style="display:inline-flex; align-items:center; gap:5px;">
+              ${Icons.get('trophy', 13)} <span>Xem BXH Công Khai</span> ${Icons.get('arrowRight', 11)}
             </button>
           </div>
         </div>
 
         <!-- 3 Tab Chức Năng Quản Trị Chuyên Sâu Tinh Gọn -->
         <div class="hub-tabs" style="margin-bottom: 24px; flex-wrap: wrap;">
-          <button class="hub-tab-btn ${this.adminLeaderboardTab === 'seasons' ? 'active' : ''}" onclick="App.switchAdminLeaderboardTab('seasons')">
-            🏆 Quản Lý Mùa Giải (${seasons.length})
+          <button class="hub-tab-btn ${this.adminLeaderboardTab === 'seasons' ? 'active' : ''}" onclick="App.switchAdminLeaderboardTab('seasons')" style="display:inline-flex; align-items:center; gap:6px;">
+            ${Icons.get('trophy', 14)} <span>Quản Lý Mùa Giải</span> (${seasons.length})
           </button>
-          <button class="hub-tab-btn ${this.adminLeaderboardTab === 'members' ? 'active' : ''}" onclick="App.switchAdminLeaderboardTab('members')">
-            👥 Quản Trị Thành Viên (${allUsers.length})
+          <button class="hub-tab-btn ${this.adminLeaderboardTab === 'members' ? 'active' : ''}" onclick="App.switchAdminLeaderboardTab('members')" style="display:inline-flex; align-items:center; gap:6px;">
+            ${Icons.get('users', 14)} <span>Quản Trị Thành Viên</span> (${allUsers.length})
           </button>
-          <button class="hub-tab-btn ${this.adminLeaderboardTab === 'audit_logs' ? 'active' : ''}" onclick="App.switchAdminLeaderboardTab('audit_logs')">
-            📋 Nhật Ký Kiểm Toán (${auditLogs.length})
+          <button class="hub-tab-btn ${this.adminLeaderboardTab === 'audit_logs' ? 'active' : ''}" onclick="App.switchAdminLeaderboardTab('audit_logs')" style="display:inline-flex; align-items:center; gap:6px;">
+            ${Icons.get('fileText', 14)} <span>Nhật Ký Kiểm Toán</span> (${auditLogs.length})
           </button>
         </div>
 
@@ -360,7 +363,7 @@ Object.assign(App, {
                 <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
                   <label style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; color: var(--text-primary); cursor: pointer;">
                     <input type="checkbox" id="adminLeaderboardIsPublicCheckbox" ${settings.isPublic !== false ? 'checked' : ''} style="width: 17px; height: 17px;">
-                    <span>🌐 Cho phép sinh viên xem BXH công khai</span>
+                    <span>Cho phép sinh viên xem BXH công khai</span>
                   </label>
 
                   <div style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
@@ -375,8 +378,8 @@ Object.assign(App, {
                   </div>
                 </div>
 
-                <button class="btn btn-sm btn-primary" onclick="App.saveAdminLeaderboardDisplaySettingsAction()">
-                  💾 Lưu Thiết Lập Hiển Thị
+                <button class="btn btn-sm btn-primary" onclick="App.saveAdminLeaderboardDisplaySettingsAction()" style="display:inline-flex; align-items:center; gap:5px;">
+                  ${Icons.get('download', 13)} <span>Lưu Thiết Lập Hiển Thị</span>
                 </button>
               </div>
 
@@ -388,7 +391,7 @@ Object.assign(App, {
                   <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">Tích hợp đầy đủ tạo mùa, chỉnh sửa thể lệ, hệ số EXP, podium, đóng băng và xem bảng vàng.</div>
                 </div>
                 <button class="btn btn-primary btn-sm" onclick="App.openCreateSeasonModal()" style="display: inline-flex; align-items: center; gap: 6px;">
-                  <span>➕</span> <span>Tạo Mùa Giải Mới</span>
+                  ${Icons.get('plus', 13)} <span>Tạo Mùa Giải Mới</span>
                 </button>
               </div>
 

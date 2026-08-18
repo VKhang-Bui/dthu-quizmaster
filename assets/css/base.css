@@ -71,14 +71,16 @@ button, input, select, textarea {
 .brand-icon {
   width: 36px;
   height: 36px;
-  background: var(--brand-primary);
-  color: #fff;
+  background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+  color: #ffffff !important;
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
   font-size: 18px;
+  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.35);
+  flex-shrink: 0;
 }
 
 .brand-title-group h1 {

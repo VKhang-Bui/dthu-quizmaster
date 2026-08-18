@@ -2714,31 +2714,65 @@ body.is-resizing-quiz {
 
 .avatar-picker-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+@media (min-width: 480px) {
+  .avatar-picker-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 640px) {
+  .avatar-picker-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
 }
 
 .avatar-choice-btn {
-  font-size: 24px;
-  padding: 8px 4px;
+  padding: 10px 6px 8px 6px;
   background: var(--surface);
   border: 1.5px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  line-height: 1;
-  text-align: center;
-  transition: var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
 }
 
 .avatar-choice-btn:hover {
   border-color: var(--brand-primary);
-  transform: scale(1.1);
+  background: var(--surface-hover);
+  transform: translateY(-2px);
 }
 
 .avatar-choice-btn.active {
   border-color: var(--brand-primary);
   background: var(--brand-light);
-  box-shadow: 0 0 0 2px var(--brand-primary);
+  box-shadow: 0 0 0 2.5px var(--brand-primary);
+}
+
+.avatar-choice-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  line-height: 1.2;
+}
+
+.avatar-choice-btn.active .avatar-choice-label {
+  color: var(--brand-primary);
+}
+
+.user-avatar-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: transform 0.2s ease;
 }
 
 /* ── USER MANAGEMENT DASHBOARD ─────────────────────────────────────── */

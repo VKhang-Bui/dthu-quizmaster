@@ -60,23 +60,23 @@ Object.assign(App, {
         
         <!-- Back Navigation & Top Actions Bar -->
         <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 14px;">
-          <button class="btn btn-sm" onclick="App.navigateTo('${isEditor ? 'manage' : 'home'}')">
-            ${isEditor ? '← Quay lại danh sách môn' : '🏠 Về Trang Chủ'}
+          <button class="btn btn-sm" onclick="App.navigateTo('${isEditor ? 'manage' : 'home'}')" style="display:inline-flex; align-items:center; gap:6px;">
+            ${isEditor ? `${Icons.get('chevronLeft', 14)} <span>Quay lại danh sách môn</span>` : `${Icons.get('home', 14)} <span>Về Trang Chủ</span>`}
           </button>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button class="btn btn-sm btn-primary" onclick="App.openQuizConfigModal('${sub.id}')">
-              🚀 Vào Làm Bài Ngay
+            <button class="btn btn-sm btn-primary" onclick="App.openQuizConfigModal('${sub.id}')" style="display:inline-flex; align-items:center; gap:6px;">
+              ${Icons.get('zap', 14)} <span>Vào Làm Bài Ngay</span>
             </button>
             ${isEditor ? `
-              <button class="btn btn-sm" onclick="App.navigateTo('parser', { subjectId: '${sub.id}' })">
-                📝 Nhập câu (Parser)
+              <button class="btn btn-sm" onclick="App.navigateTo('parser', { subjectId: '${sub.id}' })" style="display:inline-flex; align-items:center; gap:6px;">
+                ${Icons.get('upload', 14)} <span>Nhập câu (Parser)</span>
               </button>
-              <button class="btn btn-sm" onclick="App.shuffleSubjectQuestions('${sub.id}')">
-                🔄 Xáo trộn đề
+              <button class="btn btn-sm" onclick="App.shuffleSubjectQuestions('${sub.id}')" style="display:inline-flex; align-items:center; gap:6px;">
+                ${Icons.get('refresh', 14)} <span>Xáo trộn đề</span>
               </button>
             ` : ''}
-            <button class="btn btn-sm" onclick="ImportExportService.exportSubject('${sub.id}')">
-              📥 Xuất JSON
+            <button class="btn btn-sm" onclick="ImportExportService.exportSubject('${sub.id}')" style="display:inline-flex; align-items:center; gap:6px;">
+              ${Icons.get('download', 14)} <span>Xuất JSON</span>
             </button>
           </div>
         </div>
@@ -96,8 +96,8 @@ Object.assign(App, {
                 ${sub.description || 'Chưa có mô tả chi tiết cho môn học này.'}
               </p>
             </div>
-            <button class="btn btn-sm" onclick="App.openEditSubjectModal('${sub.id}')">
-              ✏️ Chỉnh sửa thông tin môn
+            <button class="btn btn-sm" onclick="App.openEditSubjectModal('${sub.id}')" style="display:inline-flex; align-items:center; gap:6px;">
+              ${Icons.get('edit', 14)} <span>Chỉnh sửa thông tin môn</span>
             </button>
           </div>
 
@@ -124,11 +124,11 @@ Object.assign(App, {
 
         <!-- 2 TAB NAVIGATION TOÀN MÀN HÌNH (FULL WIDTH) -->
         <div style="display: flex; gap: 8px; border-bottom: 2px solid var(--border); margin-bottom: 20px;">
-          <button class="btn ${activeTab === 'questions' ? 'btn-primary' : ''}" style="border-radius: var(--radius-sm) var(--radius-sm) 0 0; padding: 10px 20px; font-size: 14.5px; font-weight: 700; border-bottom: none;" onclick="App.switchSubjectDetailTab('questions')">
-            📋 Ngân Hàng Câu Hỏi (${qCount})
+          <button class="btn ${activeTab === 'questions' ? 'btn-primary' : ''}" style="border-radius: var(--radius-sm) var(--radius-sm) 0 0; padding: 10px 20px; font-size: 14.5px; font-weight: 700; border-bottom: none; display:inline-flex; align-items:center; gap:7px;" onclick="App.switchSubjectDetailTab('questions')">
+            ${Icons.get('fileText', 16)} <span>Ngân Hàng Câu Hỏi (${qCount})</span>
           </button>
-          <button class="btn ${activeTab === 'chapters' ? 'btn-primary' : ''}" style="border-radius: var(--radius-sm) var(--radius-sm) 0 0; padding: 10px 20px; font-size: 14.5px; font-weight: 700; border-bottom: none;" onclick="App.switchSubjectDetailTab('chapters')">
-            📂 Quản Lý Cấu Trúc Các Chương (${chapters.length})
+          <button class="btn ${activeTab === 'chapters' ? 'btn-primary' : ''}" style="border-radius: var(--radius-sm) var(--radius-sm) 0 0; padding: 10px 20px; font-size: 14.5px; font-weight: 700; border-bottom: none; display:inline-flex; align-items:center; gap:7px;" onclick="App.switchSubjectDetailTab('chapters')">
+            ${Icons.get('manage', 16)} <span>Quản Lý Cấu Trúc Các Chương (${chapters.length})</span>
           </button>
         </div>
 
@@ -143,18 +143,18 @@ Object.assign(App, {
               <!-- Khối Tìm Kiếm & Icon Phễu Lọc -->
               <div style="display: flex; gap: 8px; align-items: center; flex: 1; min-width: 260px; max-width: 600px;">
                 <div style="position: relative; flex: 1;">
-                  <input type="text" id="subjectQuestionSearchInput" class="form-control" placeholder="🔍 Tìm kiếm câu hỏi, nội dung đáp án..." value="${this.subjectSearchKeyword || ''}" oninput="App.onSubjectSearchInput(this.value)" style="padding-right: 32px; font-size: 13.5px;">
+                  <input type="text" id="subjectQuestionSearchInput" class="form-control" placeholder="Tìm kiếm câu hỏi, nội dung đáp án..." value="${this.subjectSearchKeyword || ''}" oninput="App.onSubjectSearchInput(this.value)" style="padding-right: 32px; font-size: 13.5px;">
                   ${this.subjectSearchKeyword ? `
-                    <button style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 14px; cursor: pointer; color: var(--text-tertiary);" onclick="App.clearSubjectSearch()">✕</button>
+                    <button style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 14px; cursor: pointer; color: var(--text-tertiary); display:flex; align-items:center;" onclick="App.clearSubjectSearch()">${Icons.get('close', 13)}</button>
                   ` : ''}
                 </div>
 
                 <!-- Icon Cái Phễu Lọc Dropdown -->
                 <div style="position: relative;">
                   <button class="btn ${activeFilter !== 'all' ? 'btn-primary' : ''}" style="padding: 8px 12px; display: flex; align-items: center; gap: 6px; font-size: 13.5px;" onclick="App.toggleChapterFilterMenu()" title="Lọc theo chương">
-                    <span style="font-size: 15px;">🌪️</span>
+                    <span style="display:flex; align-items:center;">${Icons.get('filter', 15)}</span>
                     <span style="font-weight: 600; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px;">${activeFilterName}</span>
-                    <span style="font-size: 9px; margin-left: 2px;">▼</span>
+                    <span style="display:flex; align-items:center; margin-left: 2px;">${Icons.get('chevronDown', 11)}</span>
                   </button>
 
                   <!-- Popover Dropdown Danh Sách Chương -->
@@ -162,10 +162,10 @@ Object.assign(App, {
                     <div style="position: absolute; top: calc(100% + 6px); left: 0; min-width: 260px; max-width: 320px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 100; padding: 6px; display: flex; flex-direction: column; gap: 2px;">
                       <div style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-tertiary); padding: 6px 10px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
                         <span>Lọc theo chương</span>
-                        <span style="cursor: pointer; font-size: 13px;" onclick="App.toggleChapterFilterMenu()">✕</span>
+                        <span style="cursor: pointer; display:flex; align-items:center;" onclick="App.toggleChapterFilterMenu()">${Icons.get('close', 13)}</span>
                       </div>
                       <button class="btn btn-sm ${activeFilter === 'all' ? 'btn-primary' : ''}" style="width: 100%; text-align: left; justify-content: space-between; display: flex; align-items: center; border: none; margin-top: 4px; padding: 8px 10px; font-size: 13px;" onclick="App.selectChapterFilter('all')">
-                        <span>📚 Tất cả chương</span>
+                        <span style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('book', 14)} <span>Tất cả chương</span></span>
                         <span class="badge ${activeFilter === 'all' ? 'badge-gray' : ''}">${allQuestions.length}</span>
                       </button>
                       ${chapters.map(c => {
@@ -185,14 +185,14 @@ Object.assign(App, {
 
               <!-- Nhóm Nút Thao Tác Câu Hỏi -->
               <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                <button class="btn btn-sm btn-primary" onclick="App.openAddQuestionModal('${sub.id}', '${activeFilter}')">
-                  ➕ Soạn câu hỏi mới
+                <button class="btn btn-sm btn-primary" onclick="App.openAddQuestionModal('${sub.id}', '${activeFilter}')" style="display:inline-flex; align-items:center; gap:6px;">
+                  ${Icons.get('plus', 14)} <span>Soạn câu hỏi mới</span>
                 </button>
-                <button class="btn btn-sm" onclick="App.shuffleSubjectQuestions('${sub.id}')" title="Xáo trộn thứ tự các câu hỏi">
-                  🔄 Xáo trộn
+                <button class="btn btn-sm" onclick="App.shuffleSubjectQuestions('${sub.id}')" title="Xáo trộn thứ tự các câu hỏi" style="display:inline-flex; align-items:center; gap:6px;">
+                  ${Icons.get('refresh', 14)} <span>Xáo trộn</span>
                 </button>
-                <button class="btn btn-sm btn-danger" onclick="App.clearAllQuestionsConfirm('${sub.id}')" title="Xóa toàn bộ câu hỏi của môn">
-                  🗑️ Xóa tất cả
+                <button class="btn btn-sm btn-danger" onclick="App.clearAllQuestionsConfirm('${sub.id}')" title="Xóa toàn bộ câu hỏi của môn" style="display:inline-flex; align-items:center; gap:6px;">
+                  ${Icons.get('trash', 14)} <span>Xóa tất cả</span>
                 </button>
               </div>
             </div>
@@ -208,14 +208,14 @@ Object.assign(App, {
               <!-- Điều Khiển Phân Trang -->
               ${totalPages > 1 ? `
                 <div style="display: flex; gap: 4px; align-items: center;">
-                  <button class="btn btn-sm" style="padding: 3px 10px; font-size: 12px;" ${currentPage === 0 ? 'disabled' : ''} onclick="App.changeSubjectQuestionPage(${currentPage - 1})">
-                    ◀ Trước
+                  <button class="btn btn-sm" style="padding: 3px 10px; font-size: 12px; display:inline-flex; align-items:center; gap:4px;" ${currentPage === 0 ? 'disabled' : ''} onclick="App.changeSubjectQuestionPage(${currentPage - 1})">
+                    ${Icons.get('chevronLeft', 12)} <span>Trước</span>
                   </button>
                   <span style="font-size: 12.5px; font-weight: 700; padding: 0 6px;">
                     Trang ${currentPage + 1} / ${totalPages}
                   </span>
-                  <button class="btn btn-sm" style="padding: 3px 10px; font-size: 12px;" ${currentPage >= totalPages - 1 ? 'disabled' : ''} onclick="App.changeSubjectQuestionPage(${currentPage + 1})">
-                    Sau ▶
+                  <button class="btn btn-sm" style="padding: 3px 10px; font-size: 12px; display:inline-flex; align-items:center; gap:4px;" ${currentPage >= totalPages - 1 ? 'disabled' : ''} onclick="App.changeSubjectQuestionPage(${currentPage + 1})">
+                    <span>Sau</span> ${Icons.get('chevronRight', 12)}
                   </button>
                 </div>
               ` : ''}
@@ -225,12 +225,12 @@ Object.assign(App, {
             <div style="display: flex; flex-direction: column; gap: 14px;">
               ${filtered.length === 0 ? `
                 <div style="text-align: center; padding: 50px 20px; color: var(--text-tertiary); font-size: 14px;">
-                  <div style="font-size: 40px; margin-bottom: 10px;">📭</div>
+                  <div style="color: var(--text-tertiary); margin-bottom: 10px; display:flex; justify-content:center;">${Icons.get('fileText', 40)}</div>
                   Không tìm thấy câu hỏi nào phù hợp với bộ lọc hiện tại.<br>
                   <div style="display: flex; gap: 8px; justify-content: center; margin-top: 14px;">
                     ${searchKeyword ? `<button class="btn btn-sm" onclick="App.clearSubjectSearch()">Xóa tìm kiếm</button>` : ''}
                     ${activeFilter !== 'all' ? `<button class="btn btn-sm" onclick="App.selectChapterFilter('all')">Xem tất cả chương</button>` : ''}
-                    <button class="btn btn-sm btn-primary" onclick="App.openAddQuestionModal('${sub.id}', '${activeFilter}')">➕ Soạn câu hỏi mới</button>
+                    <button class="btn btn-sm btn-primary" onclick="App.openAddQuestionModal('${sub.id}', '${activeFilter}')" style="display:inline-flex; align-items:center; gap:5px;">${Icons.get('plus', 13)} Soạn câu hỏi mới</button>
                   </div>
                 </div>
               ` : pageQuestions.map((q, qIdx) => {
@@ -245,19 +245,19 @@ Object.assign(App, {
                       <div style="display: flex; align-items: center; gap: 8px;">
                         <span class="badge badge-gray" style="font-weight: 800; font-size: 12.5px;">Câu ${globalIndex}</span>
                         <span class="badge badge-blue" style="font-size: 11.5px;">${chapName}</span>
-                        <span class="badge" style="background:#16a34a; color:#ffffff; font-size: 11.5px; font-weight:700; padding: 3px 10px; border-radius: 6px; box-shadow: 0 1px 2px rgba(22,163,74,0.2);">
-                          ✓ Đáp án đúng: ${App.letters[q.answerIndex] || 'A'}
+                        <span class="badge" style="background:#16a34a; color:#ffffff; font-size: 11.5px; font-weight:700; padding: 3px 10px; border-radius: 6px; box-shadow: 0 1px 2px rgba(22,163,74,0.2); display:inline-flex; align-items:center; gap:4px;">
+                          ${Icons.get('check', 12)} Đáp án đúng: ${App.letters[q.answerIndex] || 'A'}
                         </span>
                       </div>
                       <div style="display: flex; gap: 4px;">
-                        <button class="btn btn-sm" style="padding: 3px 10px; font-size: 12px;" onclick="App.openEditQuestionModal('${sub.id}', '${q.id}')" title="Sửa nội dung câu hỏi">
-                          ✏️ Sửa
+                        <button class="btn btn-sm" style="padding: 3px 10px; font-size: 12px; display:inline-flex; align-items:center; gap:4px;" onclick="App.openEditQuestionModal('${sub.id}', '${q.id}')" title="Sửa nội dung câu hỏi">
+                          ${Icons.get('edit', 12)} <span>Sửa</span>
                         </button>
-                        <button class="btn btn-sm" style="padding: 3px 10px; font-size: 12px;" onclick="App.openMoveQuestionModal('${sub.id}', '${q.id}')" title="Đổi sang chương khác">
-                          🔀 Đổi chương
+                        <button class="btn btn-sm" style="padding: 3px 10px; font-size: 12px; display:inline-flex; align-items:center; gap:4px;" onclick="App.openMoveQuestionModal('${sub.id}', '${q.id}')" title="Đổi sang chương khác">
+                          ${Icons.get('refresh', 12)} <span>Đổi chương</span>
                         </button>
-                        <button class="btn btn-sm btn-danger" style="padding: 3px 8px; font-size: 12px;" onclick="App.deleteQuestionFromSubject('${sub.id}', '${q.id}')" title="Xóa câu này">
-                          🗑️
+                        <button class="btn btn-sm btn-danger" style="padding: 3px 8px; font-size: 12px; display:inline-flex; align-items:center;" onclick="App.deleteQuestionFromSubject('${sub.id}', '${q.id}')" title="Xóa câu này">
+                          ${Icons.get('trash', 12)}
                         </button>
                       </div>
                     </div>

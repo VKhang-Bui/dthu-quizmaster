@@ -89,15 +89,15 @@ Object.assign(App, {
         <!-- Breadcrumb & Top Bar -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 14px;">
           <div style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--text-secondary);">
-            <button class="btn btn-sm" onclick="App.navigateTo('home')">🏠 Trang chủ</button>
+            <button class="btn btn-sm" onclick="App.navigateTo('home')" style="display:inline-flex; align-items:center; gap:4px;">${Icons.get('home', 13)} <span>Trang chủ</span></button>
             <span>/</span>
-            <button class="btn btn-sm" onclick="App.navigateTo('subject-detail', { subjectId: '${subject.id}' })">📚 ${subject.name}</button>
+            <button class="btn btn-sm" onclick="App.navigateTo('subject-detail', { subjectId: '${subject.id}' })" style="display:inline-flex; align-items:center; gap:4px;">${Icons.get('book', 13)} <span>${subject.name}</span></button>
             <span>/</span>
-            <span style="font-weight: 700; color: var(--text-primary);">⚙️ Thiết lập bài làm</span>
+            <span style="font-weight: 700; color: var(--text-primary); display:inline-flex; align-items:center; gap:4px;">${Icons.get('settings', 13)} <span>Thiết lập bài làm</span></span>
           </div>
 
-          <button class="btn btn-sm" onclick="App.navigateTo('home')">
-            ← Quay lại danh sách môn
+          <button class="btn btn-sm" onclick="App.navigateTo('home')" style="display:inline-flex; align-items:center; gap:4px;">
+            ${Icons.get('chevronLeft', 13)} <span>Quay lại danh sách môn</span>
           </button>
         </div>
 
@@ -110,7 +110,7 @@ Object.assign(App, {
             <!-- ── KHU VỰC 1: CHẾ ĐỘ LÀM BÀI ─────────────────────────────── -->
             <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
               <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px;">
-                <span style="font-size: 18px;">🎯</span>
+                <span style="color: var(--brand-primary);">${Icons.get('target', 18)}</span>
                 <h3 style="font-size: 17px; font-weight: 800; color: var(--text-primary); margin: 0;">
                   1. Chọn Chế Độ Làm Bài
                 </h3>
@@ -124,10 +124,10 @@ Object.assign(App, {
                   style="border: 2px solid ${state.mode === 'practice' ? 'var(--brand-primary)' : 'var(--border)'}; background: ${state.mode === 'practice' ? '#f0fdf4' : 'var(--surface)'}; padding: 16px; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s ease; position: relative; ${!isLogged ? 'opacity: 0.65; background: #f8fafc;' : ''}">
                   <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
                     <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                      <strong style="font-size: 15px; color: ${state.mode === 'practice' ? '#15803d' : 'var(--text-primary)'};">
-                        🟢 Chế Độ Ôn Tập
+                      <strong style="font-size: 15px; color: ${state.mode === 'practice' ? '#15803d' : 'var(--text-primary)'}; display: inline-flex; align-items: center; gap: 5px;">
+                        <span style="color:#16a34a;">${Icons.get('bookOpen', 16)}</span> <span>Chế Độ Ôn Tập</span>
                       </strong>
-                      ${!isLogged ? `<span class="badge" style="background: #fef3c7; color: #92400e; font-size: 10.5px; font-weight: 700;">🔒 Cần Đăng nhập</span>` : ''}
+                      ${!isLogged ? `<span class="badge" style="background: #fef3c7; color: #92400e; font-size: 10.5px; font-weight: 700; display:inline-flex; align-items:center; gap:3px;">${Icons.get('lock', 10)} Cần Đăng nhập</span>` : ''}
                     </div>
                     <input type="radio" name="setupModeRadio" ${state.mode === 'practice' ? 'checked' : ''} ${!isLogged ? 'disabled' : ''} style="cursor: pointer;">
                   </div>
@@ -141,8 +141,8 @@ Object.assign(App, {
                   onclick="App.setQuizSetupMode('exam')" 
                   style="border: 2px solid ${state.mode === 'exam' ? 'var(--brand-primary)' : 'var(--border)'}; background: ${state.mode === 'exam' ? '#eff6ff' : 'var(--surface)'}; padding: 16px; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s ease; position: relative;">
                   <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                    <strong style="font-size: 15px; color: ${state.mode === 'exam' ? '#1d4ed8' : 'var(--text-primary)'};">
-                      ⏱️ Chế Độ Thi Thử
+                    <strong style="font-size: 15px; color: ${state.mode === 'exam' ? '#1d4ed8' : 'var(--text-primary)'}; display: inline-flex; align-items: center; gap: 5px;">
+                      <span style="color:#2563eb;">${Icons.get('timer', 16)}</span> <span>Chế Độ Thi Thử</span>
                     </strong>
                     <input type="radio" name="setupModeRadio" ${state.mode === 'exam' ? 'checked' : ''} style="cursor: pointer;">
                   </div>
@@ -155,14 +155,14 @@ Object.assign(App, {
               <!-- Tiện Ích Riêng Theo Chế Độ Đã Chọn -->
               ${state.mode === 'practice' ? `
                 <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: var(--radius-sm); padding: 16px; display: flex; flex-direction: column; gap: 12px;">
-                  <div style="font-size: 13px; font-weight: 700; color: #15803d;">
-                    ✨ Tiện ích & Tùy chọn chuyên biệt cho Ôn Tập:
+                  <div style="font-size: 13px; font-weight: 700; color: #15803d; display: flex; align-items: center; gap: 5px;">
+                    ${Icons.get('sparkles', 14)} <span>Tiện ích & Tùy chọn chuyên biệt cho Ôn Tập:</span>
                   </div>
 
                   <!-- Tùy chọn 1: Hiện đáp án ngay -->
                   <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 13.5px; color: var(--text-primary);">
                     <div>
-                      <strong>⚡ Hiện đáp án & Đúng/Sai ngay sau khi chọn:</strong>
+                      <strong style="display: inline-flex; align-items: center; gap: 4px;">${Icons.get('zap', 13)} <span>Hiện đáp án & Đúng/Sai ngay sau khi chọn:</span></strong>
                       <div style="font-size: 12px; color: var(--text-secondary);">Chọn câu trả lời là biết ngay kết quả và vị trí đúng/sai</div>
                     </div>
                     <input type="checkbox" ${state.instantFeedback ? 'checked' : ''} onchange="App.setQuizSetupPracticeOption('instantFeedback', this.checked)" style="width: 18px; height: 18px; cursor: pointer;">
@@ -171,8 +171,8 @@ Object.assign(App, {
                   <!-- Tùy chọn 2: Tự mở giải thích -->
                   <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 13.5px; color: var(--text-primary);">
                     <div>
-                      <strong>💡 Hiển thị kèm giải thích chi tiết:</strong>
-                      <div style="font-size: 12px; color: var(--text-secondary);">Tự động hiển thị khung giải thích 💡 bên dưới câu hỏi</div>
+                      <strong style="display: inline-flex; align-items: center; gap: 4px;">${Icons.get('sparkles', 13)} <span>Hiển thị kèm giải thích chi tiết:</span></strong>
+                      <div style="font-size: 12px; color: var(--text-secondary);">Tự động hiển thị khung giải thích bên dưới câu hỏi</div>
                     </div>
                     <input type="checkbox" ${state.autoExpandNotes ? 'checked' : ''} onchange="App.setQuizSetupPracticeOption('autoExpandNotes', this.checked)" style="width: 18px; height: 18px; cursor: pointer;">
                   </label>
@@ -180,21 +180,21 @@ Object.assign(App, {
                   <!-- Tùy chọn 3: Lặp lại câu sai -->
                   <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 13.5px; color: var(--text-primary);">
                     <div>
-                      <strong>🔄 Chế độ Luyện Tập Lặp Lại (Mastery):</strong>
+                      <strong style="display: inline-flex; align-items: center; gap: 4px;">${Icons.get('refresh', 13)} <span>Chế độ Luyện Tập Lặp Lại (Mastery):</span></strong>
                       <div style="font-size: 12px; color: var(--text-secondary);">Nếu trả lời sai, câu hỏi sẽ được đưa về cuối đề để bạn làm lại đến khi đúng</div>
                     </div>
                     <input type="checkbox" ${state.repeatMistakes ? 'checked' : ''} onchange="App.setQuizSetupPracticeOption('repeatMistakes', this.checked)" style="width: 18px; height: 18px; cursor: pointer;">
                   </label>
 
                   <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #16a34a; margin-top: 4px;">
-                    <span>⏳</span>
+                    <span>${Icons.get('clock', 13)}</span>
                     <span>Chế độ ôn tập <strong>không giới hạn thời gian</strong> để bạn rèn luyện thoải mái nhất.</span>
                   </div>
                 </div>
               ` : `
                 <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: var(--radius-sm); padding: 16px; display: flex; flex-direction: column; gap: 14px;">
-                  <div style="font-size: 13px; font-weight: 700; color: #1d4ed8;">
-                    ⏱️ Tùy chỉnh Thời Gian & Quy Tắc Phòng Thi:
+                  <div style="font-size: 13px; font-weight: 700; color: #1d4ed8; display: flex; align-items: center; gap: 5px;">
+                    ${Icons.get('timer', 14)} <span>Tùy chỉnh Thời Gian & Quy Tắc Phòng Thi:</span>
                   </div>
 
                   <!-- Chọn thời gian làm bài -->
@@ -583,19 +583,43 @@ Object.assign(App, {
   startExamTimer() {
     if (this.timerInterval) clearInterval(this.timerInterval);
 
+    if (typeof DynamicIsland !== "undefined" && typeof DynamicIsland.pushActivity === "function" && this.activeSession) {
+      const m = Math.floor(this.activeSession.timeRemainingSeconds / 60);
+      const s = this.activeSession.timeRemainingSeconds % 60;
+      DynamicIsland.pushActivity({
+        id: "quiz-timer",
+        type: "quiz-timer",
+        priority: 3,
+        icon: "⏳",
+        title: "Phòng Thi",
+        subtitle: `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+      });
+    }
+
     this.timerInterval = setInterval(() => {
       if (!this.activeSession) return;
       this.activeSession.timeRemainingSeconds--;
 
+      const m = Math.floor(this.activeSession.timeRemainingSeconds / 60);
+      const s = this.activeSession.timeRemainingSeconds % 60;
+      const timeStr = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+
       const digits = document.getElementById("timerDigits");
       if (digits) {
-        const m = Math.floor(this.activeSession.timeRemainingSeconds / 60);
-        const s = this.activeSession.timeRemainingSeconds % 60;
-        digits.textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        digits.textContent = timeStr;
+      }
+
+      if (typeof DynamicIsland !== "undefined" && typeof DynamicIsland.updateActivity === "function") {
+        DynamicIsland.updateActivity("quiz-timer", {
+          subtitle: timeStr
+        });
       }
 
       if (this.activeSession.timeRemainingSeconds <= 0) {
         clearInterval(this.timerInterval);
+        if (typeof DynamicIsland !== "undefined" && typeof DynamicIsland.removeActivity === "function") {
+          DynamicIsland.removeActivity("quiz-timer");
+        }
         this.showToast("⏰ Đã hết thời gian làm bài! Hệ thống tự động nộp bài.", "warning", 4500);
         this.submitQuiz(true);
       }
@@ -617,11 +641,15 @@ Object.assign(App, {
       <div class="view-quiz" id="viewQuizContainer">
         <!-- Sidebar Navigation Grid -->
         <aside class="quiz-sidebar" id="quizSidebar" style="width: ${savedWidth}px; min-width: ${savedWidth}px;">
-          <button class="btn btn-sm" onclick="App.confirmExitQuiz()">← Rời phòng làm bài</button>
+          <button class="btn btn-sm" onclick="App.confirmExitQuiz()" style="display:inline-flex; align-items:center; gap:6px;">
+            ${Icons.get('logOut', 13)} <span>Rời phòng làm bài</span>
+          </button>
 
           ${isExam ? `
             <div class="quiz-timer-box">
-              <span class="timer-label">⏳ Thời gian còn lại:</span>
+              <span class="timer-label" style="display:inline-flex; align-items:center; gap:5px;">
+                ${Icons.get('clock', 14)} <span>Thời gian còn lại:</span>
+              </span>
               <span class="timer-digits" id="timerDigits">--:--</span>
             </div>
           ` : ''}
@@ -632,8 +660,8 @@ Object.assign(App, {
           <div class="q-grid" id="quizGridNav"></div>
 
           <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border);">
-            <button class="btn btn-primary" style="width: 100%;" onclick="App.submitQuiz()">
-              ${isExam ? '📝 Nộp bài thi' : '🏁 Kết thúc ôn tập'}
+            <button class="btn btn-primary" style="width: 100%; display:inline-flex; align-items:center; justify-content:center; gap:6px;" onclick="App.submitQuiz()">
+              ${isExam ? `${Icons.get('checkCircle', 15)} <span>Nộp bài thi</span>` : `${Icons.get('checkCircle', 15)} <span>Kết thúc ôn tập</span>`}
             </button>
           </div>
         </aside>
@@ -768,7 +796,7 @@ Object.assign(App, {
     const card = document.getElementById(`qcard-${questionId}`);
     if (btn) {
       btn.className = `btn-flag ${isFlagged ? 'is-flagged' : ''}`;
-      btn.innerHTML = `<span>${isFlagged ? '🚩 Đã đặt cờ' : '🏳️ Đặt cờ'}</span>`;
+      btn.innerHTML = `<span style="display:inline-flex; align-items:center; gap:4px;">${Icons.get('flag', 13, '', isFlagged ? '#ef4444' : 'currentColor')} <span>${isFlagged ? 'Đã đặt cờ' : 'Đặt cờ'}</span></span>`;
     }
     if (card) {
       if (isFlagged) card.classList.add("is-flagged");
@@ -798,13 +826,13 @@ Object.assign(App, {
       summary.className = `sidebar-flag-summary ${this.quizFilterMode === 'flagged' ? 'is-filtering' : ''}`;
       if (this.quizFilterMode === "flagged") {
         summary.innerHTML = `
-          <span>🚩 Đang lọc: <strong>${flaggedCount} câu</strong></span>
+          <span style="display:inline-flex; align-items:center; gap:4px;">${Icons.get('flag', 13, '', '#ef4444')} <span>Đang lọc: <strong>${flaggedCount} câu</strong></span></span>
           <button class="btn btn-sm btn-primary" style="padding: 2px 8px; font-size: 11px; height: auto;" onclick="App.toggleFlagFilter('all')">✕ Hiện tất cả</button>
         `;
       } else {
         summary.innerHTML = `
-          <span>🚩 Đã đặt cờ: <strong>${flaggedCount} câu</strong></span>
-          <button class="btn btn-sm btn-primary" style="padding: 2px 8px; font-size: 11px; height: auto;" onclick="App.toggleFlagFilter('flagged')">🔍 Chỉ xem cờ (${flaggedCount}) ➔</button>
+          <span style="display:inline-flex; align-items:center; gap:4px;">${Icons.get('flag', 13, '', '#ef4444')} <span>Đã đặt cờ: <strong>${flaggedCount} câu</strong></span></span>
+          <button class="btn btn-sm btn-primary" style="padding: 2px 8px; font-size: 11px; height: auto; display:inline-flex; align-items:center; gap:3px;" onclick="App.toggleFlagFilter('flagged')"><span>Chỉ xem cờ (${flaggedCount})</span> ${Icons.get('arrowRight', 10)}</button>
         `;
       }
     } else {
@@ -830,7 +858,7 @@ Object.assign(App, {
     if (indicator) {
       if (isFiltering) {
         indicator.innerHTML = `
-          <span>🚩 Đang lọc: ${totalDisplayed} câu có cờ</span>
+          <span style="display:inline-flex; align-items:center; gap:4px;">${Icons.get('flag', 12, '', '#ef4444')} <span>Đang lọc: ${totalDisplayed} câu có cờ</span></span>
           <span>Trang ${this.currentPage + 1}/${totalPages}</span>
         `;
       } else {
@@ -924,7 +952,7 @@ Object.assign(App, {
       const banner = document.createElement("div");
       banner.className = "quiz-filter-banner";
       banner.innerHTML = `
-        <span>🔍 Đang ở chế độ lọc: <strong>Chỉ hiển thị ${totalDisplayed} câu hỏi đã đặt cờ 🚩</strong></span>
+        <span style="display:inline-flex; align-items:center; gap:5px;">${Icons.get('filter', 14)} <span>Đang ở chế độ lọc: <strong>Chỉ hiển thị ${totalDisplayed} câu hỏi đã đặt cờ</strong></span></span>
         <button class="btn btn-sm btn-primary" onclick="App.toggleFlagFilter('all')">✕ Thoát lọc (Xem tất cả ${this.activeSession.questions.length} câu)</button>
       `;
       container.appendChild(banner);
@@ -934,10 +962,10 @@ Object.assign(App, {
       const emptyBox = document.createElement("div");
       emptyBox.style.cssText = "text-align: center; padding: 48px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);";
       emptyBox.innerHTML = `
-        <div style="font-size: 36px; margin-bottom: 8px;">🚩</div>
+        <div style="color: #ef4444; margin-bottom: 8px; display:flex; justify-content:center;">${Icons.get('flag', 36, '', '#ef4444')}</div>
         <h3>Không có câu hỏi nào đang được đặt cờ</h3>
         <p style="font-size: 13.5px; color: var(--text-secondary); margin-top: 4px;">Bạn có thể bấm "Đặt cờ" ở các câu hỏi chưa chắc chắn để xem lại tại đây.</p>
-        <button class="btn btn-sm btn-primary" style="margin-top: 14px;" onclick="App.toggleFlagFilter('all')">Xem tất cả ${this.activeSession.questions.length} câu hỏi ➔</button>
+        <button class="btn btn-sm btn-primary" style="margin-top: 14px; display:inline-flex; align-items:center; gap:5px;" onclick="App.toggleFlagFilter('all')"><span>Xem tất cả ${this.activeSession.questions.length} câu hỏi</span> ${Icons.get('arrowRight', 12)}</button>
       `;
       container.appendChild(emptyBox);
       this.renderQuizPagination();
@@ -1009,7 +1037,7 @@ Object.assign(App, {
         <span class="badge badge-gray">Câu ${originalIdx + 1} (${q.id || `Q${originalIdx + 1}`})</span>
         <div style="display: flex; align-items: center; gap: 10px;">
           <button class="btn-flag ${isFlagged ? 'is-flagged' : ''}" onclick="App.toggleQuestionFlag('${q.id}')" id="btnFlag-${q.id}" title="Đánh dấu / Đặt cờ câu này để xem lại sau">
-            <span>${isFlagged ? '🚩 Đã đặt cờ' : '🏳️ Đặt cờ'}</span>
+            <span style="display:inline-flex; align-items:center; gap:4px;">${Icons.get('flag', 13, '', isFlagged ? '#ef4444' : 'currentColor')} <span>${isFlagged ? 'Đã đặt cờ' : 'Đặt cờ'}</span></span>
           </button>
           <span style="font-size: 12.5px; font-weight: 700; color: var(--text-tertiary);">
             Câu ${originalIdx + 1} / ${this.activeSession.questions.length} ${this.quizFilterMode === 'flagged' ? `(Cờ ${index + 1}/${totalDisplayedCount})` : ''}
@@ -1030,6 +1058,30 @@ Object.assign(App, {
     }
 
     this.activeSession.answers[questionId] = optionIndex;
+
+    // Tính streak trong chế độ Ôn tập
+    if (this.activeSession.mode === "practice" && this.activeSession.instantFeedback !== false) {
+      const q = this.activeSession.questions.find(x => x.id === questionId);
+      if (q) {
+        const isCorrect = (optionIndex === q.answerIndex);
+        if (isCorrect) {
+          this.currentQuizStreak = (this.currentQuizStreak || 0) + 1;
+          if (this.currentQuizStreak >= 3 && typeof DynamicIsland !== "undefined" && typeof DynamicIsland.flashActivity === "function") {
+            DynamicIsland.flashActivity({
+              id: "combo-streak",
+              type: "combo",
+              priority: 4,
+              icon: "🔥",
+              title: `Combo x${this.currentQuizStreak}!`,
+              subtitle: `+${this.currentQuizStreak * 10} EXP tuyệt đỉnh`
+            }, 2500);
+          }
+        } else {
+          this.currentQuizStreak = 0;
+        }
+      }
+    }
+
     this.renderQuizQuestions();
     this.renderQuizSidebarGrid();
   },

@@ -12,14 +12,14 @@ Object.assign(App, {
     if (!canManage) {
       container.innerHTML = `
         <div style="text-align: center; padding: 70px 20px; max-width: 600px; margin: 0 auto;">
-          <div style="font-size: 54px; margin-bottom: 12px;">🛡️</div>
+          <div style="color: var(--text-tertiary); margin-bottom: 12px; display:flex; justify-content:center;">${Icons.get('shield', 52)}</div>
           <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary);">Khu vực dành riêng cho Quản Trị Viên (Admin)</h3>
           <p style="color: var(--text-secondary); margin-top: 8px; line-height: 1.6;">
             Bạn hiện đang đăng nhập với vai trò <strong>${profile.role === 'editor' ? 'Ban Biên Tập (Editor)' : 'Sinh Viên (Student)'}</strong> và không có quyền truy cập vào bảng điều khiển quản lý người dùng.
           </p>
           <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
-            <button class="btn btn-primary" onclick="App.openAccountSwitcherModal()">🔑 Đổi sang tài khoản Admin</button>
-            <button class="btn" onclick="App.navigateTo('home')">🏠 Về Trang chủ</button>
+            <button class="btn btn-primary" onclick="App.openAccountSwitcherModal()" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('key', 14)} <span>Đổi sang tài khoản Admin</span></button>
+            <button class="btn" onclick="App.navigateTo('home')" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('home', 14)} <span>Về Trang chủ</span></button>
           </div>
         </div>
       `;
@@ -77,47 +77,47 @@ Object.assign(App, {
         <!-- Top Header -->
         <div class="users-management-header">
           <div>
-            <h2 style="font-size: 24px; font-weight: 800; color: var(--text-primary);">👥 Quản Trị Người Dùng & Phân Quyền</h2>
+            <h2 style="font-size: 24px; font-weight: 800; color: var(--text-primary); display:flex; align-items:center; gap:8px;">${Icons.get('users', 24)} <span>Quản Trị Người Dùng & Phân Quyền</span></h2>
             <p style="color: var(--text-secondary); margin-top: 4px;">
               Quản lý danh sách sinh viên, phê duyệt hồ sơ đăng ký mới, cấp quyền biên tập viên và kiểm toán hệ thống.
             </p>
           </div>
           <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-            <button class="btn" style="border-color: #6366f1; color: #4338ca; font-weight: 700;" onclick="App.exportUsersCSV()" title="Xuất danh sách thành viên ra file CSV / Excel">
-              📥 Xuất CSV
+            <button class="btn" style="border-color: #6366f1; color: #4338ca; font-weight: 700; display:inline-flex; align-items:center; gap:5px;" onclick="App.exportUsersCSV()" title="Xuất danh sách thành viên ra file CSV / Excel">
+              ${Icons.get('download', 14)} <span>Xuất CSV</span>
             </button>
-            <button class="btn" style="border-color: #10b981; color: #047857; font-weight: 700;" onclick="App.refreshUsersFromCloud()">🔄 Làm Mới Cloud</button>
-            <button class="btn" style="border-color: #0284c7; color: #0284c7;" onclick="App.openAppsScriptConfigModal()">⚙️ Google Apps Script</button>
-            <button class="btn btn-primary" onclick="App.openCreateUserModal()">➕ Thêm Thành Viên</button>
-            <button class="btn" onclick="App.openAccountSwitcherModal()">🔄 Đổi Tài Khoản</button>
+            <button class="btn" style="border-color: #10b981; color: #047857; font-weight: 700; display:inline-flex; align-items:center; gap:5px;" onclick="App.refreshUsersFromCloud()">${Icons.get('refresh', 14)} <span>Làm Mới Cloud</span></button>
+            <button class="btn" style="border-color: #0284c7; color: #0284c7; display:inline-flex; align-items:center; gap:5px;" onclick="App.openAppsScriptConfigModal()">${Icons.get('settings', 14)} <span>Google Apps Script</span></button>
+            <button class="btn btn-primary" onclick="App.openCreateUserModal()" style="display:inline-flex; align-items:center; gap:5px;">${Icons.get('plus', 14)} <span>Thêm Thành Viên</span></button>
+            <button class="btn" onclick="App.openAccountSwitcherModal()" style="display:inline-flex; align-items:center; gap:5px;">${Icons.get('user', 14)} <span>Đổi Tài Khoản</span></button>
           </div>
         </div>
 
         <!-- 4 Thẻ Thống Kê Tổng Quan -->
         <div class="users-stat-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
           <div class="user-stat-card">
-            <div class="user-stat-icon">👥</div>
+            <div class="user-stat-icon" style="display:flex; align-items:center; justify-content:center;">${Icons.get('users', 24)}</div>
             <div>
               <div class="user-stat-num">${activeUsers.length}</div>
               <div class="user-stat-label">Thành viên hoạt động</div>
             </div>
           </div>
           <div class="user-stat-card" style="border-color: ${pendingUsers.length > 0 ? '#fcd34d' : 'var(--border)'}; background: ${pendingUsers.length > 0 ? '#fffbeb' : 'var(--surface)'};">
-            <div class="user-stat-icon">⏳</div>
+            <div class="user-stat-icon" style="color:#b45309; display:flex; align-items:center; justify-content:center;">${Icons.get('clock', 24)}</div>
             <div>
               <div class="user-stat-num" style="color: #b45309;">${pendingUsers.length}</div>
               <div class="user-stat-label">Hồ sơ chờ phê duyệt</div>
             </div>
           </div>
           <div class="user-stat-card">
-            <div class="user-stat-icon">👑</div>
+            <div class="user-stat-icon" style="color:#b45309; display:flex; align-items:center; justify-content:center;">${Icons.get('crown', 24)}</div>
             <div>
               <div class="user-stat-num" style="color: #b45309;">${admins.length}</div>
               <div class="user-stat-label">Quản trị viên (Admin)</div>
             </div>
           </div>
           <div class="user-stat-card">
-            <div class="user-stat-icon">🆘</div>
+            <div class="user-stat-icon" style="color:#e11d48; display:flex; align-items:center; justify-content:center;">${Icons.get('helpCircle', 24)}</div>
             <div>
               <div class="user-stat-num" style="color: #e11d48;">${resetRequests.filter(r => r.status === 'pending').length}</div>
               <div class="user-stat-label">Yêu cầu CSKH / Quên PIN</div>
@@ -127,17 +127,17 @@ Object.assign(App, {
 
         <!-- Admin Tab Bar (4 Tabs) -->
         <div class="admin-tab-bar">
-          <button class="admin-tab-btn ${this.adminUserTab === 'active' ? 'active' : ''}" onclick="App.switchAdminUserTab('active')">
-            👥 Thành Viên Hoạt Động <span class="badge" style="background:#e2e8f0; color:#334155; font-size:11px;">${activeUsers.length}</span>
+          <button class="admin-tab-btn ${this.adminUserTab === 'active' ? 'active' : ''}" onclick="App.switchAdminUserTab('active')" style="display:inline-flex; align-items:center; gap:6px;">
+            ${Icons.get('users', 14)} <span>Thành Viên Hoạt Động</span> <span class="badge" style="background:#e2e8f0; color:#334155; font-size:11px;">${activeUsers.length}</span>
           </button>
-          <button class="admin-tab-btn ${this.adminUserTab === 'pending' ? 'active' : ''}" onclick="App.switchAdminUserTab('pending')">
-            ⏳ Chờ Phê Duyệt Đăng Ký ${pendingUsers.length > 0 ? `<span class="badge-pending">${pendingUsers.length} mới</span>` : `<span class="badge" style="background:#e2e8f0; color:#334155; font-size:11px;">0</span>`}
+          <button class="admin-tab-btn ${this.adminUserTab === 'pending' ? 'active' : ''}" onclick="App.switchAdminUserTab('pending')" style="display:inline-flex; align-items:center; gap:6px;">
+            ${Icons.get('clock', 14)} <span>Chờ Phê Duyệt Đăng Ký</span> ${pendingUsers.length > 0 ? `<span class="badge-pending">${pendingUsers.length} mới</span>` : `<span class="badge" style="background:#e2e8f0; color:#334155; font-size:11px;">0</span>`}
           </button>
-          <button class="admin-tab-btn ${this.adminUserTab === 'resets' ? 'active' : ''}" onclick="App.switchAdminUserTab('resets')">
-            🆘 Hỗ Trợ Quên PIN / CSKH <span class="badge" style="background:#fee2e2; color:#b91c1c; font-size:11px;">${resetRequests.length}</span>
+          <button class="admin-tab-btn ${this.adminUserTab === 'resets' ? 'active' : ''}" onclick="App.switchAdminUserTab('resets')" style="display:inline-flex; align-items:center; gap:6px;">
+            ${Icons.get('helpCircle', 14)} <span>Hỗ Trợ Quên PIN / CSKH</span> <span class="badge" style="background:#fee2e2; color:#b91c1c; font-size:11px;">${resetRequests.length}</span>
           </button>
-          <button class="admin-tab-btn ${this.adminUserTab === 'audit_logs' ? 'active' : ''}" onclick="App.switchAdminUserTab('audit_logs')">
-            📋 Nhật Ký Hoạt Động <span class="badge" style="background:#f1f5f9; color:#475569; font-size:11px;">${auditLogs.length}</span>
+          <button class="admin-tab-btn ${this.adminUserTab === 'audit_logs' ? 'active' : ''}" onclick="App.switchAdminUserTab('audit_logs')" style="display:inline-flex; align-items:center; gap:6px;">
+            ${Icons.get('fileText', 14)} <span>Nhật Ký Hoạt Động</span> <span class="badge" style="background:#f1f5f9; color:#475569; font-size:11px;">${auditLogs.length}</span>
           </button>
         </div>
 
@@ -146,14 +146,14 @@ Object.assign(App, {
           <!-- Thanh Tìm kiếm & Bộ lọc cho Active Users (Binding bền vững) -->
           <div class="search-filter-bar" style="margin: 0 0 12px 0;">
             <div class="search-input-wrapper">
-              <span class="search-icon">🔍</span>
+              <span class="search-icon" style="display:flex; align-items:center;">${Icons.get('search', 15)}</span>
               <input type="text" id="userSearchInput" class="form-control" placeholder="Tìm theo tên, MSSV, email..." value="${this.userSearchQuery || ''}" oninput="App.onSearchUsers()">
             </div>
             <select id="userRoleFilter" class="form-control" style="width: auto; min-width: 170px;" onchange="App.onSearchUsers()">
               <option value="all" ${this.userRoleFilter === 'all' ? 'selected' : ''}>Tất cả vai trò</option>
-              <option value="admin" ${this.userRoleFilter === 'admin' ? 'selected' : ''}>👑 Quản trị viên (Admin)</option>
-              <option value="editor" ${this.userRoleFilter === 'editor' ? 'selected' : ''}>🛡️ Ban Biên Tập (Editor)</option>
-              <option value="student" ${this.userRoleFilter === 'student' ? 'selected' : ''}>👨‍🎓 Sinh viên</option>
+              <option value="admin" ${this.userRoleFilter === 'admin' ? 'selected' : ''}>Quản trị viên (Admin)</option>
+              <option value="editor" ${this.userRoleFilter === 'editor' ? 'selected' : ''}>Ban Biên Tập (Editor)</option>
+              <option value="student" ${this.userRoleFilter === 'student' ? 'selected' : ''}>Sinh viên</option>
             </select>
             <select id="userDeptFilter" class="form-control" style="width: auto; min-width: 200px;" onchange="App.onSearchUsers()">
               <option value="all" ${this.userDeptFilter === 'all' ? 'selected' : ''}>Tất cả khoa / ngành</option>

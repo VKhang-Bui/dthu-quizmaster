@@ -9,14 +9,14 @@ Object.assign(App, {
     if (!StorageService.isLoggedIn()) {
       container.innerHTML = `
         <div style="text-align: center; padding: 70px 20px; max-width: 550px; margin: 0 auto;">
-          <div style="font-size: 52px; margin-bottom: 14px;">📝</div>
+          <div style="color: var(--text-tertiary); margin-bottom: 14px; display:flex; justify-content:center;">${Icons.get('upload', 52)}</div>
           <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary);">Công Cụ Nhập Đề & Đóng Góp Đề Thi</h3>
           <p style="color: var(--text-secondary); margin-top: 8px; line-height: 1.6;">
             Vui lòng đăng nhập tài khoản để sử dụng công cụ bóc tách câu hỏi thông minh và gửi đóng góp đề thi lên hệ thống (+30 EXP).
           </p>
           <div style="display: flex; gap: 10px; justify-content: center; margin-top: 22px;">
-            <button class="btn btn-primary" onclick="App.openAccountSwitcherModal()">🔑 Đăng Nhập Ngay ➔</button>
-            <button class="btn" onclick="App.navigateTo('home')">🏠 Về Trang Chủ</button>
+            <button class="btn btn-primary" onclick="App.openAccountSwitcherModal()" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('key', 14)} <span>Đăng Nhập Ngay</span> ${Icons.get('arrowRight', 12)}</button>
+            <button class="btn" onclick="App.navigateTo('home')" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('home', 14)} <span>Về Trang Chủ</span></button>
           </div>
         </div>
       `;
@@ -31,17 +31,17 @@ Object.assign(App, {
         <!-- Top Navigation Header -->
         <div class="parser-top-header">
           <div class="parser-top-left">
-            <button class="btn btn-sm btn-back-nav" onclick="App.navigateBackOrHome()" title="Quay lại trang trước">
-              ⬅️ Quay Lại
+            <button class="btn btn-sm btn-back-nav" onclick="App.navigateBackOrHome()" title="Quay lại trang trước" style="display:inline-flex; align-items:center; gap:5px;">
+              ${Icons.get('chevronLeft', 13)} <span>Quay Lại</span>
             </button>
             <div class="parser-header-title-box">
-              <h2>📝 Công Cụ Nhập & Bóc Tách Đề Thi Tự Động</h2>
+              <h2 style="display:flex; align-items:center; gap:8px;">${Icons.get('upload', 22)} <span>Công Cụ Nhập & Bóc Tách Đề Thi Tự Động</span></h2>
               <p>Tải tệp tin (.docx Word, .pdf text, .txt, .md) hoặc Dán văn bản trắc nghiệm để trích xuất đề thi thông minh</p>
             </div>
           </div>
           <div class="parser-top-right">
-            <button class="btn btn-sm btn-primary" onclick="App.navigateTo('syntax-guide', { from: 'parser', subjectId: '${defaultSubId}' })">
-              💡 Cú pháp ký tự ➔
+            <button class="btn btn-sm btn-primary" onclick="App.navigateTo('syntax-guide', { from: 'parser', subjectId: '${defaultSubId}' })" style="display:inline-flex; align-items:center; gap:6px;">
+              ${Icons.get('helpCircle', 14)} <span>Cú pháp ký tự</span> ${Icons.get('arrowRight', 12)}
             </button>
           </div>
         </div>
@@ -51,13 +51,13 @@ Object.assign(App, {
           <div class="parser-panel" id="parserDropzone" ondragover="App.handleParserDragOver(event)" ondragleave="App.handleParserDragLeave(event)" ondrop="App.handleParserFileDrop(event)">
             <div class="parser-panel-header">
               <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                <h3>📝 1. Nhập hoặc Tải Tệp Đề</h3>
+                <h3 style="display:flex; align-items:center; gap:6px;">${Icons.get('upload', 16)} <span>1. Nhập hoặc Tải Tệp Đề</span></h3>
                 <span id="parserFileLoadedBadge" class="badge badge-blue" style="display: none; font-size: 11px;"></span>
               </div>
               <div style="display: flex; gap: 6px; flex-wrap: wrap;">
                 <input type="file" id="parserFileInput" accept=".txt,.docx,.pdf,.md,.json,.csv,.text" style="display: none;" onchange="App.handleParserFileUpload(event)">
-                <button class="btn btn-sm btn-upload-doc" onclick="document.getElementById('parserFileInput').click()" title="Tải tệp Word (.docx), PDF hoặc TXT">
-                  📂 Tải tệp lên
+                <button class="btn btn-sm btn-upload-doc" onclick="document.getElementById('parserFileInput').click()" title="Tải tệp Word (.docx), PDF hoặc TXT" style="display:inline-flex; align-items:center; gap:5px;">
+                  ${Icons.get('upload', 13)} <span>Tải tệp lên</span>
                 </button>
                 <button class="btn btn-sm" onclick="App.loadParserSampleText()">Dán mẫu</button>
                 <button class="btn btn-sm" onclick="App.clearParserInput()">Xóa</button>
@@ -80,8 +80,8 @@ Object.assign(App, {
             </div>
 
             <!-- Drag & Drop Hint Dropzone Bar -->
-            <div class="parser-drop-hint" onclick="document.getElementById('parserFileInput').click()">
-              <span>📎 Kéo thả tệp tin hoặc bấm vào đây để nạp: <strong>.docx (Word)</strong>, <strong>.pdf (Text)</strong>, <strong>.txt</strong>, <strong>.md</strong></span>
+            <div class="parser-drop-hint" onclick="document.getElementById('parserFileInput').click()" style="display:flex; align-items:center; gap:6px;">
+              <span>${Icons.get('upload', 14)} Kéo thả tệp tin hoặc bấm vào đây để nạp: <strong>.docx (Word)</strong>, <strong>.pdf (Text)</strong>, <strong>.txt</strong>, <strong>.md</strong></span>
             </div>
 
             <textarea id="rawTextarea" class="parser-textarea" placeholder="Dán văn bản câu hỏi từ Word, PDF, ChatGPT hoặc Kéo thả tệp tin vào đây...
@@ -104,19 +104,19 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
 * D. Chỉ bao gồm bộ phận KTCT > Sai: Giải thích D" oninput="App.onParserInput()"></textarea>
 
             <div style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
-              <span>💡 <strong>Mẹo:</strong> Hỗ trợ in đậm <code>**text**</code>, in nghiêng <code>*text*</code>, công thức <code>\`code\`</code> và mọi ký tự đặc biệt.</span>
-              <a href="javascript:void(0)" onclick="App.navigateTo('syntax-guide', { from: 'parser', subjectId: '${defaultSubId}' })" style="font-weight: 700; color: var(--brand-primary); text-decoration: underline;">Cú pháp ký tự ➔</a>
+              <span style="display:inline-flex; align-items:center; gap:4px;">${Icons.get('sparkles', 13)} <span><strong>Mẹo:</strong> Hỗ trợ in đậm <code>**text**</code>, in nghiêng <code>*text*</code>, công thức <code>\`code\`</code> và mọi ký tự đặc biệt.</span></span>
+              <a href="javascript:void(0)" onclick="App.navigateTo('syntax-guide', { from: 'parser', subjectId: '${defaultSubId}' })" style="font-weight: 700; color: var(--brand-primary); text-decoration: underline; display:inline-flex; align-items:center; gap:3px;"><span>Cú pháp ký tự</span> ${Icons.get('arrowRight', 11)}</a>
             </div>
 
-            <button class="btn btn-primary" onclick="App.onParserInput(true)">
-              🚀 Bóc tách & Phân tích lại
+            <button class="btn btn-primary" onclick="App.onParserInput(true)" style="display:inline-flex; align-items:center; gap:6px;">
+              ${Icons.get('zap', 14)} <span>Bóc tách & Phân tích lại</span>
             </button>
           </div>
 
           <!-- Right Panel: Live Parsed Preview & Actions -->
           <div class="parser-panel">
             <div class="parser-panel-header">
-              <h3>👁️ 2. Xem trước kết quả bóc tách</h3>
+              <h3 style="display:flex; align-items:center; gap:6px;">${Icons.get('target', 16)} <span>2. Xem trước kết quả bóc tách</span></h3>
               <span class="badge badge-green" id="parserCounterBadge">0 câu hỏi hợp lệ</span>
             </div>
 
@@ -127,14 +127,14 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
             </div>
 
             <div style="margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; gap: 10px; flex-wrap: wrap;">
-              <button class="btn btn-primary" id="btnSaveToSubject" onclick="App.saveParsedQuestionsToDraft()" disabled>
-                🚀 Lưu Bộ Đề Vào Hệ Thống (Chờ Duyệt) ➔
+              <button class="btn btn-primary" id="btnSaveToSubject" onclick="App.saveParsedQuestionsToDraft()" disabled style="display:inline-flex; align-items:center; gap:6px;">
+                ${Icons.get('checkCircle', 14)} <span>Lưu Bộ Đề Vào Hệ Thống (Chờ Duyệt)</span> ${Icons.get('arrowRight', 12)}
               </button>
-              <button class="btn" id="btnDownloadJson" onclick="App.downloadParsedAsJson()" disabled>
-                📥 Tải file JSON
+              <button class="btn" id="btnDownloadJson" onclick="App.downloadParsedAsJson()" disabled style="display:inline-flex; align-items:center; gap:6px;">
+                ${Icons.get('download', 14)} <span>Tải file JSON</span>
               </button>
-              <button class="btn" id="btnCopyJson" onclick="App.copyParsedJsonToClipboard()" disabled>
-                📋 Sao chép JSON
+              <button class="btn" id="btnCopyJson" onclick="App.copyParsedJsonToClipboard()" disabled style="display:inline-flex; align-items:center; gap:6px;">
+                ${Icons.get('copy', 14)} <span>Sao chép JSON</span>
               </button>
             </div>
           </div>

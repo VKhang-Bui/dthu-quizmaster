@@ -44,20 +44,20 @@ Object.assign(App, {
           ${result.mode === 'exam' ? `
             <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); padding: 14px 18px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
               <div style="text-align: left;">
-                <strong style="color: #1e40af; font-size: 14px;">📜 Bài thi thử đã được lưu vào Lịch Sử Thi (10 lần gần nhất / lưu 30 ngày):</strong>
+                <strong style="color: #1e40af; font-size: 14px; display:inline-flex; align-items:center; gap:5px;">${Icons.get('history', 15)} <span>Bài thi thử đã được lưu vào Lịch Sử Thi (10 lần gần nhất / lưu 30 ngày):</span></strong>
                 <div style="font-size: 12.5px; color: #3b82f6; margin-top: 2px;">Bạn có thể xem lại chi tiết bài làm hoặc so sánh kết quả bất cứ lúc nào.</div>
               </div>
-              <button class="btn btn-primary btn-sm" onclick="App.navigateTo('history')">
-                📜 Xem Lịch Sử Thi ➔
+              <button class="btn btn-primary btn-sm" onclick="App.navigateTo('history')" style="display:inline-flex; align-items:center; gap:6px;">
+                ${Icons.get('history', 14)} <span>Xem Lịch Sử Thi</span> ${Icons.get('arrowRight', 12)}
               </button>
             </div>
           ` : ''}
 
           <div style="margin-top: 24px; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
-            <button class="btn btn-primary" onclick="App.openQuizConfigModal('${result.subjectId}')">🔄 Thi lại môn này</button>
-            ${result.mode === 'exam' ? `<button class="btn" onclick="App.navigateTo('history')">📜 Lịch Sử Thi (${StorageService.getUserExamHistory().length}/10)</button>` : ''}
-            <button class="btn" onclick="App.openUserDrawer()">👤 Menu Cá nhân & BXH</button>
-            <button class="btn" onclick="App.navigateTo('home')">🏠 Về trang chủ</button>
+            <button class="btn btn-primary" onclick="App.openQuizConfigModal('${result.subjectId}')" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('refresh', 14)} <span>Thi lại môn này</span></button>
+            ${result.mode === 'exam' ? `<button class="btn" onclick="App.navigateTo('history')" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('history', 14)} <span>Lịch Sử Thi (${StorageService.getUserExamHistory().length}/10)</span></button>` : ''}
+            <button class="btn" onclick="App.openUserDrawer()" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('user', 14)} <span>Menu Cá nhân & BXH</span></button>
+            <button class="btn" onclick="App.navigateTo('home')" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('home', 14)} <span>Về trang chủ</span></button>
           </div>
         </div>
 
@@ -78,8 +78,8 @@ Object.assign(App, {
       <div class="question-card" style="border-left: 4px solid ${isCorrect ? '#16a34a' : '#ef4444'}; background: #ffffff; border-radius: var(--radius-sm); border: 1px solid var(--border); border-left-width: 5px; padding: 18px 20px;">
         <div class="question-card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
           <div style="display: flex; gap: 8px; align-items: center;">
-            <span class="badge" style="background: ${isCorrect ? '#dcfce7' : '#fee2e2'}; color: ${isCorrect ? '#15803d' : '#b91c1c'}; font-weight: 800;">
-              ${isCorrect ? '✓ Trả lời Đúng' : (hasAnswer ? '✗ Trả lời Sai' : '⚪ Chưa trả lời')}
+            <span class="badge" style="background: ${isCorrect ? '#dcfce7' : '#fee2e2'}; color: ${isCorrect ? '#15803d' : '#b91c1c'}; font-weight: 800; display:inline-flex; align-items:center; gap:4px;">
+              ${isCorrect ? `${Icons.get('check', 12)} <span>Trả lời Đúng</span>` : (hasAnswer ? `${Icons.get('close', 12)} <span>Trả lời Sai</span>` : '<span>⚪ Chưa trả lời</span>')}
             </span>
             <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 700;">Câu ${d.index + 1}</span>
           </div>
@@ -106,14 +106,14 @@ Object.assign(App, {
               textCol = "#14532d";
               badgeBg = "#16a34a";
               badgeText = "#ffffff";
-              tagHtml = `<span style="margin-left: 8px; background: #16a34a; color: #ffffff; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 10px; display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0;">✓ Đáp án đúng</span>`;
+              tagHtml = `<span style="margin-left: 8px; background: #16a34a; color: #ffffff; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 10px; display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;">${Icons.get('check', 11)} Đáp án đúng</span>`;
             } else if (isUserPick && !isCorrect) {
               bg = "#fee2e2";
               border = "1.5px solid #ef4444";
               textCol = "#991b1b";
               badgeBg = "#ef4444";
               badgeText = "#ffffff";
-              tagHtml = `<span style="margin-left: 8px; background: #ef4444; color: #ffffff; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 10px; display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0;">✗ Bạn đã chọn</span>`;
+              tagHtml = `<span style="margin-left: 8px; background: #ef4444; color: #ffffff; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 10px; display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;">${Icons.get('close', 11)} Bạn đã chọn</span>`;
             }
 
             return `
@@ -130,8 +130,9 @@ Object.assign(App, {
           }).join('')}
         </div>
         ${(q.options[q.answerIndex] && q.options[q.answerIndex].note) ? `
-          <div style="font-size: 13px; color: #14532d; background: #f0fdf4; padding: 10px 14px; border-radius: 6px; border: 1.5px dashed #22c55e; margin-top: 10px;">
-            💡 <strong>Giải thích:</strong> ${SmartParserService.formatRichText(q.options[q.answerIndex].note)}
+          <div style="font-size: 13px; color: #14532d; background: #f0fdf4; padding: 10px 14px; border-radius: 6px; border: 1.5px dashed #22c55e; margin-top: 10px; display: flex; align-items: flex-start; gap: 6px;">
+            <span style="color:#16a34a; margin-top:2px;">${Icons.get('sparkles', 14)}</span>
+            <div><strong>Giải thích:</strong> ${SmartParserService.formatRichText(q.options[q.answerIndex].note)}</div>
           </div>
         ` : ''}
       </div>
@@ -142,14 +143,14 @@ Object.assign(App, {
     if (!StorageService.isLoggedIn()) {
       container.innerHTML = `
         <div style="text-align: center; padding: 70px 20px; max-width: 550px; margin: 0 auto;">
-          <div style="font-size: 52px; margin-bottom: 14px;">📜</div>
+          <div style="color: var(--text-tertiary); margin-bottom: 14px; display:flex; justify-content:center;">${Icons.get('history', 52)}</div>
           <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary);">Lịch Sử Thi & Nhật Ký Làm Bài</h3>
           <p style="color: var(--text-secondary); margin-top: 8px; line-height: 1.6;">
             Vui lòng đăng nhập tài khoản để hệ thống tự động ghi nhận và phân tích tối đa 10 lần thi thử gần nhất (lưu trong 30 ngày) của bạn.
           </p>
           <div style="display: flex; gap: 10px; justify-content: center; margin-top: 22px;">
-            <button class="btn btn-primary" onclick="App.openAccountSwitcherModal()">🔑 Đăng Nhập Ngay ➔</button>
-            <button class="btn" onclick="App.navigateTo('home')">🏠 Về Trang Chủ</button>
+            <button class="btn btn-primary" onclick="App.openAccountSwitcherModal()" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('key', 14)} <span>Đăng Nhập Ngay</span> ${Icons.get('arrowRight', 12)}</button>
+            <button class="btn" onclick="App.navigateTo('home')" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('home', 14)} <span>Về Trang Chủ</span></button>
           </div>
         </div>
       `;
@@ -170,7 +171,7 @@ Object.assign(App, {
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 22px; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid var(--border); padding-bottom: 16px;">
           <div>
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-              <span class="badge badge-blue" style="font-weight: 700;">📜 Nhật Ký Thi Thử</span>
+              <span class="badge badge-blue" style="font-weight: 700; display:inline-flex; align-items:center; gap:4px;">${Icons.get('history', 13)} <span>Nhật Ký Thi Thử</span></span>
               <span class="badge badge-gray">${count}/10 bài thi gần nhất</span>
             </div>
             <h2 style="font-size: 24px; font-weight: 800; color: var(--text-primary); margin: 0;">
@@ -182,12 +183,12 @@ Object.assign(App, {
           </div>
 
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button class="btn btn-primary btn-sm" onclick="App.navigateTo('home')">
-              🚀 Vào Thi Thử Mới
+            <button class="btn btn-primary btn-sm" onclick="App.navigateTo('home')" style="display:inline-flex; align-items:center; gap:6px;">
+              ${Icons.get('zap', 14)} <span>Vào Thi Thử Mới</span>
             </button>
             ${count > 0 ? `
-              <button class="btn btn-danger btn-sm" onclick="App.clearExamHistoryConfirm()">
-                🗑️ Xóa Lịch Sử
+              <button class="btn btn-danger btn-sm" onclick="App.clearExamHistoryConfirm()" style="display:inline-flex; align-items:center; gap:6px;">
+                ${Icons.get('trash', 14)} <span>Xóa Lịch Sử</span>
               </button>
             ` : ''}
           </div>
@@ -236,8 +237,8 @@ Object.assign(App, {
             <div style="font-size: 12px; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase;">
               Điểm số cao nhất
             </div>
-            <div style="font-size: 26px; font-weight: 800; color: #b45309; margin-top: 4px;">
-              ${maxScore} <span style="font-size: 14px; font-weight: 600; color: var(--text-tertiary);">🏆</span>
+            <div style="font-size: 26px; font-weight: 800; color: #b45309; margin-top: 4px; display:flex; align-items:center; gap:6px;">
+              ${maxScore} <span style="color:#d97706; display:flex; align-items:center;">${Icons.get('trophy', 20)}</span>
             </div>
             <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">
               Thành tích tốt nhất
@@ -248,21 +249,21 @@ Object.assign(App, {
 
         <!-- Danh Sách 10 Lần Thi Thử Gần Nhất -->
         <div>
-          <h3 style="font-size: 17px; font-weight: 800; color: var(--text-primary); margin-bottom: 14px;">
-            📋 Danh Sách Bài Thi Gần Nhất
+          <h3 style="font-size: 17px; font-weight: 800; color: var(--text-primary); margin-bottom: 14px; display:flex; align-items:center; gap:6px;">
+            ${Icons.get('fileText', 16)} <span>Danh Sách Bài Thi Gần Nhất</span>
           </h3>
 
           ${count === 0 ? `
             <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 56px 20px; text-align: center;">
-              <div style="font-size: 48px; margin-bottom: 12px;">📭</div>
+              <div style="color: var(--text-tertiary); margin-bottom: 12px; display:flex; justify-content:center;">${Icons.get('fileText', 48)}</div>
               <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0 0 6px 0;">
                 Bạn chưa có lịch sử thi thử nào!
               </h3>
               <p style="font-size: 13.5px; color: var(--text-secondary); margin: 0 0 20px 0; max-width: 450px; margin-left: auto; margin-right: auto; line-height: 1.6;">
                 Khi bạn làm bài ở chế độ <strong>"Thi Thử (Exam Mode)"</strong>, hệ thống sẽ tự động ghi nhận kết quả và lưu lại chi tiết từng câu làm tại đây (tối đa 10 lần gần nhất trong vòng 30 ngày).
               </p>
-              <button class="btn btn-primary" onclick="App.navigateTo('home')">
-                🚀 Vào Danh Sách Môn Thi Ngay ➔
+              <button class="btn btn-primary" onclick="App.navigateTo('home')" style="display:inline-flex; align-items:center; gap:6px;">
+                ${Icons.get('zap', 14)} <span>Vào Danh Sách Môn Thi Ngay</span> ${Icons.get('arrowRight', 12)}
               </button>
             </div>
           ` : `
@@ -280,10 +281,10 @@ Object.assign(App, {
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
                       <div>
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                          <span class="badge ${isLatest ? 'badge-blue' : 'badge-gray'}" style="font-weight: 800;">
-                            ${isLatest ? '🔥 Lần thi 1 (Mới nhất)' : `Lần thi ${idx + 1}`}
+                          <span class="badge ${isLatest ? 'badge-blue' : 'badge-gray'}" style="font-weight: 800; display:inline-flex; align-items:center; gap:3px;">
+                            ${isLatest ? `<span style="color:#f97316;">${Icons.get('flame', 12)}</span> Lần thi 1 (Mới nhất)` : `Lần thi ${idx + 1}`}
                           </span>
-                          <span class="badge badge-gray">⏱️ ${dateStr}</span>
+                          <span class="badge badge-gray" style="display:inline-flex; align-items:center; gap:3px;">${Icons.get('clock', 11)} ${dateStr}</span>
                         </div>
                         <h4 style="font-size: 17px; font-weight: 800; color: var(--text-primary); margin: 0;">
                           ${h.subjectName}
@@ -291,8 +292,8 @@ Object.assign(App, {
                       </div>
 
                       <div style="display: flex; align-items: center; gap: 10px;">
-                        <span class="badge" style="background: ${h.isPassed ? '#dcfce7' : '#fee2e2'}; color: ${h.isPassed ? '#15803d' : '#b91c1c'}; font-size: 13px; font-weight: 800; padding: 6px 14px; border-radius: 20px;">
-                          ${h.isPassed ? '🏆 ĐẠT YÊU CẦU' : '⚠️ CHƯA ĐẠT'}
+                        <span class="badge" style="background: ${h.isPassed ? '#dcfce7' : '#fee2e2'}; color: ${h.isPassed ? '#15803d' : '#b91c1c'}; font-size: 13px; font-weight: 800; padding: 6px 14px; border-radius: 20px; display:inline-flex; align-items:center; gap:4px;">
+                          ${h.isPassed ? `${Icons.get('checkCircle', 13)} ĐẠT YÊU CẦU` : `${Icons.get('alertTriangle', 13)} CHƯA ĐẠT`}
                         </span>
                       </div>
                     </div>
@@ -327,15 +328,15 @@ Object.assign(App, {
 
                     <!-- Nút Thao Tác Bài Thi -->
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                      <button class="btn btn-primary btn-sm" onclick="App.openExamAttemptDetailModal('${h.id}')">
-                        🔍 Xem Chi Tiết Bài Làm (${h.totalQuestions} câu)
+                      <button class="btn btn-primary btn-sm" onclick="App.openExamAttemptDetailModal('${h.id}')" style="display:inline-flex; align-items:center; gap:5px;">
+                        ${Icons.get('search', 13)} <span>Xem Chi Tiết Bài Làm (${h.totalQuestions} câu)</span>
                       </button>
                       <div style="display: flex; gap: 6px;">
-                        <button class="btn btn-sm" onclick="App.openQuizConfigModal('${h.subjectId}')">
-                          🔄 Thi Lại Môn Này
+                        <button class="btn btn-sm" onclick="App.openQuizConfigModal('${h.subjectId}')" style="display:inline-flex; align-items:center; gap:5px;">
+                          ${Icons.get('refresh', 13)} <span>Thi Lại Môn Này</span>
                         </button>
-                        <button class="btn btn-sm btn-danger" onclick="App.deleteExamAttemptConfirm('${h.id}')" title="Xóa lần thi này">
-                          🗑️
+                        <button class="btn btn-sm btn-danger" onclick="App.deleteExamAttemptConfirm('${h.id}')" title="Xóa lần thi này" style="display:inline-flex; align-items:center;">
+                          ${Icons.get('trash', 13)}
                         </button>
                       </div>
                     </div>

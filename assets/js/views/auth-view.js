@@ -452,26 +452,28 @@ Object.assign(App, {
     const body = document.getElementById("modalBody");
     const footer = document.getElementById("modalFooter");
 
-    title.textContent = "🔑 Đăng Nhập & Xác Thực Tài Khoản";
+    title.innerHTML = `<span style="display:inline-flex; align-items:center; gap:8px;">${Icons.get('key', 18)} <span>Đăng Nhập & Xác Thực Tài Khoản</span></span>`;
+
+    const userAvatarDisplay = Icons.renderAvatar(isLogged ? (currentProfile.avatar || 'avatar-student') : 'guest', 38, isLogged ? currentProfile.role : 'guest');
 
     body.innerHTML = `
       <div style="display: flex; flex-direction: column; gap: 16px;">
         ${isLogged ? `
           <!-- Phần 1: Tài khoản đang kích hoạt trên thiết bị này -->
           <div style="background: var(--brand-light); border: 1.5px solid var(--brand-primary); padding: 12px 16px; border-radius: var(--radius-sm);">
-            <div style="font-size: 11.5px; font-weight: 800; text-transform: uppercase; color: var(--brand-primary); letter-spacing: 0.04em; margin-bottom: 6px;">
-              📱 Tài khoản đang đăng nhập trên thiết bị:
+            <div style="font-size: 11.5px; font-weight: 800; text-transform: uppercase; color: var(--brand-primary); letter-spacing: 0.04em; margin-bottom: 6px; display:flex; align-items:center; gap:5px;">
+              ${Icons.get('user', 13)} <span>Tài khoản đang đăng nhập trên thiết bị:</span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div style="display: flex; align-items: center; gap: 10px;">
-                <div style="font-size: 26px;">${currentProfile.avatar || '👨‍🎓'}</div>
+                <div style="display: flex; align-items: center;">${userAvatarDisplay}</div>
                 <div>
                   <strong style="font-size: 14px; color: var(--text-primary); display: block;">${currentProfile.fullName}</strong>
                   <span style="font-size: 12px; color: var(--text-secondary);">MSSV: <strong>${currentProfile.studentId}</strong> · ${currentProfile.role.toUpperCase()}</span>
                 </div>
               </div>
-              <button class="btn btn-sm btn-danger" style="font-size: 12px;" onclick="App.logoutUser(); App.closeModal();">
-                🚪 Đăng Xuất
+              <button class="btn btn-sm btn-danger" style="font-size: 12px; display:inline-flex; align-items:center; gap:4px;" onclick="App.logoutUser(); App.closeModal();">
+                ${Icons.get('logOut', 12)} <span>Đăng Xuất</span>
               </button>
             </div>
           </div>
@@ -492,18 +494,18 @@ Object.assign(App, {
               <input type="password" id="loginPinCode" class="form-control" placeholder="Ví dụ: 000000">
             </div>
           </div>
-          <button class="btn btn-primary" style="width: 100%; font-weight: 700; padding: 11px;" onclick="App.loginWithCredentials()">
-            🚀 Xác Thực & Đăng Nhập ➔
+          <button class="btn btn-primary" style="width: 100%; font-weight: 700; padding: 11px; display:inline-flex; align-items:center; justify-content:center; gap:6px;" onclick="App.loginWithCredentials()">
+            ${Icons.get('zap', 14)} <span>Xác Thực & Đăng Nhập</span> ${Icons.get('arrowRight', 12)}
           </button>
         </div>
 
         <!-- Phần 3: Điều hướng Đăng ký mới & Quên mã PIN -->
         <div style="border-top: 1px dashed var(--border); padding-top: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-          <button class="btn" style="padding: 6px 12px; font-size: 13px; font-weight: 700; color: var(--brand-primary); background: var(--brand-light); border-color: var(--brand-primary);" onclick="App.closeModal(); App.navigateTo('register');">
-            ➕ Đăng ký tài khoản mới ➔
+          <button class="btn" style="padding: 6px 12px; font-size: 13px; font-weight: 700; color: var(--brand-primary); background: var(--brand-light); border-color: var(--brand-primary); display:inline-flex; align-items:center; gap:5px;" onclick="App.closeModal(); App.navigateTo('register');">
+            ${Icons.get('plus', 13)} <span>Đăng ký tài khoản mới</span> ${Icons.get('arrowRight', 11)}
           </button>
-          <button class="btn" style="padding: 6px 12px; font-size: 12.5px; color: var(--text-secondary);" onclick="App.openForgotPasswordModal()">
-            ❓ Quên mã PIN?
+          <button class="btn" style="padding: 6px 12px; font-size: 12.5px; color: var(--text-secondary); display:inline-flex; align-items:center; gap:4px;" onclick="App.openForgotPasswordModal()">
+            ${Icons.get('helpCircle', 13)} <span>Quên mã PIN?</span>
           </button>
         </div>
       </div>
@@ -599,7 +601,7 @@ Object.assign(App, {
     const body = document.getElementById("modalBody");
     const footer = document.getElementById("modalFooter");
 
-    title.textContent = "❓ Khôi Phục Mã PIN / Quên Mật Khẩu";
+    title.innerHTML = `<span style="display:inline-flex; align-items:center; gap:8px;">${Icons.get('key', 18)} <span>Khôi Phục Mã PIN / Quên Mật Khẩu</span></span>`;
 
     body.innerHTML = `
       <div style="display: flex; flex-direction: column; gap: 16px;">
@@ -610,7 +612,7 @@ Object.assign(App, {
         <!-- Khung Xác Thực OTP Email -->
         <div style="border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 18px; background: var(--surface);">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-            <span style="font-size: 22px;">📧</span>
+            <div style="color: var(--brand-primary); display:flex; align-items:center;">${Icons.get('contact', 22)}</div>
             <div>
               <strong style="font-size: 14.5px; color: var(--text-primary); display: block;">Nhận mã OTP qua Email sinh viên</strong>
               <span style="font-size: 12px; color: var(--text-secondary);">Mã xác thực có hiệu lực trong 5 phút (300 giây).</span>
@@ -629,20 +631,20 @@ Object.assign(App, {
                 <input type="email" id="forgotEmailInput" class="form-control" placeholder="Ví dụ: 220101001@dthu.edu.vn hoặc user@gmail.com">
               </div>
             </div>
-            <button class="btn btn-primary" style="width: 100%; font-weight: 700; padding: 11px;" onclick="App.sendEmailOtpAction()">
-              🚀 Gửi Mã OTP Xác Thực (300s) ➔
+            <button class="btn btn-primary" style="width: 100%; font-weight: 700; padding: 11px; display:inline-flex; align-items:center; justify-content:center; gap:6px;" onclick="App.sendEmailOtpAction()">
+              ${Icons.get('contact', 14)} <span>Gửi Mã OTP Xác Thực (300s)</span> ${Icons.get('arrowRight', 12)}
             </button>
           </div>
 
           <!-- Bước 2: Nhập OTP & Đặt PIN mới + Đếm ngược 300s -->
           <div id="otpStep2" style="display: none; padding-top: 10px;">
             <div id="otpCountdownBox" class="otp-countdown-badge">
-              <span>⏱️ Mã OTP có hiệu lực trong:</span>
+              <span style="display:inline-flex; align-items:center; gap:4px;">${Icons.get('timer', 13)} Mã OTP có hiệu lực trong:</span>
               <span id="otpCountdownTimer" class="otp-timer-num">05:00</span>
             </div>
 
             <div style="font-size: 12.5px; color: #166534; background: #f0fdf4; padding: 8px 12px; border-radius: 4px; margin-bottom: 12px;" id="otpNoticeBox">
-              📨 Mã OTP đã được gửi đến email của bạn!
+              Mã OTP đã được gửi đến email của bạn!
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
@@ -657,11 +659,11 @@ Object.assign(App, {
             </div>
 
             <div style="display: flex; gap: 8px;">
-              <button id="btnVerifyOtp" class="btn btn-success" style="flex: 1; font-weight: 700; padding: 11px;" onclick="App.verifyOtpAndResetPinAction()">
-                ✓ Xác Nhận & Đặt Mã PIN Mới
+              <button id="btnVerifyOtp" class="btn btn-success" style="flex: 1; font-weight: 700; padding: 11px; display:inline-flex; align-items:center; justify-content:center; gap:5px;" onclick="App.verifyOtpAndResetPinAction()">
+                ${Icons.get('check', 13)} <span>Xác Nhận & Đặt Mã PIN Mới</span>
               </button>
-              <button class="btn btn-sm" style="padding: 0 12px;" title="Gửi lại mã OTP mới" onclick="App.sendEmailOtpAction()">
-                🔁 Gửi lại
+              <button class="btn btn-sm" style="padding: 0 12px; display:inline-flex; align-items:center; gap:4px;" title="Gửi lại mã OTP mới" onclick="App.sendEmailOtpAction()">
+                ${Icons.get('refresh', 13)} <span>Gửi lại</span>
               </button>
             </div>
           </div>
@@ -672,15 +674,15 @@ Object.assign(App, {
           <p style="font-size: 12.5px; color: var(--text-secondary); margin: 0 0 8px 0;">
             Không nhớ địa chỉ email đã đăng ký, không nhận được OTP hoặc tài khoản bị khóa?
           </p>
-          <button class="btn" style="width: 100%; border-color: #e11d48; color: #be123c; font-weight: 700; padding: 10px;" onclick="App.openSupportTicketModal()">
-            🔄 Thử cách khác (Soạn văn bản gửi Admin & CSKH) ➔
+          <button class="btn" style="width: 100%; border-color: #e11d48; color: #be123c; font-weight: 700; padding: 10px; display:inline-flex; align-items:center; justify-content:center; gap:6px;" onclick="App.openSupportTicketModal()">
+            ${Icons.get('refresh', 14)} <span>Thử cách khác (Soạn văn bản gửi Admin & CSKH)</span> ${Icons.get('arrowRight', 12)}
           </button>
         </div>
       </div>
     `;
 
     footer.innerHTML = `
-      <button class="btn" onclick="App.clearOtpTimer(); App.openAccountSwitcherModal()">← Quay lại Đăng nhập</button>
+      <button class="btn" onclick="App.clearOtpTimer(); App.openAccountSwitcherModal()">Quay lại Đăng nhập</button>
       <button class="btn" onclick="App.clearOtpTimer(); App.closeModal()">Đóng</button>
     `;
 
@@ -1064,22 +1066,22 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
     const currentProfile = StorageService.getUserProfile();
     const isUserLoggedIn = StorageService.isLoggedIn();
 
-    title.textContent = "📩 Liên Hệ Ban Quản Trị & Đóng Góp Ý Kiến";
+    title.innerHTML = `<span style="display:inline-flex; align-items:center; gap:8px;">${Icons.get('contact', 18)} <span>Liên Hệ Ban Quản Trị & Đóng Góp Ý Kiến</span></span>`;
 
     body.innerHTML = `
       <div style="display: flex; flex-direction: column; gap: 14px;">
         <!-- Card Thông Tin Trưởng Ban Phát Triển -->
         <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1.5px solid #bae6fd; border-radius: var(--radius-sm); padding: 14px 16px; font-size: 13px; color: #0369a1; line-height: 1.6;">
           <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
-            <div style="font-size: 28px;">👨‍💻</div>
+            <div style="color:#0284c7; display:flex; align-items:center;">${Icons.get('user', 28)}</div>
             <div>
               <strong style="font-size: 14.5px; color: #0c4a6e;">Shina (Bùi Văn Khang)</strong> (Creator & Lead Developer)
               <div style="font-size: 12px; color: #0284c7;">Biệt danh: Shina Sanora · Shinora Academic Studio</div>
             </div>
           </div>
           <div style="font-size: 12.5px; border-top: 1px dashed #7dd3fc; padding-top: 6px; margin-top: 6px; display: flex; flex-direction: column; gap: 3px;">
-            <div>📧 Email CSKH: <strong>vkhg.bui@gmail.com</strong> · <strong>giaosukhang621@gmail.com</strong></div>
-            <div>📞 Hotline / Zalo hỗ trợ: <strong>0354 616 301</strong> (Hỗ trợ 24/7)</div>
+            <div>Email CSKH: <strong>vkhg.bui@gmail.com</strong> · <strong>giaosukhang621@gmail.com</strong></div>
+            <div>Hotline / Zalo hỗ trợ: <strong>0354 616 301</strong> (Hỗ trợ 24/7)</div>
           </div>
         </div>
 
@@ -1107,12 +1109,12 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
           <div class="form-group" style="margin: 0;">
             <label class="form-label">Chủ đề liên hệ (*):</label>
             <select id="contactCategory" class="form-control">
-              <option value="Đóng góp ý kiến & Cải tiến tính năng">💡 Đóng góp ý kiến & Tính năng mới</option>
-              <option value="Báo lỗi nội dung câu hỏi / Môn học">⚠️ Báo lỗi câu hỏi / Đề cương</option>
-              <option value="Đóng góp bộ đề thi mới (.txt)">📚 Đóng góp bộ đề thi mới</option>
-              <option value="Khiếu nại bản quyền & Yêu cầu gỡ bỏ đề thi (24h - 48h)">⚖️ Khiếu nại bản quyền / Yêu cầu gỡ bỏ đề (24h-48h)</option>
-              <option value="Hỗ trợ tài khoản & Cấp lại mã PIN">🔑 Hỗ trợ tài khoản & Quên PIN</option>
-              <option value="Hợp tác & Khác">🤝 Hợp tác & Khác</option>
+              <option value="Đóng góp ý kiến & Cải tiến tính năng">Đóng góp ý kiến & Tính năng mới</option>
+              <option value="Báo lỗi nội dung câu hỏi / Môn học">Báo lỗi câu hỏi / Đề cương</option>
+              <option value="Đóng góp bộ đề thi mới (.txt)">Đóng góp bộ đề thi mới</option>
+              <option value="Khiếu nại bản quyền & Yêu cầu gỡ bỏ đề thi (24h - 48h)">Khiếu nại bản quyền / Yêu cầu gỡ bỏ đề (24h-48h)</option>
+              <option value="Hỗ trợ tài khoản & Cấp lại mã PIN">Hỗ trợ tài khoản & Quên PIN</option>
+              <option value="Hợp tác & Khác">Hợp tác & Khác</option>
             </select>
           </div>
         </div>
@@ -1131,8 +1133,8 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
 
     footer.innerHTML = `
       <button class="btn" onclick="App.closeModal()">Đóng</button>
-      <button class="btn btn-primary" style="font-weight: 700;" onclick="App.submitContactFeedbackAction()">
-        🚀 Gửi Lời Nhắn Đến Ban Quản Trị ➔
+      <button class="btn btn-primary" style="font-weight: 700; display:inline-flex; align-items:center; gap:6px;" onclick="App.submitContactFeedbackAction()">
+        ${Icons.get('contact', 14)} <span>Gửi Lời Nhắn Đến Ban Quản Trị</span> ${Icons.get('arrowRight', 12)}
       </button>
     `;
 

@@ -535,11 +535,15 @@ Object.assign(App, {
 
             <!-- Avatar Picker -->
             <div class="form-group" style="margin: 0;">
-              <label class="form-label">Chọn Avatar đại diện:</label>
+              <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>Chọn Biểu Tượng Thành Viên (*):</span>
+                <span style="font-size:12px; font-weight:600; color:var(--text-tertiary);">12 phong cách hiện đại</span>
+              </label>
               <div class="avatar-picker-grid" id="regAvatarPicker">
-                ${['👨‍🎓', '👩‍🎓', '🧑‍💻', '👩‍💻', '🧪', '🧬', '🌟', '📚', '🎯', '🦁', '🦉', '🚀'].map((av) => `
-                  <button type="button" class="avatar-choice-btn ${selectedAvatar === av ? 'active' : ''}" onclick="App.selectRegAvatar('${av}', this)">
-                    ${av}
+                ${(typeof Icons !== "undefined" ? Icons.MEMBER_AVATARS : []).map((av) => `
+                  <button type="button" class="avatar-choice-btn ${selectedAvatar === av.id ? 'active' : ''}" onclick="App.selectRegAvatar('${av.id}', this)" title="${av.name}">
+                    ${Icons.renderAvatar(av.id, 38)}
+                    <span class="avatar-choice-label">${av.name}</span>
                   </button>
                 `).join('')}
               </div>
@@ -561,8 +565,8 @@ Object.assign(App, {
               </label>
             </div>
 
-            <button id="btnSubmitRegister" class="btn btn-primary" style="padding: 12px; font-size: 14px; font-weight: 700; width: 100%; opacity: ${isTermsAgreed ? '1' : '0.55'}; cursor: ${isTermsAgreed ? 'pointer' : 'not-allowed'};" onclick="App.submitRegistration()" ${isTermsAgreed ? '' : 'disabled'}>
-              🚀 Gửi Yêu Cầu Đăng Ký Tài Khoản ➔
+            <button id="btnSubmitRegister" class="btn btn-primary" style="padding: 12px; font-size: 14px; font-weight: 700; width: 100%; opacity: ${isTermsAgreed ? '1' : '0.55'}; cursor: ${isTermsAgreed ? 'pointer' : 'not-allowed'}; display:inline-flex; align-items:center; justify-content:center; gap:6px;" onclick="App.submitRegistration()" ${isTermsAgreed ? '' : 'disabled'}>
+              ${Icons.get('student', 14)} <span>Gửi Yêu Cầu Đăng Ký Tài Khoản</span> ${Icons.get('arrowRight', 12)}
             </button>
 
             <div class="auth-footer-links">
