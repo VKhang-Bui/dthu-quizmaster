@@ -705,25 +705,32 @@ Object.assign(App, {
           clearInterval(this.regWatcherInterval);
           this.regWatcherInterval = null;
 
+          const localUser = StorageService.getUserByStudentId(cloudUser.student_id) || StorageService.getUserById(cloudUser.id) || {};
           const mapped = {
             id: cloudUser.id,
-            studentId: cloudUser.student_id,
-            className: cloudUser.class_name || "",
-            fullName: cloudUser.full_name,
-            email: cloudUser.email,
-            phone: cloudUser.phone || "",
-            department: cloudUser.department || "Khoa Kỹ thuật - Công nghệ",
-            role: cloudUser.role || "student",
-            pinCode: cloudUser.pin_code || "123456",
-            avatar: cloudUser.avatar || "👨‍🎓",
-            totalExp: cloudUser.total_exp || 50,
-            streakDays: 1,
-            quizzesCompleted: 0,
+            studentId: cloudUser.student_id || localUser.studentId || "",
+            className: cloudUser.class_name || localUser.className || "",
+            fullName: cloudUser.full_name || localUser.fullName || "",
+            email: cloudUser.email || localUser.email || "",
+            phone: cloudUser.phone || localUser.phone || "",
+            department: cloudUser.department || localUser.department || "Khoa Kỹ thuật - Công nghệ",
+            role: cloudUser.role || localUser.role || "student",
+            pinCode: cloudUser.pin_code || localUser.pinCode || "123456",
+            avatar: cloudUser.avatar || localUser.avatar || "👨‍🎓",
+            totalExp: Math.max(cloudUser.total_exp || 50, localUser.totalExp || 50),
+            seasonExp: Math.max(cloudUser.season_exp || 50, localUser.seasonExp || 50),
+            contributionPoints: Math.max(cloudUser.contribution_points || 0, localUser.contributionPoints || 0),
+            seasonCp: Math.max(cloudUser.season_cp || 0, localUser.seasonCp || 0),
+            cumulativeQuestions: Math.max(cloudUser.cumulative_questions || 0, localUser.cumulativeQuestions || 0),
+            cumulativeChars: Math.max(cloudUser.cumulative_chars || 0, localUser.cumulativeChars || 0),
+            cumulativeReviewed: Math.max(cloudUser.cumulative_reviewed || 0, localUser.cumulativeReviewed || 0),
+            streakDays: Math.max(localUser.streakDays || 1, 1),
+            quizzesCompleted: Math.max(localUser.quizzesCompleted || 0, 0),
             status: "active",
-            permissions: cloudUser.permissions || {},
-            approvedBy: cloudUser.approved_by || "Admin Shina",
-            approvedAt: cloudUser.approved_at,
-            createdAt: cloudUser.created_at
+            permissions: cloudUser.permissions || localUser.permissions || {},
+            approvedBy: cloudUser.approved_by || localUser.approvedBy || "Admin Shina",
+            approvedAt: cloudUser.approved_at || localUser.approvedAt,
+            createdAt: cloudUser.created_at || localUser.createdAt || new Date().toISOString()
           };
           StorageService.updateUser(mapped.id, mapped);
           StorageService.saveUserProfile(mapped);

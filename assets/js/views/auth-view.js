@@ -542,25 +542,32 @@ Object.assign(App, {
             throw new Error("Mã PIN bảo mật không chính xác!");
           }
           
+          const localUser = StorageService.getUserByStudentId(cloudUser.student_id) || StorageService.getUserById(cloudUser.id) || {};
           const mapped = {
             id: cloudUser.id,
-            studentId: cloudUser.student_id,
-            className: cloudUser.class_name || "",
-            fullName: cloudUser.full_name,
-            email: cloudUser.email,
-            phone: cloudUser.phone || "",
-            department: cloudUser.department || "Khoa Kỹ thuật - Công nghệ",
-            role: cloudUser.role || "student",
-            pinCode: cloudUser.pin_code || "123456",
-            avatar: cloudUser.avatar || "👨‍🎓",
-            totalExp: cloudUser.total_exp || 0,
-            streakDays: cloudUser.streak_days || 1,
-            quizzesCompleted: cloudUser.quizzes_completed || 0,
-            status: cloudUser.status || "active",
-            permissions: cloudUser.permissions || {},
-            approvedBy: cloudUser.approved_by || "",
-            approvedAt: cloudUser.approved_at || null,
-            createdAt: cloudUser.created_at
+            studentId: cloudUser.student_id || localUser.studentId || "",
+            className: cloudUser.class_name || localUser.className || "",
+            fullName: cloudUser.full_name || localUser.fullName || "",
+            email: cloudUser.email || localUser.email || "",
+            phone: cloudUser.phone || localUser.phone || "",
+            department: cloudUser.department || localUser.department || "Khoa Kỹ thuật - Công nghệ",
+            role: cloudUser.role || localUser.role || "student",
+            pinCode: cloudUser.pin_code || localUser.pinCode || "123456",
+            avatar: cloudUser.avatar || localUser.avatar || "👨‍🎓",
+            totalExp: Math.max(cloudUser.total_exp || 0, localUser.totalExp || 0),
+            seasonExp: Math.max(cloudUser.season_exp || 0, localUser.seasonExp || 0),
+            contributionPoints: Math.max(cloudUser.contribution_points || 0, localUser.contributionPoints || 0),
+            seasonCp: Math.max(cloudUser.season_cp || 0, localUser.seasonCp || 0),
+            cumulativeQuestions: Math.max(cloudUser.cumulative_questions || 0, localUser.cumulativeQuestions || 0),
+            cumulativeChars: Math.max(cloudUser.cumulative_chars || 0, localUser.cumulativeChars || 0),
+            cumulativeReviewed: Math.max(cloudUser.cumulative_reviewed || 0, localUser.cumulativeReviewed || 0),
+            streakDays: Math.max(cloudUser.streak_days || 1, localUser.streakDays || 1),
+            quizzesCompleted: Math.max(cloudUser.quizzes_completed || 0, localUser.quizzesCompleted || 0),
+            status: cloudUser.status || localUser.status || "active",
+            permissions: cloudUser.permissions || localUser.permissions || {},
+            approvedBy: cloudUser.approved_by || localUser.approvedBy || "",
+            approvedAt: cloudUser.approved_at || localUser.approvedAt || null,
+            createdAt: cloudUser.created_at || localUser.createdAt || new Date().toISOString()
           };
           StorageService.updateUser(mapped.id, mapped);
           StorageService.saveUserProfile(mapped);

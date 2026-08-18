@@ -74,6 +74,12 @@ const SupabaseClient = {
       pin_code: userData.pinCode || "123456",
       avatar: userData.avatar || "👨‍🎓",
       total_exp: userData.totalExp || 50,
+      season_exp: userData.seasonExp || 50,
+      contribution_points: userData.contributionPoints || 0,
+      season_cp: userData.seasonCp || 0,
+      cumulative_questions: userData.cumulativeQuestions || 0,
+      cumulative_chars: userData.cumulativeChars || 0,
+      cumulative_reviewed: userData.cumulativeReviewed || 0,
       streak_days: userData.streakDays || 1,
       quizzes_completed: userData.quizzesCompleted || 0,
       status: userData.status || "pending_approval",
@@ -101,6 +107,12 @@ const SupabaseClient = {
     if (updates.pinCode !== undefined) payload.pin_code = updates.pinCode;
     if (updates.avatar !== undefined) payload.avatar = updates.avatar;
     if (updates.totalExp !== undefined) payload.total_exp = updates.totalExp;
+    if (updates.seasonExp !== undefined) payload.season_exp = updates.seasonExp;
+    if (updates.contributionPoints !== undefined) payload.contribution_points = updates.contributionPoints;
+    if (updates.seasonCp !== undefined) payload.season_cp = updates.seasonCp;
+    if (updates.cumulativeQuestions !== undefined) payload.cumulative_questions = updates.cumulativeQuestions;
+    if (updates.cumulativeChars !== undefined) payload.cumulative_chars = updates.cumulativeChars;
+    if (updates.cumulativeReviewed !== undefined) payload.cumulative_reviewed = updates.cumulativeReviewed;
     if (updates.streakDays !== undefined) payload.streak_days = updates.streakDays;
     if (updates.quizzesCompleted !== undefined) payload.quizzes_completed = updates.quizzesCompleted;
     if (updates.status !== undefined) payload.status = updates.status;

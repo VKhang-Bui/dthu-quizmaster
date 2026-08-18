@@ -518,34 +518,68 @@ const StorageService = {
   async syncWithCloud() {
     if (typeof SupabaseClient === "undefined" || !API_CONFIG.isCloudEnabled()) return false;
     try {
-      // 1. Đồng bộ người dùng từ Supabase (loại bỏ rejected)
+      // 1. Đồng bộ người dùng từ Supabase (loại bỏ rejected) và Hợp nhất thông minh (Smart Merge bảo toàn CP & EXP)
       const cloudUsers = await SupabaseClient.getAllUsers();
       if (Array.isArray(cloudUsers) && cloudUsers.length > 0) {
+        const existingUsers = this.getAllUsers();
         const mappedUsers = cloudUsers
           .filter(u => u && u.status !== "rejected")
-          .map(u => ({
-            id: u.id,
-            studentId: u.student_id,
-            className: u.class_name || "",
-            fullName: u.full_name,
-            email: u.email,
-            phone: u.phone || "",
-            department: u.department || "Shinora Academy",
-            role: u.role || "student",
-            pinCode: u.pin_code || "123456",
-            avatar: u.avatar || "👨‍🎓",
-            totalExp: u.total_exp || 0,
-            streakDays: u.streak_days || 1,
-            quizzesCompleted: u.quizzes_completed || 0,
-            status: u.status || "active",
-            permissions: u.permissions || {},
-            approvedBy: u.approved_by || "",
-            approvedAt: u.approved_at || null,
-            createdAt: u.created_at
-          }));
+          .map(u => {
+            const local = existingUsers.find(ex => ex.id === u.id || (u.student_id && ex.studentId === u.student_id)) || {};
+            const cloudCp = typeof u.contribution_points === "number" ? u.contribution_points : 0;
+            const localCp = typeof local.contributionPoints === "number" ? local.contributionPoints : 0;
+            const finalCp = Math.max(cloudCp, localCp);
+
+            const cloudSeasonCp = typeof u.season_cp === "number" ? u.season_cp : 0;
+            const localSeasonCp = typeof local.seasonCp === "number" ? local.seasonCp : 0;
+            const finalSeasonCp = Math.max(cloudSeasonCp, localSeasonCp, finalCp);
+
+            const cloudExp = typeof u.total_exp === "number" ? u.total_exp : 0;
+            const localExp = typeof local.totalExp === "number" ? local.totalExp : 0;
+            const finalExp = Math.max(cloudExp, localExp);
+
+            const cloudSeasonExp = typeof u.season_exp === "number" ? u.season_exp : 0;
+            const localSeasonExp = typeof local.seasonExp === "number" ? local.seasonExp : 0;
+            const finalSeasonExp = Math.max(cloudSeasonExp, localSeasonExp, finalExp);
+
+            return {
+              id: u.id,
+              studentId: u.student_id || local.studentId || "",
+              className: u.class_name || local.className || "",
+              fullName: u.full_name || local.fullName || "",
+              email: u.email || local.email || "",
+              phone: u.phone || local.phone || "",
+              department: u.department || local.department || "Shinora Academy",
+              role: u.role || local.role || "student",
+              pinCode: u.pin_code || local.pinCode || "123456",
+              avatar: u.avatar || local.avatar || "👨‍🎓",
+              totalExp: finalExp,
+              seasonExp: finalSeasonExp,
+              contributionPoints: finalCp,
+              seasonCp: finalSeasonCp,
+              cumulativeQuestions: Math.max(u.cumulative_questions || 0, local.cumulativeQuestions || 0),
+              cumulativeChars: Math.max(u.cumulative_chars || 0, local.cumulativeChars || 0),
+              cumulativeReviewed: Math.max(u.cumulative_reviewed || 0, local.cumulativeReviewed || 0),
+              streakDays: Math.max(u.streak_days || 1, local.streakDays || 1),
+              quizzesCompleted: Math.max(u.quizzes_completed || 0, local.quizzesCompleted || 0),
+              status: u.status || local.status || "active",
+              permissions: u.permissions || local.permissions || {},
+              approvedBy: u.approved_by || local.approvedBy || "",
+              approvedAt: u.approved_at || local.approvedAt || null,
+              createdAt: u.created_at || local.createdAt || new Date().toISOString()
+            };
+          });
+
+        // Giữ lại các user local nếu cloud chưa có
+        existingUsers.forEach(ex => {
+          if (!mappedUsers.some(m => m.id === ex.id || (ex.studentId && m.studentId === ex.studentId))) {
+            mappedUsers.push(ex);
+          }
+        });
+
         this.saveAllUsers(mappedUsers);
 
-        // Đồng bộ lại hồ sơ đang đăng nhập nếu có cập nhật từ Admin
+        // Đồng bộ lại hồ sơ đang đăng nhập nếu có cập nhật
         const currentProfile = this.getUserProfile();
         if (currentProfile && currentProfile.id && currentProfile.role !== "guest") {
           const fresh = mappedUsers.find(u => u.id === currentProfile.id || (u.studentId && u.studentId === currentProfile.studentId));
