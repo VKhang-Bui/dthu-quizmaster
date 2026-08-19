@@ -101,7 +101,7 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
 * A. Toàn bộ chủ nghĩa Mác - Lênin > Đúng: Giải thích A
 * B. Hệ tư tưởng của riêng giai cấp tư sản > Sai: Giải thích B
 * C. Một nhánh nhỏ độc lập > Sai: Giải thích C
-* D. Chỉ bao gồm bộ phận KTCT > Sai: Giải thích D" oninput="App.onParserInput()"></textarea>
+* D. Chỉ bao gồm bộ phận KTCT > Sai: Giải thích D" oninput="App.onParserInput(false, true)"></textarea>
 
             <div style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
               <span style="display:inline-flex; align-items:center; gap:4px;">${Icons.get('sparkles', 13)} <span><strong>Mẹo:</strong> Hỗ trợ in đậm <code>**text**</code>, in nghiêng <code>*text*</code>, công thức <code>\`code\`</code> và mọi ký tự đặc biệt.</span></span>
@@ -194,13 +194,7 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
         badge.textContent = `📄 ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
       }
 
-      this.onParserInput(true);
-      const count = this.currentParsedQuestions ? this.currentParsedQuestions.length : 0;
-      if (count > 0) {
-        this.showToast(`🎉 Đã trích xuất thành công ${count} câu hỏi từ tệp "${file.name}"!`, "success", 4000);
-      } else {
-        this.showToast(`ℹ️ Đã nạp nội dung tệp. Vui lòng kiểm tra lại cấu trúc câu hỏi.`, "info", 3500);
-      }
+      this.showToast(`📄 Đã nạp thành công dữ liệu thô từ "${file.name}"! Bấm "Bóc tách & Phân tích lại" để xử lý.`, "info", 4000);
     } catch (err) {
       console.error("processParserFile error:", err);
       this.showToast(`❌ Lỗi: ${err.message}`, "danger", 4500);
@@ -210,6 +204,12 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
   saveParsedQuestionsToDraft() {
     if (!this.currentParsedQuestions || this.currentParsedQuestions.length === 0) {
       this.showToast("⚠️ Chưa có câu hỏi nào để lưu!", "warning");
+      return;
+    }
+
+    const invalidQuestions = this.currentParsedQuestions.filter(q => q.answerIndex === -1 || q.warning !== null);
+    if (invalidQuestions.length > 0) {
+      this.showToast(`❌ Không thể lưu: Có ${invalidQuestions.length} câu hỏi chưa có đáp án đúng hoặc bị xung đột. Vui lòng sửa hết trước khi lưu!`, "danger", 5000);
       return;
     }
 
@@ -261,12 +261,43 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
     }
   },
 
-  onParserInput(isManual = false) {
-    const raw = document.getElementById("rawTextarea")?.value || "";
+  findActiveQuestionIndexAtCursor(text, cursorPos) {
+    if (!text || cursorPos <= 0) return 0;
+    const textBefore = text.slice(0, cursorPos);
+    const headerRegex = /(?:^|\n)\s*(?:(?:\*{0,2}(?:Câu|Bài|Question)\s*\d+[\s\.:\*\-\]]+|\b\d+\s*[\.)]\s+|\[(?:Câu\s*)?\d+\]))/gi;
+    let match;
+    let count = 0;
+    while ((match = headerRegex.exec(textBefore)) !== null) {
+      count++;
+    }
+    return Math.max(0, count - 1);
+  },
+
+  onParserInput(isManual = false, isTypingEdit = false) {
+    let raw = document.getElementById("rawTextarea")?.value || "";
     const chapterId = document.getElementById("parserChapterSelect")?.value || "c1";
+
+    if (isManual) {
+      const textarea = document.getElementById("rawTextarea");
+      if (textarea && raw.trim()) {
+        const cleanedText = SmartParserService.formatExtractedDocumentText(raw);
+        if (cleanedText && cleanedText.trim() !== raw.trim()) {
+          textarea.value = cleanedText;
+          raw = cleanedText;
+        }
+      }
+    }
 
     const { questions, warnings, errors, totalParsed } = SmartParserService.parseRawText(raw, chapterId);
     this.currentParsedQuestions = questions;
+
+    if (isManual) {
+      if (totalParsed > 0) {
+        this.showToast(`🎉 Đã bóc tách và chuẩn hóa lại ${totalParsed} câu hỏi thành công!`, "success", 3000);
+      } else {
+        this.showToast("⚠️ Chưa nhận diện được câu hỏi nào. Vui lòng kiểm tra lại định dạng!", "warning", 3000);
+      }
+    }
 
     const badge = document.getElementById("parserCounterBadge");
     const previewList = document.getElementById("parserPreviewList");
@@ -275,11 +306,17 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
     const btnCopy = document.getElementById("btnCopyJson");
     const btnContribute = document.getElementById("btnContribute");
 
+    this.parserFilter = this.parserFilter || 'all';
+    this.parserSearchQuery = this.parserSearchQuery || '';
+    const invalidQuestions = questions.filter(q => q.answerIndex === -1 || q.warning !== null);
+    const hasError = invalidQuestions.length > 0;
+    const validCount = totalParsed - invalidQuestions.length;
+
     if (badge) {
-      if (warnings && warnings.length > 0) {
-        badge.innerHTML = `<span style="color: #f59e0b; font-weight: 700;"><i class="fa-solid fa-triangle-exclamation"></i> ${totalParsed} câu (${warnings.length} cần chú ý)</span>`;
+      if (hasError) {
+        badge.innerHTML = `<span style="color: #ef4444; font-weight: 700;"><i class="fa-solid fa-triangle-exclamation"></i> ${totalParsed} câu (${invalidQuestions.length} câu cần sửa)</span>`;
       } else {
-        badge.textContent = `${totalParsed} câu hỏi hợp lệ`;
+        badge.innerHTML = `<span style="color: var(--success); font-weight: 700;"><i class="fa-solid fa-circle-check"></i> ${totalParsed} câu hỏi hợp lệ (Đủ điều kiện lưu)</span>`;
       }
     }
 
@@ -298,66 +335,185 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
       return;
     }
 
-    if (btnSave) btnSave.disabled = false;
+    if (btnSave) {
+      btnSave.disabled = hasError;
+      if (hasError) {
+        btnSave.title = `Có ${invalidQuestions.length} câu hỏi chưa có đáp án hoặc bị xung đột. Vui lòng sửa hết trước khi lưu!`;
+      } else {
+        btnSave.title = "Lưu bộ đề vào hệ thống";
+      }
+    }
     if (btnDownload) btnDownload.disabled = false;
     if (btnCopy) btnCopy.disabled = false;
     if (btnContribute) btnContribute.disabled = false;
 
     if (previewList) {
+      // 1. Ô Tìm Kiếm Câu Hỏi Thông Minh
+      const searchBoxHtml = `
+        <div class="parser-search-box" style="position: relative; margin-bottom: 10px;">
+          <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-tertiary); pointer-events: none; display: flex; align-items: center;">
+            <i class="fa-solid fa-magnifying-glass" style="font-size: 13px;"></i>
+          </div>
+          <input 
+            type="text" 
+            id="parserSearchInput" 
+            class="form-control" 
+            placeholder="Tìm kiếm số câu (VD: 20), từ khóa đề bài, đáp án..." 
+            value="${(this.parserSearchQuery || '').replace(/"/g, '&quot;')}"
+            oninput="App.onParserSearchInput(this.value)"
+            style="padding-left: 34px; padding-right: 32px; font-size: 12.5px; border-radius: 8px; height: 36px; background: var(--bg-primary); border: 1px solid var(--border);"
+          />
+          ${this.parserSearchQuery ? `
+            <button 
+              type="button" 
+              onclick="App.clearParserSearch()" 
+              style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-tertiary); cursor: pointer; padding: 4px; display: flex; align-items: center; font-size: 13px;"
+              title="Xóa tìm kiếm"
+            >
+              <i class="fa-solid fa-circle-xmark"></i>
+            </button>
+          ` : ''}
+        </div>
+      `;
+
+      // 2. Thanh Bộ Lọc Câu Hỏi Trực Quan (Tabs: Tất cả / Cần sửa / Hợp lệ)
+      const filterBarHtml = `
+        <div class="parser-filter-bar" style="display: flex; gap: 6px; margin-bottom: 12px; padding: 4px; background: var(--bg-secondary, #f8fafc); border: 1px solid var(--border); border-radius: 8px; font-size: 12px;">
+          <button type="button" onclick="App.setParserFilter('all')" style="flex: 1; padding: 6px 10px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; background: ${this.parserFilter === 'all' ? 'var(--brand-primary, #2563eb)' : 'transparent'}; color: ${this.parserFilter === 'all' ? '#fff' : 'var(--text-secondary)'}; transition: all 0.2s;">
+            Tất cả (${totalParsed})
+          </button>
+          <button type="button" onclick="App.setParserFilter('issues')" style="flex: 1; padding: 6px 10px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; background: ${this.parserFilter === 'issues' ? '#ef4444' : 'transparent'}; color: ${this.parserFilter === 'issues' ? '#fff' : (invalidQuestions.length > 0 ? '#ef4444' : 'var(--text-secondary)')}; transition: all 0.2s;">
+            <i class="fa-solid fa-triangle-exclamation"></i> Cần sửa (${invalidQuestions.length})
+          </button>
+          <button type="button" onclick="App.setParserFilter('valid')" style="flex: 1; padding: 6px 10px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; background: ${this.parserFilter === 'valid' ? 'var(--success, #10b981)' : 'transparent'}; color: ${this.parserFilter === 'valid' ? '#fff' : 'var(--text-secondary)'}; transition: all 0.2s;">
+            <i class="fa-solid fa-circle-check"></i> Hợp lệ (${validCount})
+          </button>
+        </div>
+      `;
+
+      // 3. Banner Cảnh Báo Thu Gọn (Collapsible Accordion)
       let warningBannerHtml = "";
       if (warnings && warnings.length > 0) {
         warningBannerHtml = `
-          <div style="margin-bottom: 14px; padding: 12px 14px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 8px; color: #b45309; font-size: 12px;">
-            <div style="font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 12.5px;">
-              <i class="fa-solid fa-triangle-exclamation" style="color: #f59e0b;"></i> Cảnh báo (${warnings.length} câu hỏi cần kiểm tra đáp án):
+          <details class="parser-warning-accordion" style="margin-bottom: 12px; padding: 8px 12px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 8px; color: #dc2626; font-size: 12px;">
+            <summary style="font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none;">
+              <span style="display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-triangle-exclamation" style="color: #ef4444;"></i> Cảnh báo: ${warnings.length} câu hỏi cần kiểm tra đáp án
+              </span>
+              <span style="font-size: 11px; opacity: 0.85; font-weight: 600; text-decoration: underline;">Xem danh sách / Thu gọn</span>
+            </summary>
+            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(239, 68, 68, 0.2); max-height: 120px; overflow-y: auto; line-height: 1.6;">
+              ${warnings.map(w => `<div style="cursor: pointer; padding: 2px 0;" onclick="App.scrollTextareaToQuestionText('${w.replace(/'/g, "\\'")}')" title="Nhấp để cuộn đến câu này">• ${w}</div>`).join('')}
             </div>
-            <div style="max-height: 80px; overflow-y: auto; line-height: 1.5; opacity: 0.9;">
-              ${warnings.map(w => `<div>• ${w}</div>`).join('')}
-            </div>
-          </div>
+          </details>
         `;
       }
 
-      previewList.innerHTML = warningBannerHtml + questions.map((q, idx) => {
-        let warnBoxHtml = "";
-        let cardBorderStyle = "";
-        if (q.warning) {
-          if (q.warning.type === "missing_answer") {
-            cardBorderStyle = "border-color: rgba(245, 158, 11, 0.4);";
-            warnBoxHtml = `
-              <div style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; margin-bottom: 8px; background: rgba(245, 158, 11, 0.12); border-left: 3px solid #f59e0b; border-radius: 4px; color: #b45309; font-size: 11.5px; font-weight: 600;">
-                <i class="fa-solid fa-triangle-exclamation"></i> ${q.warning.message}
-              </div>
-            `;
-          } else {
-            cardBorderStyle = "border-color: rgba(239, 68, 68, 0.4);";
-            warnBoxHtml = `
-              <div style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; margin-bottom: 8px; background: rgba(239, 68, 68, 0.12); border-left: 3px solid #ef4444; border-radius: 4px; color: #dc2626; font-size: 11.5px; font-weight: 600;">
-                <i class="fa-solid fa-circle-exclamation"></i> ${q.warning.message}
-              </div>
-            `;
-          }
-        }
+      // 4. Lọc danh sách câu hỏi theo tab đang chọn và từ khóa tìm kiếm
+      let displayedQuestions = questions.map((q, idx) => ({ ...q, originalIndex: idx }));
+      if (this.parserFilter === 'issues') {
+        displayedQuestions = displayedQuestions.filter(q => q.answerIndex === -1 || q.warning !== null);
+      } else if (this.parserFilter === 'valid') {
+        displayedQuestions = displayedQuestions.filter(q => q.answerIndex >= 0 && q.warning === null);
+      }
 
-        return `
-          <div class="preview-card" style="${cardBorderStyle}">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-              <span class="badge ${q.warning ? 'badge-warning' : 'badge-gray'}">Câu ${idx + 1}</span>
-              <span style="font-size: 11.5px; font-weight: 700; color: ${q.warning ? '#f59e0b' : 'var(--success)'};">Đáp án: ${this.letters[q.answerIndex]}</span>
-            </div>
-            ${warnBoxHtml}
-            <div class="preview-card-title">${SmartParserService.formatRichText(q.question)}</div>
-            <div>
-              ${q.options.map((opt, oi) => `
-                <div class="preview-opt-item ${oi === q.answerIndex ? 'is-correct' : ''}">
-                  <strong>${this.letters[oi]}.</strong> ${SmartParserService.formatRichText(opt.text)}
-                  ${opt.note ? `<div style="font-size: 11.5px; opacity: 0.85; margin-left: 14px; margin-top: 2px;">↳ <em>${SmartParserService.formatRichText(opt.note)}</em></div>` : ''}
-                </div>
-              `).join('')}
-            </div>
+      if (this.parserSearchQuery && this.parserSearchQuery.trim()) {
+        const qClean = this.parserSearchQuery.trim().toLowerCase();
+        displayedQuestions = displayedQuestions.filter(q => {
+          const qNumStr = (q.originalIndex + 1).toString();
+          if (qClean === qNumStr || qClean === `câu ${qNumStr}` || qClean === `#${qNumStr}`) return true;
+          if (q.question && q.question.toLowerCase().includes(qClean)) return true;
+          if (q.options && q.options.some(opt => 
+            (opt.text && opt.text.toLowerCase().includes(qClean)) || 
+            (opt.note && opt.note.toLowerCase().includes(qClean))
+          )) return true;
+          return false;
+        });
+      }
+
+      let cardsHtml = "";
+      if (displayedQuestions.length === 0) {
+        cardsHtml = `
+          <div style="text-align: center; padding: 32px 16px; color: var(--text-tertiary); font-size: 13px;">
+            ${this.parserSearchQuery ? `🔍 Không tìm thấy câu hỏi nào phù hợp với từ khóa "<strong>${this.parserSearchQuery}</strong>".` : (this.parserFilter === 'issues' ? '🎉 Tuyệt vời! Không có câu hỏi nào bị lỗi.' : 'Chưa có câu hỏi nào trong danh mục này.')}
           </div>
         `;
-      }).join('');
+      } else {
+        cardsHtml = displayedQuestions.map(q => {
+          const idx = q.originalIndex;
+          let warnBoxHtml = "";
+          let cardBorderStyle = "";
+          if (q.warning) {
+            if (q.warning.type === "missing_answer") {
+              cardBorderStyle = "border-color: rgba(239, 68, 68, 0.4);";
+              warnBoxHtml = `
+                <div style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; margin-bottom: 8px; background: rgba(239, 68, 68, 0.1); border-left: 3px solid #ef4444; border-radius: 4px; color: #dc2626; font-size: 11.5px; font-weight: 600;">
+                  <i class="fa-solid fa-triangle-exclamation"></i> ${q.warning.message}
+                </div>
+              `;
+            } else {
+              cardBorderStyle = "border-color: rgba(239, 68, 68, 0.4);";
+              warnBoxHtml = `
+                <div style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; margin-bottom: 8px; background: rgba(239, 68, 68, 0.12); border-left: 3px solid #ef4444; border-radius: 4px; color: #dc2626; font-size: 11.5px; font-weight: 600;">
+                  <i class="fa-solid fa-circle-exclamation"></i> ${q.warning.message}
+                </div>
+              `;
+            }
+          }
+
+          const hasValidAnswer = q.answerIndex >= 0 && q.answerIndex < q.options.length;
+          const answerBadgeHtml = hasValidAnswer
+            ? `<span style="font-size: 11.5px; font-weight: 700; color: var(--success);">Đáp án: ${this.letters[q.answerIndex]}</span>`
+            : `<span style="font-size: 11.5px; font-weight: 700; color: #ef4444;"><i class="fa-solid fa-circle-xmark"></i> Chưa có đáp án</span>`;
+
+          return `
+            <div class="preview-card" id="parserPreviewCard-${idx}" data-q-index="${idx}" onclick="App.scrollTextareaToQuestion(${idx})" style="${cardBorderStyle} cursor: pointer; transition: all 0.2s;" title="Nhấp vào thẻ để cuộn đến câu này trong ô soạn thảo">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span class="badge ${q.warning ? 'badge-danger' : 'badge-gray'}">Câu ${idx + 1}</span>
+                ${answerBadgeHtml}
+              </div>
+              ${warnBoxHtml}
+              <div class="preview-card-title">${SmartParserService.formatRichText(q.question)}</div>
+              <div>
+                ${q.options.map((opt, oi) => `
+                  <div class="preview-opt-item ${oi === q.answerIndex ? 'is-correct' : ''}" onclick="event.stopPropagation(); App.setQuestionAnswerDirectly(${idx}, ${oi})" style="cursor: pointer; padding: 5px 8px; border-radius: 6px; margin-bottom: 4px; transition: all 0.15s;" title="Nhấp để chọn đáp án [${this.letters[oi]}]">
+                    <span style="display: inline-flex; align-items: center; gap: 6px;">
+                      <i class="${oi === q.answerIndex ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'}" style="color: ${oi === q.answerIndex ? 'var(--success)' : 'var(--text-tertiary)'}; font-size: 12.5px;"></i>
+                      <strong>${this.letters[oi]}.</strong> ${SmartParserService.formatRichText(opt.text)}
+                    </span>
+                    ${opt.note ? `<div style="font-size: 11.5px; opacity: 0.85; margin-left: 20px; margin-top: 2px;">↳ <em>${SmartParserService.formatRichText(opt.note)}</em></div>` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      previewList.innerHTML = searchBoxHtml + filterBarHtml + warningBannerHtml + cardsHtml;
+
+      // Tự động cuộn đến câu hỏi đang chỉnh sửa khi người dùng đang nhập văn bản/edit/cut/paste
+      if (isTypingEdit) {
+        const textarea = document.getElementById("rawTextarea");
+        const cursorPos = textarea ? (textarea.selectionStart || 0) : 0;
+        const activeQIndex = this.findActiveQuestionIndexAtCursor(raw, cursorPos);
+        const activeCard = document.getElementById(`parserPreviewCard-${activeQIndex}`);
+
+        if (activeCard && previewList) {
+          activeCard.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+          activeCard.style.transition = "border-color 0.25s, box-shadow 0.25s";
+          activeCard.style.borderColor = "var(--brand-primary)";
+          activeCard.style.boxShadow = "0 0 0 2px rgba(59, 130, 246, 0.3)";
+          
+          clearTimeout(this._activeCardHighlightTimer);
+          this._activeCardHighlightTimer = setTimeout(() => {
+            if (activeCard) {
+              activeCard.style.borderColor = "";
+              activeCard.style.boxShadow = "";
+            }
+          }, 1200);
+        }
+      }
     }
   },
 
@@ -429,5 +585,122 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
     }).catch(err => {
       this.showToast("Không thể sao chép: " + err, "danger", 3000);
     });
+  },
+
+  setParserFilter(filter) {
+    this.parserFilter = filter || 'all';
+    this.onParserInput(false, false);
+  },
+
+  setQuestionAnswerDirectly(questionIndex, optionIndex) {
+    const textarea = document.getElementById("rawTextarea");
+    if (!textarea) return;
+
+    const text = textarea.value;
+    const headerRegex = /(?:^|\n)\s*(?:(?:\*{0,2}(?:Câu|Bài|Question)\s*\d+[\s\.:\*\-\]]+|\b\d+\s*[\.)]\s+|\[(?:Câu\s*)?\d+\]))/gi;
+    const blockRanges = [];
+    let match;
+    while ((match = headerRegex.exec(text)) !== null) {
+      blockRanges.push(match.index);
+    }
+
+    if (questionIndex >= blockRanges.length) return;
+
+    const startPos = blockRanges[questionIndex];
+    const endPos = (questionIndex + 1 < blockRanges.length) ? blockRanges[questionIndex + 1] : text.length;
+    const blockText = text.substring(startPos, endPos);
+
+    const lines = blockText.split("\n");
+    let currentOptIdx = -1;
+    const optRegex = /^\s*(?:\*\s*)?\[?([A-Ea-eĐđ])\]?[\.\)\:\*\_]\s+/;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const optMatch = line.match(optRegex);
+      if (optMatch) {
+        currentOptIdx++;
+        let cleanLine = line.replace(/^\s*\*+\s*/, "");
+        cleanLine = cleanLine.replace(/\s*>\s*(?:đúng|đ|true|chính xác|sai|s|false|chưa đúng)\b(?:\s*:[^>\n]*)?/gi, "").trim();
+
+        if (currentOptIdx === optionIndex) {
+          cleanLine = cleanLine + " > Đúng";
+        }
+        lines[i] = cleanLine;
+      }
+    }
+
+    const updatedBlockText = lines.join("\n");
+    textarea.value = text.substring(0, startPos) + updatedBlockText + text.substring(endPos);
+
+    // Kích hoạt re-parse xem trước
+    this.onParserInput(false, false);
+
+    // Tự động cuộn textarea đến câu hỏi vừa sửa
+    this.scrollTextareaToQuestion(questionIndex);
+    const letter = this.letters[optionIndex] || "A";
+    this.showToast(`🎯 Đã chọn đáp án [${letter}] cho Câu ${questionIndex + 1}!`, "success", 2000);
+  },
+
+  scrollTextareaToQuestion(questionIndex) {
+    const textarea = document.getElementById("rawTextarea");
+    if (!textarea) return;
+
+    const text = textarea.value;
+    const headerRegex = /(?:^|\n)\s*(?:(?:\*{0,2}(?:Câu|Bài|Question)\s*\d+[\s\.:\*\-\]]+|\b\d+\s*[\.)]\s+|\[(?:Câu\s*)?\d+\]))/gi;
+    let match;
+    let count = 0;
+    let targetPos = 0;
+
+    while ((match = headerRegex.exec(text)) !== null) {
+      if (count === questionIndex) {
+        targetPos = match.index;
+        break;
+      }
+      count++;
+    }
+
+    textarea.focus();
+    textarea.setSelectionRange(targetPos, targetPos);
+
+    const textBefore = text.substring(0, targetPos);
+    const lineCountBefore = textBefore.split("\n").length;
+    const totalLines = text.split("\n").length;
+    const approxScrollTop = (lineCountBefore / totalLines) * textarea.scrollHeight;
+
+    textarea.scrollTo({
+      top: Math.max(0, approxScrollTop - 40),
+      behavior: "smooth"
+    });
+  },
+
+  scrollTextareaToQuestionText(warningMessage) {
+    const qNumMatch = warningMessage.match(/(?:Câu|Bài|Question)\s*(\d+)/i);
+    if (qNumMatch) {
+      const qNum = parseInt(qNumMatch[1], 10);
+      if (!isNaN(qNum) && qNum > 0) {
+        this.scrollTextareaToQuestion(qNum - 1);
+      }
+    }
+  },
+
+  onParserSearchInput(query) {
+    this.parserSearchQuery = query || "";
+    this.onParserInput(false, false);
+    const input = document.getElementById("parserSearchInput");
+    if (input) {
+      input.focus();
+      const len = input.value.length;
+      input.setSelectionRange(len, len);
+    }
+  },
+
+  clearParserSearch() {
+    this.parserSearchQuery = "";
+    this.onParserInput(false, false);
+    const input = document.getElementById("parserSearchInput");
+    if (input) {
+      input.value = "";
+      input.focus();
+    }
   }
 });

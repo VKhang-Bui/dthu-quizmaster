@@ -62,6 +62,19 @@ const SupabaseClient = {
   },
 
   async createUser(userData) {
+    const perms = Object.assign({
+      canApproveDrafts: false,
+      canEditSubjects: false,
+      canManageMaterials: false,
+      canManageUsers: false,
+      seasonExp: userData.seasonExp || userData.totalExp || 50,
+      contributionPoints: userData.contributionPoints || 0,
+      seasonCp: userData.seasonCp || 0,
+      cumulativeQuestions: userData.cumulativeQuestions || 0,
+      cumulativeChars: userData.cumulativeChars || 0,
+      cumulativeReviewed: userData.cumulativeReviewed || 0
+    }, userData.permissions || {});
+
     const payload = {
       id: userData.id || ("USR-" + Date.now()),
       student_id: userData.studentId ? userData.studentId.trim() : "",
@@ -69,26 +82,18 @@ const SupabaseClient = {
       full_name: userData.fullName ? userData.fullName.trim() : "",
       email: userData.email ? userData.email.trim().toLowerCase() : "",
       phone: userData.phone ? userData.phone.trim() : "",
-      department: userData.department || "Shinora Academy",
+      department: userData.department || "Khoa Kỹ thuật - Công nghệ",
       role: userData.role || "student",
       pin_code: userData.pinCode || "123456",
       avatar: userData.avatar || "👨‍🎓",
-      total_exp: userData.totalExp || 50,
-      season_exp: userData.seasonExp || 50,
-      contribution_points: userData.contributionPoints || 0,
-      season_cp: userData.seasonCp || 0,
-      cumulative_questions: userData.cumulativeQuestions || 0,
-      cumulative_chars: userData.cumulativeChars || 0,
-      cumulative_reviewed: userData.cumulativeReviewed || 0,
-      streak_days: userData.streakDays || 1,
-      quizzes_completed: userData.quizzesCompleted || 0,
+      total_exp: typeof userData.totalExp === "number" ? userData.totalExp : 50,
+      streak_days: typeof userData.streakDays === "number" ? userData.streakDays : 1,
+      quizzes_completed: typeof userData.quizzesCompleted === "number" ? userData.quizzesCompleted : 0,
       status: userData.status || "pending_approval",
-      permissions: userData.permissions || {
-        canApproveDrafts: false,
-        canEditSubjects: false,
-        canManageMaterials: false,
-        canManageUsers: false
-      }
+      permissions: perms,
+      approved_by: userData.approvedBy || "",
+      approved_at: userData.approvedAt || null,
+      updated_at: new Date().toISOString()
     };
     return await this.request("users", {
       method: "POST",
@@ -97,6 +102,7 @@ const SupabaseClient = {
   },
 
   async updateUser(userId, updates) {
+    if (!userId) return null;
     const payload = {};
     if (updates.fullName !== undefined) payload.full_name = updates.fullName;
     if (updates.className !== undefined) payload.class_name = updates.className;
@@ -107,18 +113,24 @@ const SupabaseClient = {
     if (updates.pinCode !== undefined) payload.pin_code = updates.pinCode;
     if (updates.avatar !== undefined) payload.avatar = updates.avatar;
     if (updates.totalExp !== undefined) payload.total_exp = updates.totalExp;
-    if (updates.seasonExp !== undefined) payload.season_exp = updates.seasonExp;
-    if (updates.contributionPoints !== undefined) payload.contribution_points = updates.contributionPoints;
-    if (updates.seasonCp !== undefined) payload.season_cp = updates.seasonCp;
-    if (updates.cumulativeQuestions !== undefined) payload.cumulative_questions = updates.cumulativeQuestions;
-    if (updates.cumulativeChars !== undefined) payload.cumulative_chars = updates.cumulativeChars;
-    if (updates.cumulativeReviewed !== undefined) payload.cumulative_reviewed = updates.cumulativeReviewed;
     if (updates.streakDays !== undefined) payload.streak_days = updates.streakDays;
     if (updates.quizzesCompleted !== undefined) payload.quizzes_completed = updates.quizzesCompleted;
     if (updates.status !== undefined) payload.status = updates.status;
-    if (updates.permissions !== undefined) payload.permissions = updates.permissions;
     if (updates.approvedBy !== undefined) payload.approved_by = updates.approvedBy;
     if (updates.approvedAt !== undefined) payload.approved_at = updates.approvedAt;
+    payload.updated_at = new Date().toISOString();
+
+    // Đóng gói permissions kèm metrics mở rộng (seasonExp, contributionPoints, seasonCp...)
+    if (updates.permissions || updates.seasonExp !== undefined || updates.contributionPoints !== undefined || updates.seasonCp !== undefined || updates.cumulativeQuestions !== undefined) {
+      const mergedPerms = Object.assign({}, updates.permissions || {});
+      if (updates.seasonExp !== undefined) mergedPerms.seasonExp = updates.seasonExp;
+      if (updates.contributionPoints !== undefined) mergedPerms.contributionPoints = updates.contributionPoints;
+      if (updates.seasonCp !== undefined) mergedPerms.seasonCp = updates.seasonCp;
+      if (updates.cumulativeQuestions !== undefined) mergedPerms.cumulativeQuestions = updates.cumulativeQuestions;
+      if (updates.cumulativeChars !== undefined) mergedPerms.cumulativeChars = updates.cumulativeChars;
+      if (updates.cumulativeReviewed !== undefined) mergedPerms.cumulativeReviewed = updates.cumulativeReviewed;
+      payload.permissions = mergedPerms;
+    }
 
     return await this.request(`users?or=(id.eq.${encodeURIComponent(userId)},student_id.eq.${encodeURIComponent(userId)})`, {
       method: "PATCH",

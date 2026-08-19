@@ -283,12 +283,12 @@ Object.assign(App, {
             </select>
           </div>
           <div class="form-group" style="margin: 0;">
-            <label class="form-label">Điểm EXP:</label>
-            <input type="number" id="editUsrExp" class="form-control" value="${user.totalExp || 0}">
+            <label class="form-label" title="Điểm kinh nghiệm học tập mùa này">Điểm EXP (Mùa này):</label>
+            <input type="number" id="editUsrExp" class="form-control" value="${typeof user.seasonExp === 'number' ? user.seasonExp : (user.totalExp || 0)}">
           </div>
           <div class="form-group" style="margin: 0;">
-            <label class="form-label">Điểm CP:</label>
-            <input type="number" id="editUsrCp" class="form-control" value="${user.contributionPoints || 0}">
+            <label class="form-label" title="Điểm cống hiến dữ liệu mùa này">Điểm CP (Mùa này):</label>
+            <input type="number" id="editUsrCp" class="form-control" value="${typeof user.seasonCp === 'number' ? user.seasonCp : (user.contributionPoints || 0)}">
           </div>
         </div>
 
@@ -342,7 +342,7 @@ Object.assign(App, {
     this.openModal();
   },
 
-  saveEditedUser(userId) {
+  async saveEditedUser(userId) {
     const name = document.getElementById("editUsrName")?.value.trim();
     const id = document.getElementById("editUsrId")?.value.trim();
     const email = document.getElementById("editUsrEmail")?.value.trim();
@@ -373,39 +373,54 @@ Object.assign(App, {
       }
     }
 
-    StorageService.updateUser(userId, {
-      fullName: name,
-      studentId: id,
-      email: email ? email.toLowerCase() : "",
-      pinCode: pin,
-      department: dept,
-      role: role,
-      totalExp: exp,
+    const perms = {
+      canApproveDrafts: document.getElementById("editPermApproveDrafts")?.checked || false,
+      canEditSubjects: document.getElementById("editPermEditSubjects")?.checked || false,
+      canManageMaterials: document.getElementById("editPermManageMaterials")?.checked || false,
+      canManageUsers: document.getElementById("editPermManageUsers")?.checked || false,
+      seasonExp: exp,
       contributionPoints: cp,
-      permissions: {
-        canApproveDrafts: document.getElementById("editPermApproveDrafts")?.checked || false,
-        canEditSubjects: document.getElementById("editPermEditSubjects")?.checked || false,
-        canManageMaterials: document.getElementById("editPermManageMaterials")?.checked || false,
-        canManageUsers: document.getElementById("editPermManageUsers")?.checked || false
-      }
-    });
+      seasonCp: cp
+    };
 
-    const adminProfile = StorageService.getUserProfile();
-    StorageService.addAuditLog("EDIT_USER", name, `Cập nhật thông tin & phân quyền thành viên [${id || userId}] (Vai trò: ${role})`, adminProfile.fullName || "Quản trị viên");
+    try {
+      await StorageService.updateUser(userId, {
+        fullName: name,
+        studentId: id,
+        email: email ? email.toLowerCase() : "",
+        pinCode: pin,
+        department: dept,
+        role: role,
+        totalExp: exp,
+        seasonExp: exp,
+        contributionPoints: cp,
+        seasonCp: cp,
+        permissions: perms
+      });
 
-    this.closeModal();
-    this.renderHeader();
-    this.showToast("✅ Đã cập nhật quyền hạn và thông tin người dùng thành công!", "success", 3000);
-    this.renderUsersManagementView(document.getElementById("mainContent"));
+      const adminProfile = StorageService.getUserProfile();
+      StorageService.addAuditLog("EDIT_USER", name, `Cập nhật thông tin & phân quyền thành viên [${id || userId}] (Vai trò: ${role})`, adminProfile.fullName || "Quản trị viên");
+
+      this.closeModal();
+      this.renderHeader();
+      this.showToast("✅ Đã cập nhật quyền hạn và thông tin người dùng thành công lên Cloud!", "success", 3000);
+      this.renderUsersManagementView(document.getElementById("mainContent"));
+    } catch (err) {
+      this.showToast("❌ Lỗi khi cập nhật người dùng: " + err.message, "danger", 4000);
+    }
   },
 
-  toggleUserStatusAction(userId) {
-    const updated = StorageService.toggleUserStatus(userId);
-    if (updated) {
-      const adminProfile = StorageService.getUserProfile();
-      StorageService.addAuditLog("TOGGLE_USER_STATUS", updated.fullName, `Chuyển trạng thái sang ${updated.status === 'suspended' ? 'Đã khóa' : 'Hoạt động'}`, adminProfile.fullName || "Quản trị viên");
-      this.showToast(`Đã ${updated.status === 'suspended' ? '🔒 khóa' : '🔓 mở khóa'} tài khoản: ${updated.fullName}`, "info", 2500);
-      this.renderUsersManagementView(document.getElementById("mainContent"));
+  async toggleUserStatusAction(userId) {
+    try {
+      const updated = await StorageService.toggleUserStatus(userId);
+      if (updated) {
+        const adminProfile = StorageService.getUserProfile();
+        StorageService.addAuditLog("TOGGLE_USER_STATUS", updated.fullName, `Chuyển trạng thái sang ${updated.status === 'suspended' ? 'Đã khóa' : 'Hoạt động'}`, adminProfile.fullName || "Quản trị viên");
+        this.showToast(`Đã ${updated.status === 'suspended' ? '🔒 khóa' : '🔓 mở khóa'} tài khoản: ${updated.fullName}`, "info", 2500);
+        this.renderUsersManagementView(document.getElementById("mainContent"));
+      }
+    } catch (err) {
+      this.showToast("❌ Lỗi cập nhật trạng thái: " + err.message, "danger", 3500);
     }
   },
 
@@ -544,32 +559,37 @@ Object.assign(App, {
             throw new Error("Mã PIN bảo mật không chính xác!");
           }
           
-          const localUser = StorageService.getUserByStudentId(cloudUser.student_id) || StorageService.getUserById(cloudUser.id) || {};
+          const perms = (cloudUser.permissions && typeof cloudUser.permissions === "object") ? cloudUser.permissions : {};
+          const exp = typeof cloudUser.total_exp === "number" ? cloudUser.total_exp : 0;
+          const seasonExp = typeof perms.seasonExp === "number" ? perms.seasonExp : exp;
+          const cp = typeof perms.contributionPoints === "number" ? perms.contributionPoints : 0;
+          const seasonCp = typeof perms.seasonCp === "number" ? perms.seasonCp : cp;
+
           const mapped = {
             id: cloudUser.id,
-            studentId: cloudUser.student_id || localUser.studentId || "",
-            className: cloudUser.class_name || localUser.className || "",
-            fullName: cloudUser.full_name || localUser.fullName || "",
-            email: cloudUser.email || localUser.email || "",
-            phone: cloudUser.phone || localUser.phone || "",
-            department: cloudUser.department || localUser.department || "Khoa Kỹ thuật - Công nghệ",
-            role: cloudUser.role || localUser.role || "student",
-            pinCode: cloudUser.pin_code || localUser.pinCode || "123456",
-            avatar: cloudUser.avatar || localUser.avatar || "👨‍🎓",
-            totalExp: Math.max(cloudUser.total_exp || 0, localUser.totalExp || 0),
-            seasonExp: Math.max(cloudUser.season_exp || 0, localUser.seasonExp || 0),
-            contributionPoints: Math.max(cloudUser.contribution_points || 0, localUser.contributionPoints || 0),
-            seasonCp: Math.max(cloudUser.season_cp || 0, localUser.seasonCp || 0),
-            cumulativeQuestions: Math.max(cloudUser.cumulative_questions || 0, localUser.cumulativeQuestions || 0),
-            cumulativeChars: Math.max(cloudUser.cumulative_chars || 0, localUser.cumulativeChars || 0),
-            cumulativeReviewed: Math.max(cloudUser.cumulative_reviewed || 0, localUser.cumulativeReviewed || 0),
-            streakDays: Math.max(cloudUser.streak_days || 1, localUser.streakDays || 1),
-            quizzesCompleted: Math.max(cloudUser.quizzes_completed || 0, localUser.quizzesCompleted || 0),
-            status: cloudUser.status || localUser.status || "active",
-            permissions: cloudUser.permissions || localUser.permissions || {},
-            approvedBy: cloudUser.approved_by || localUser.approvedBy || "",
-            approvedAt: cloudUser.approved_at || localUser.approvedAt || null,
-            createdAt: cloudUser.created_at || localUser.createdAt || new Date().toISOString()
+            studentId: cloudUser.student_id || "",
+            className: cloudUser.class_name || "",
+            fullName: cloudUser.full_name || "",
+            email: cloudUser.email || "",
+            phone: cloudUser.phone || "",
+            department: cloudUser.department || "Khoa Kỹ thuật - Công nghệ",
+            role: cloudUser.role || "student",
+            pinCode: cloudUser.pin_code || "123456",
+            avatar: cloudUser.avatar || "👨‍🎓",
+            totalExp: exp,
+            seasonExp: seasonExp,
+            contributionPoints: cp,
+            seasonCp: seasonCp,
+            cumulativeQuestions: perms.cumulativeQuestions || 0,
+            cumulativeChars: perms.cumulativeChars || 0,
+            cumulativeReviewed: perms.cumulativeReviewed || 0,
+            streakDays: typeof cloudUser.streak_days === "number" ? cloudUser.streak_days : 1,
+            quizzesCompleted: typeof cloudUser.quizzes_completed === "number" ? cloudUser.quizzes_completed : 0,
+            status: cloudUser.status || "active",
+            permissions: perms,
+            approvedBy: cloudUser.approved_by || "",
+            approvedAt: cloudUser.approved_at || null,
+            createdAt: cloudUser.created_at || new Date().toISOString()
           };
           StorageService.updateUser(mapped.id, mapped);
           StorageService.saveUserProfile(mapped);

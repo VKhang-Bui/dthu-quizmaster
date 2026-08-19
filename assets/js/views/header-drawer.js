@@ -75,8 +75,8 @@ Object.assign(App, {
             </span>
             <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
               ${isLogged ? `
-                <span class="user-exp-chip" style="font-size: 11px; padding: 1px 6px; display: inline-flex; align-items: center; gap: 3px;" title="Điểm EXP Học Tập">${Icons.get('zap', 11)} ${profile.totalExp || 0}</span>
-                <span class="user-exp-chip" style="font-size: 11px; padding: 1px 6px; background:#fef3c7; color:#b45309; border-color:#fde68a; display: inline-flex; align-items: center; gap: 3px;" title="Điểm Cống Hiến Dữ Liệu">${Icons.get('star', 11)} ${profile.contributionPoints || 0} CP</span>
+                <span class="user-exp-chip" style="font-size: 11px; padding: 1px 6px; display: inline-flex; align-items: center; gap: 3px;" title="Điểm EXP Học Tập Mùa Này">${Icons.get('zap', 11)} ${typeof profile.seasonExp === 'number' ? profile.seasonExp : (profile.totalExp || 0)} EXP</span>
+                <span class="user-exp-chip" style="font-size: 11px; padding: 1px 6px; background:#fef3c7; color:#b45309; border-color:#fde68a; display: inline-flex; align-items: center; gap: 3px;" title="Điểm Cống Hiến Dữ Liệu Mùa Này">${Icons.get('star', 11)} ${typeof profile.seasonCp === 'number' ? profile.seasonCp : (profile.contributionPoints || 0)} CP</span>
               ` : ''}
               ${roleBadge}
             </div>
@@ -174,10 +174,10 @@ Object.assign(App, {
                   <div style="font-size: 11.5px; color: var(--text-tertiary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 4px;">
                     ${Icons.get('contact', 12)} <code>${profile.email || (profile.studentId ? profile.studentId + '@dthu.edu.vn' : '')}</code>
                   </div>
-                  <div style="display: flex; gap: 10px; margin-top: 8px; font-size: 12px; flex-wrap: wrap;">
-                    <span style="color: #b45309; font-weight: 800; display: inline-flex; align-items: center; gap: 3px;">${Icons.get('zap', 13)} ${profile.totalExp || 0} EXP</span>
-                    <span style="color: #15803d; font-weight: 800; display: inline-flex; align-items: center; gap: 3px;">${Icons.get('star', 13)} ${profile.contributionPoints || 0} CP</span>
-                    <span style="color: #0369a1; font-weight: 700; display: inline-flex; align-items: center; gap: 3px;">${Icons.get('fileText', 13)} ${profile.quizzesCompleted !== undefined ? profile.quizzesCompleted : history.length} bài</span>
+                  <div style="display: flex; gap: 8px; margin-top: 8px; font-size: 12px; flex-wrap: wrap; align-items: center;">
+                    <span style="color: #b45309; font-weight: 800; display: inline-flex; align-items: center; gap: 3px;" title="Điểm EXP Mùa Này">${Icons.get('zap', 13)} ${typeof profile.seasonExp === 'number' ? profile.seasonExp : (profile.totalExp || 0)} EXP Mùa</span>
+                    <span style="color: #15803d; font-weight: 800; display: inline-flex; align-items: center; gap: 3px;" title="Điểm CP Mùa Này">${Icons.get('star', 13)} ${typeof profile.seasonCp === 'number' ? profile.seasonCp : (profile.contributionPoints || 0)} CP Mùa</span>
+                    <span style="color: var(--text-tertiary); font-size: 11px; display: inline-flex; align-items: center; gap: 2px;" title="Điểm tổng tích lũy">(Tổng: ${(profile.totalExp || 0).toLocaleString()} EXP · ${(profile.contributionPoints || 0).toLocaleString()} CP)</span>
                   </div>
                 </div>
               </div>
@@ -209,7 +209,7 @@ Object.assign(App, {
                   <button class="drawer-nav-btn" style="border-color: rgba(168, 85, 247, 0.4); background: rgba(168, 85, 247, 0.06);" onclick="App.closeUserDrawer(); if(window.DynamicIsland) { DynamicIsland.wakeFromStealth(); DynamicIsland.expandToFull('presets'); }">
                     <span class="drawer-icon" style="color:#a855f7;">${Icons.get('radio', 18)}</span>
                     <span class="drawer-label"><strong style="color:var(--text-main);">Bài Giảng & Âm Nhạc YouTube</strong></span>
-                    <span class="badge" style="background:#f3e8ff; color:#7e22ce; font-weight:700;">v3.1.3</span>
+                    <span class="badge" style="background:#f3e8ff; color:#7e22ce; font-weight:700;">v3.1.4</span>
                   </button>
 
                   <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('parser');">
@@ -799,7 +799,7 @@ Object.assign(App, {
           <div class="drawer-slide-content" style="text-align: center; padding: 12px 0;">
             <div style="color: var(--brand-primary); margin-bottom: 8px; display: flex; justify-content: center;">${Icons.get('logo', 48)}</div>
             <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0;">Shinora QuizMaster</h3>
-            <div style="font-size: 13px; color: var(--brand-text); font-weight: 700; margin-top: 2px;">Phiên bản v3.1.3 (Bản chuẩn phát hành)</div>
+            <div style="font-size: 13px; color: var(--brand-text); font-weight: 700; margin-top: 2px;">Phiên bản v3.1.4 (Bản chuẩn phát hành)</div>
 
             <div style="text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; margin-top: 16px; font-size: 13px; line-height: 1.6; color: var(--text-secondary);">
               <div style="display: flex; align-items: center; gap: 6px;">${Icons.get('book', 14)} <strong>Dự án:</strong> Shinora QuizMaster (Học tập & Nghiên cứu)</div>

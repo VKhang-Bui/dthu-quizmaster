@@ -12,7 +12,7 @@ Object.assign(App, {
         <div class="guide-hero">
           <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
             <span class="badge badge-blue" style="font-size: 13px;">Shinora QuizMaster</span>
-            <span class="badge badge-green">Phiên bản 3.1.3 (Mới Nhất)</span>
+            <span class="badge badge-green">Phiên bản 3.1.4 (Mới Nhất)</span>
           </div>
           <h2 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin-bottom: 8px;">
             Hướng Dẫn Sử Dụng

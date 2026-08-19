@@ -5,8 +5,8 @@
 
 const Icons = {
   registry: {
-    // ── Thương Hiệu & Điều Hướng ──
-    logo: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>`,
+    // ── Thương Hiệu: Logo Hình Học Chuẩn Xác (Apple Geometric Golden Ratio) ──
+    logo: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4.5A3.75 3.75 0 0 0 6 8.25A3.75 3.75 0 0 0 10 12A3.75 3.75 0 0 1 14 15.75A3.75 3.75 0 0 1 13 19.5"></path><path d="M10 12A9.5 9.5 0 0 0 19 5"></path><path d="M10 12A9.5 9.5 0 0 1 19 19"></path><circle cx="10" cy="12" r="1.6" fill="currentColor"></circle></svg>`,
     home: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`,
     book: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path></svg>`,
     bookOpen: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>`,

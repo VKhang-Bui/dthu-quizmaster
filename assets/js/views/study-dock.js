@@ -1,6 +1,6 @@
 /**
  * SHINORA FLOATING STUDY DOCK (TRUNG TÂM TIỆN ÍCH HỌC TẬP NỔI ĐA NĂNG)
- * Phiên bản: v3.1.3
+ * Phiên bản: v3.1.4
  * Kiến trúc giao diện: Cửa sổ kép Master-Detail (Cửa sổ gốc menu bên trái + Cửa sổ con trượt mở sang bên phải)
  */
 

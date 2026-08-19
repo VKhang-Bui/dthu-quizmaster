@@ -315,7 +315,10 @@ const StorageService = {
         canApproveDrafts: true,
         canEditSubjects: true,
         canManageMaterials: true,
-        canManageUsers: true
+        canManageUsers: true,
+        seasonExp: 1000,
+        contributionPoints: 150,
+        seasonCp: 150
       },
       seasonExp: 1000,
       totalExp: 1000,
@@ -328,126 +331,6 @@ const StorageService = {
       quizzesCompleted: 35,
       status: "active",
       createdAt: "2026-01-01T08:00:00.000Z"
-    },
-    {
-      id: "USR-02",
-      fullName: "Nguyễn Thị Mai Lan",
-      studentId: "0024418102",
-      className: "ĐHSPHOA24A",
-      email: "0024418102@dthu.edu.vn",
-      phone: "0912345601",
-      department: "Khoa Sư phạm KHTN",
-      role: "student",
-      avatar: "👩‍🎓",
-      pinCode: "123456",
-      permissions: { canApproveDrafts: false, canEditSubjects: false, canManageMaterials: false, canManageUsers: false },
-      seasonExp: 580,
-      totalExp: 580,
-      seasonCp: 120,
-      contributionPoints: 120,
-      cumulativeQuestions: 1200,
-      cumulativeChars: 45000,
-      cumulativeReviewed: 0,
-      streakDays: 10,
-      quizzesCompleted: 28,
-      status: "active",
-      createdAt: "2026-01-05T08:00:00.000Z"
-    },
-    {
-      id: "USR-03",
-      fullName: "Trần Minh Đức",
-      studentId: "0024418205",
-      className: "ĐHLLCT24B",
-      email: "0024418205@dthu.edu.vn",
-      phone: "0912345602",
-      department: "Khoa Lý luận Chính trị",
-      role: "student",
-      avatar: "👨‍🎓",
-      pinCode: "123456",
-      permissions: { canApproveDrafts: false, canEditSubjects: false, canManageMaterials: false, canManageUsers: false },
-      seasonExp: 420,
-      totalExp: 420,
-      seasonCp: 85,
-      contributionPoints: 85,
-      cumulativeQuestions: 850,
-      cumulativeChars: 25000,
-      cumulativeReviewed: 0,
-      streakDays: 7,
-      quizzesCompleted: 22,
-      status: "active",
-      createdAt: "2026-01-10T08:00:00.000Z"
-    },
-    {
-      id: "USR-04",
-      fullName: "Lê Hoàng Phúc",
-      studentId: "0024418318",
-      className: "ĐHTOAN24A",
-      email: "0024418318@dthu.edu.vn",
-      phone: "0912345603",
-      department: "Khoa Sư phạm Toán - Tin",
-      role: "student",
-      avatar: "👨‍💻",
-      pinCode: "123456",
-      permissions: { canApproveDrafts: false, canEditSubjects: false, canManageMaterials: false, canManageUsers: false },
-      seasonExp: 350,
-      totalExp: 350,
-      seasonCp: 60,
-      contributionPoints: 60,
-      cumulativeQuestions: 600,
-      cumulativeChars: 18000,
-      cumulativeReviewed: 0,
-      streakDays: 5,
-      quizzesCompleted: 18,
-      status: "active",
-      createdAt: "2026-01-15T08:00:00.000Z"
-    },
-    {
-      id: "USR-05",
-      fullName: "Phạm Ngọc Hân",
-      studentId: "0024418420",
-      className: "ĐHNN24C",
-      email: "0024418420@dthu.edu.vn",
-      phone: "0912345604",
-      department: "Khoa Ngoại ngữ",
-      role: "student",
-      avatar: "👩‍💼",
-      pinCode: "123456",
-      permissions: { canApproveDrafts: false, canEditSubjects: false, canManageMaterials: false, canManageUsers: false },
-      seasonExp: 290,
-      totalExp: 290,
-      seasonCp: 45,
-      contributionPoints: 45,
-      cumulativeQuestions: 450,
-      cumulativeChars: 12000,
-      cumulativeReviewed: 0,
-      streakDays: 4,
-      quizzesCompleted: 14,
-      status: "active",
-      createdAt: "2026-01-20T08:00:00.000Z"
-    },
-    {
-      id: "USR-06",
-      fullName: "Đặng Gia Huy",
-      studentId: "0024418531",
-      className: "ĐHNONG24A",
-      email: "0024418531@dthu.edu.vn",
-      phone: "0912345605",
-      department: "Khoa Nông nghiệp - Sinh học",
-      role: "student",
-      avatar: "👨‍🌾",
-      pinCode: "123456",
-      permissions: { canApproveDrafts: false, canEditSubjects: false, canManageMaterials: false, canManageUsers: false },
-      seasonExp: 210,
-      totalExp: 210,
-      seasonCp: 30,
-      contributionPoints: 30,
-      cumulativeQuestions: 300,
-      cumulativeChars: 8000,
-      cumulativeReviewed: 0,
-      streakDays: 3,
-      quizzesCompleted: 11,
-      status: "active",
-      createdAt: "2026-01-25T08:00:00.000Z"
     }
   ],
 
@@ -518,64 +401,45 @@ const StorageService = {
   async syncWithCloud() {
     if (typeof SupabaseClient === "undefined" || !API_CONFIG.isCloudEnabled()) return false;
     try {
-      // 1. Đồng bộ người dùng từ Supabase (loại bỏ rejected) và Hợp nhất thông minh (Smart Merge bảo toàn CP & EXP)
+      // 1. Đồng bộ người dùng từ Supabase Cloud (Nguồn dữ liệu chân lý duy nhất - SSOT)
       const cloudUsers = await SupabaseClient.getAllUsers();
       if (Array.isArray(cloudUsers) && cloudUsers.length > 0) {
-        const existingUsers = this.getAllUsers();
         const mappedUsers = cloudUsers
           .filter(u => u && u.status !== "rejected")
           .map(u => {
-            const local = existingUsers.find(ex => ex.id === u.id || (u.student_id && ex.studentId === u.student_id)) || {};
-            const cloudCp = typeof u.contribution_points === "number" ? u.contribution_points : 0;
-            const localCp = typeof local.contributionPoints === "number" ? local.contributionPoints : 0;
-            const finalCp = Math.max(cloudCp, localCp);
-
-            const cloudSeasonCp = typeof u.season_cp === "number" ? u.season_cp : 0;
-            const localSeasonCp = typeof local.seasonCp === "number" ? local.seasonCp : 0;
-            const finalSeasonCp = Math.max(cloudSeasonCp, localSeasonCp, finalCp);
-
-            const cloudExp = typeof u.total_exp === "number" ? u.total_exp : 0;
-            const localExp = typeof local.totalExp === "number" ? local.totalExp : 0;
-            const finalExp = Math.max(cloudExp, localExp);
-
-            const cloudSeasonExp = typeof u.season_exp === "number" ? u.season_exp : 0;
-            const localSeasonExp = typeof local.seasonExp === "number" ? local.seasonExp : 0;
-            const finalSeasonExp = Math.max(cloudSeasonExp, localSeasonExp, finalExp);
+            const perms = (u.permissions && typeof u.permissions === "object") ? u.permissions : {};
+            const exp = typeof u.total_exp === "number" ? u.total_exp : 0;
+            const seasonExp = typeof perms.seasonExp === "number" ? perms.seasonExp : exp;
+            const cp = typeof perms.contributionPoints === "number" ? perms.contributionPoints : 0;
+            const seasonCp = typeof perms.seasonCp === "number" ? perms.seasonCp : cp;
 
             return {
               id: u.id,
-              studentId: u.student_id || local.studentId || "",
-              className: u.class_name || local.className || "",
-              fullName: u.full_name || local.fullName || "",
-              email: u.email || local.email || "",
-              phone: u.phone || local.phone || "",
-              department: u.department || local.department || "Shinora Academy",
-              role: u.role || local.role || "student",
-              pinCode: u.pin_code || local.pinCode || "123456",
-              avatar: u.avatar || local.avatar || "👨‍🎓",
-              totalExp: finalExp,
-              seasonExp: finalSeasonExp,
-              contributionPoints: finalCp,
-              seasonCp: finalSeasonCp,
-              cumulativeQuestions: Math.max(u.cumulative_questions || 0, local.cumulativeQuestions || 0),
-              cumulativeChars: Math.max(u.cumulative_chars || 0, local.cumulativeChars || 0),
-              cumulativeReviewed: Math.max(u.cumulative_reviewed || 0, local.cumulativeReviewed || 0),
-              streakDays: Math.max(u.streak_days || 1, local.streakDays || 1),
-              quizzesCompleted: Math.max(u.quizzes_completed || 0, local.quizzesCompleted || 0),
-              status: u.status || local.status || "active",
-              permissions: u.permissions || local.permissions || {},
-              approvedBy: u.approved_by || local.approvedBy || "",
-              approvedAt: u.approved_at || local.approvedAt || null,
-              createdAt: u.created_at || local.createdAt || new Date().toISOString()
+              studentId: u.student_id || "",
+              className: u.class_name || "",
+              fullName: u.full_name || "",
+              email: u.email || "",
+              phone: u.phone || "",
+              department: u.department || "Khoa Kỹ thuật - Công nghệ",
+              role: u.role || "student",
+              pinCode: u.pin_code || "123456",
+              avatar: u.avatar || "👨‍🎓",
+              totalExp: exp,
+              seasonExp: seasonExp,
+              contributionPoints: cp,
+              seasonCp: seasonCp,
+              cumulativeQuestions: perms.cumulativeQuestions || 0,
+              cumulativeChars: perms.cumulativeChars || 0,
+              cumulativeReviewed: perms.cumulativeReviewed || 0,
+              streakDays: typeof u.streak_days === "number" ? u.streak_days : 1,
+              quizzesCompleted: typeof u.quizzes_completed === "number" ? u.quizzes_completed : 0,
+              status: u.status || "active",
+              permissions: perms,
+              approvedBy: u.approved_by || "",
+              approvedAt: u.approved_at || null,
+              createdAt: u.created_at || new Date().toISOString()
             };
           });
-
-        // Giữ lại các user local nếu cloud chưa có
-        existingUsers.forEach(ex => {
-          if (!mappedUsers.some(m => m.id === ex.id || (ex.studentId && m.studentId === ex.studentId))) {
-            mappedUsers.push(ex);
-          }
-        });
 
         this.saveAllUsers(mappedUsers);
 
@@ -585,6 +449,9 @@ const StorageService = {
           const fresh = mappedUsers.find(u => u.id === currentProfile.id || (u.studentId && u.studentId === currentProfile.studentId));
           if (fresh) {
             this.saveUserProfile(fresh);
+            if (typeof App !== "undefined" && typeof App.renderHeader === "function") {
+              App.renderHeader();
+            }
           }
         }
       }
@@ -768,10 +635,10 @@ const StorageService = {
     return list.filter(u => u.status !== "pending_approval" && u.status !== "rejected");
   },
 
-  approveUserRegistration(userId, adminName = "Shina Sanora") {
+  async approveUserRegistration(userId, adminName = "Shina Sanora") {
     const user = this.getUserById(userId);
     if (!user) return null;
-    return this.updateUser(userId, {
+    return await this.updateUser(userId, {
       status: "active",
       approvedAt: new Date().toISOString(),
       approvedBy: adminName
@@ -935,7 +802,7 @@ const StorageService = {
     return user;
   },
 
-  updateUser(id, updates) {
+  async updateUser(id, updates) {
     const list = this.getAllUsers();
     const idx = list.findIndex(u => u.id === id);
     if (idx === -1) return null;
@@ -945,13 +812,20 @@ const StorageService = {
 
     // Nếu đang chỉnh sửa chính người dùng đang đăng nhập, cập nhật luôn active user profile
     const active = this.getUserProfile();
-    if (active && active.id === id) {
+    if (active && (active.id === id || (list[idx].studentId && active.studentId === list[idx].studentId))) {
       this.saveUserProfile(list[idx]);
+      if (typeof App !== "undefined" && typeof App.renderHeader === "function") {
+        App.renderHeader();
+      }
     }
 
-    // Đồng bộ lên Supabase Cloud
+    // Đồng bộ lên Supabase Cloud và chờ xác nhận
     if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
-      SupabaseClient.updateUser(id, updates).catch(e => console.warn("Supabase updateUser error:", e));
+      try {
+        await SupabaseClient.updateUser(id, updates);
+      } catch (e) {
+        console.warn("Supabase updateUser error:", e);
+      }
     }
 
     return list[idx];
@@ -1009,11 +883,11 @@ const StorageService = {
     return true;
   },
 
-  toggleUserStatus(id) {
+  async toggleUserStatus(id) {
     const user = this.getUserById(id);
     if (!user) return null;
     const newStatus = user.status === "active" ? "suspended" : "active";
-    return this.updateUser(id, { status: newStatus });
+    return await this.updateUser(id, { status: newStatus });
   },
 
   isLoggedIn() {
@@ -1038,6 +912,13 @@ const StorageService = {
       if (data) {
         const parsed = JSON.parse(data);
         if (parsed && parsed.role !== "guest" && parsed.status !== "pending_approval") {
+          // Luôn lấy bản ghi mới nhất từ danh sách users
+          const allUsers = this.getAllUsers();
+          const fresh = allUsers.find(u => u.id === parsed.id || (parsed.studentId && u.studentId === parsed.studentId));
+          if (fresh) {
+            const merged = Object.assign({}, parsed, fresh);
+            return merged;
+          }
           if (typeof parsed.contributionPoints !== "number") parsed.contributionPoints = 0;
           if (typeof parsed.cumulativeQuestions !== "number") parsed.cumulativeQuestions = 0;
           if (typeof parsed.cumulativeChars !== "number") parsed.cumulativeChars = 0;
@@ -1149,7 +1030,11 @@ const StorageService = {
 
     // Đồng bộ EXP lên Supabase Cloud
     if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
-      SupabaseClient.updateUser(profile.id, { totalExp: profile.totalExp }).catch(() => {});
+      SupabaseClient.updateUser(profile.id, { totalExp: profile.totalExp, seasonExp: profile.seasonExp }).catch(() => {});
+    }
+
+    if (typeof App !== "undefined" && typeof App.renderHeader === "function") {
+      App.renderHeader();
     }
 
     return profile.seasonExp;
@@ -1181,7 +1066,11 @@ const StorageService = {
     }
 
     if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
-      SupabaseClient.updateUser(profile.id, { contributionPoints: profile.contributionPoints }).catch(() => {});
+      SupabaseClient.updateUser(profile.id, { contributionPoints: profile.contributionPoints, seasonCp: profile.seasonCp }).catch(() => {});
+    }
+
+    if (typeof App !== "undefined" && typeof App.renderHeader === "function") {
+      App.renderHeader();
     }
 
     return profile.seasonCp;
@@ -1321,7 +1210,7 @@ const StorageService = {
     return pointsAwarded;
   },
 
-  adminAdjustUserPoints(userId, pointType, amount, scope = "both", reason = "", adminName = "Quản trị viên") {
+  async adminAdjustUserPoints(userId, pointType, amount, scope = "both", reason = "", adminName = "Quản trị viên") {
     const user = this.getUserById(userId);
     if (!user) throw new Error("Không tìm thấy người dùng này!");
     if (!amount || amount === 0) throw new Error("Số điểm điều chỉnh phải khác 0!");
@@ -1351,7 +1240,7 @@ const StorageService = {
       }
     }
 
-    this.updateUser(user.id, {
+    const updated = await this.updateUser(user.id, {
       seasonExp: user.seasonExp,
       totalExp: user.totalExp,
       seasonCp: user.seasonCp,
@@ -1369,10 +1258,10 @@ const StorageService = {
 
     this.addAuditLog("ADJUST_POINTS", user.fullName, `${amount > 0 ? 'Cộng' : 'Khấu trừ'} ${Math.abs(amount)} ${pointType} (${scopeLabel}). Lý do: "${cleanReason}"`, adminName);
 
-    return user;
+    return updated || user;
   },
 
-  resetUserPoints(userId, resetType = "all", scope = "both", reason = "", adminName = "Quản trị viên") {
+  async resetUserPoints(userId, resetType = "all", scope = "both", reason = "", adminName = "Quản trị viên") {
     const user = this.getUserById(userId);
     if (!user) throw new Error("Không tìm thấy người dùng này!");
     if (!reason || !reason.trim()) throw new Error("Vui lòng nhập lý do đặt lại (reset) điểm!");
@@ -1384,22 +1273,32 @@ const StorageService = {
     let resetDesc = "";
     let scopeDesc = (scope === "season") ? "Điểm Mùa Này" : (scope === "all_time") ? "Điểm Tổng Các Mùa" : "Cả Mùa Này & Tổng Các Mùa";
 
+    let newSeasonExp = typeof user.seasonExp === "number" ? user.seasonExp : (user.totalExp || 0);
+    let newTotalExp = typeof user.totalExp === "number" ? user.totalExp : 0;
+    let newSeasonCp = typeof user.seasonCp === "number" ? user.seasonCp : (user.contributionPoints || 0);
+    let newCp = typeof user.contributionPoints === "number" ? user.contributionPoints : 0;
+
     if (resetType === "exp" || resetType === "all") {
-      if (scope === "season" || scope === "both") user.seasonExp = 0;
-      if (scope === "all_time" || scope === "both") user.totalExp = 0;
+      if (scope === "season" || scope === "both") newSeasonExp = 0;
+      if (scope === "all_time" || scope === "both") newTotalExp = 0;
       resetDesc += "Điểm EXP Học Tập ";
     }
     if (resetType === "cp" || resetType === "all") {
-      if (scope === "season" || scope === "both") user.seasonCp = 0;
-      if (scope === "all_time" || scope === "both") user.contributionPoints = 0;
+      if (scope === "season" || scope === "both") newSeasonCp = 0;
+      if (scope === "all_time" || scope === "both") newCp = 0;
       resetDesc += (resetDesc ? "& " : "") + "Điểm Cống Hiến (CP) ";
     }
 
-    this.updateUser(user.id, {
-      seasonExp: user.seasonExp,
-      totalExp: user.totalExp,
-      seasonCp: user.seasonCp,
-      contributionPoints: user.contributionPoints
+    user.seasonExp = newSeasonExp;
+    user.totalExp = newTotalExp;
+    user.seasonCp = newSeasonCp;
+    user.contributionPoints = newCp;
+
+    const updated = await this.updateUser(user.id, {
+      seasonExp: newSeasonExp,
+      totalExp: newTotalExp,
+      seasonCp: newSeasonCp,
+      contributionPoints: newCp
     });
 
     this.addNotification(user.id, {
@@ -1412,7 +1311,7 @@ const StorageService = {
 
     this.addAuditLog("RESET_USER_POINTS", user.fullName, `Đặt lại ${resetDesc}về 0 (${scopeDesc}). Lý do: "${cleanReason}"`, adminName);
 
-    return user;
+    return updated || user;
   },
 
   kickUserFromGroup(userId, reason = "", adminName = "Quản trị viên") {

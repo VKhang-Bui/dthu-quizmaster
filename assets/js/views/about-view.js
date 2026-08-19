@@ -1,6 +1,6 @@
 /**
  * ABOUT VIEW MODULE — Trang Giới Thiệu Dự Án
- * Shinora QuizMaster v3.1.3
+ * Shinora QuizMaster v3.1.4
  * Tác giả: Shina Sanora
  *
  * Trình bày câu chuyện, sứ mệnh, công nghệ và tác giả đằng sau
@@ -47,7 +47,7 @@ Object.assign(App, {
             ">Shinora QuizMaster</h1>
 
             <div style="display: inline-flex; align-items: center; gap: 8px; margin: 8px 0 20px; flex-wrap: wrap; justify-content: center;">
-              <span class="badge badge-blue" style="font-size: 12px; font-weight: 700;">v3.1.3</span>
+              <span class="badge badge-blue" style="font-size: 12px; font-weight: 700;">v3.1.4</span>
               <span class="badge badge-green" style="font-size: 12px; font-weight: 700;">Bản phát hành ổn định</span>
               <span class="badge" style="font-size: 12px; font-weight: 700; background: var(--surface-subtle, var(--surface)); border: 1px solid var(--border);">Học tập độc lập</span>
             </div>
@@ -128,8 +128,8 @@ Object.assign(App, {
 
             ${this._aboutTimelineItem(
               Icons.get('crown', 14),
-              'Hệ Sinh Thái Toàn Diện (v3.1.3)',
-              'Tích hợp <strong>Dynamic Island</strong> phát nhạc YouTube 24/7, <strong>Study Dock</strong> đa năng với Pomodoro / Calculator / Key Sounds, <strong>Zen Focus Room</strong> toàn màn hình, bảng xếp hạng mùa giải và hơn 40 tính năng học tập.',
+              'Hệ Sinh Thái Toàn Diện & Lõi Parser FSM (v3.1.4)',
+              'Tích hợp <strong>Dynamic Island</strong> phát nhạc YouTube 24/7, <strong>Study Dock</strong> đa năng, <strong>Zen Focus Room</strong>, bảng xếp hạng và <strong>Bộ lõi Parser Engine v3.1.4</strong> bóc tách đề thi siêu tốc chuẩn xác.',
               '#8b5cf6'
             )}
           </div>

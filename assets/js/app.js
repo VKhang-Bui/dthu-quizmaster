@@ -6,7 +6,7 @@
  * Các View modules được phân tách trong thư mục assets/js/views/ và gán methods vào App qua Object.assign().
  */
 
-const App = {
+var App = {
   // Application State
   currentView: "home",
   currentHubTab: "official",
@@ -76,17 +76,41 @@ const App = {
         }, 15000);
       }
 
-      // Tự động đồng bộ CSDL đám mây Supabase Cloud (chạy nền)
+      // Tự động đồng bộ CSDL đám mây Supabase Cloud & Real-time Profile Tracker
       if (typeof StorageService !== "undefined" && typeof StorageService.syncWithCloud === "function") {
-        StorageService.syncWithCloud().then(() => {
-          this.renderHeader();
-          const main = document.getElementById("mainContent");
-          if (this.currentView === "home" && main) {
-            this.renderHomeView(main);
-          } else if (this.currentView === "manage" && main) {
-            this.renderManageView(main);
+        const runBackgroundSync = async (isInitial = false) => {
+          try {
+            const prevProfile = StorageService.getUserProfile();
+            const prevExp = prevProfile ? prevProfile.totalExp : 0;
+            const prevCp = prevProfile ? prevProfile.contributionPoints : 0;
+            const prevRole = prevProfile ? prevProfile.role : "";
+
+            await StorageService.syncWithCloud();
+
+            const newProfile = StorageService.getUserProfile();
+            const newExp = newProfile ? newProfile.totalExp : 0;
+            const newCp = newProfile ? newProfile.contributionPoints : 0;
+            const newRole = newProfile ? newProfile.role : "";
+
+            if (isInitial || prevExp !== newExp || prevCp !== newCp || prevRole !== newRole) {
+              this.renderHeader();
+              const main = document.getElementById("mainContent");
+              if (isInitial && this.currentView === "home" && main) {
+                this.renderHomeView(main);
+              } else if (isInitial && this.currentView === "manage" && main) {
+                this.renderManageView(main);
+              }
+            }
+          } catch (e) {
+            console.warn("Supabase background sync:", e);
           }
-        }).catch(e => console.warn("Supabase background sync:", e));
+        };
+
+        // Chạy khởi tạo ban đầu
+        runBackgroundSync(true);
+
+        // Vòng lặp Real-time Heartbeat mỗi 3.5 giây
+        setInterval(() => runBackgroundSync(false), 3500);
       }
     } catch (err) {
       console.error("App init fatal error:", err);

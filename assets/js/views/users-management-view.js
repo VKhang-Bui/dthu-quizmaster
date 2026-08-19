@@ -38,10 +38,14 @@ Object.assign(App, {
       await StorageService.syncWithCloud();
     }
 
-    // Thiết lập auto-polling mỗi 2.5 giây khi Admin đang ở trang Quản trị người dùng để nhận diện hồ sơ đăng ký mới ngay lập tức
+    // Thiết lập auto-polling mỗi 3.5 giây khi Admin đang ở trang Quản trị người dùng để nhận diện hồ sơ đăng ký mới ngay lập tức
     if (!this.adminLivePollInterval) {
       this.adminLivePollInterval = setInterval(async () => {
         if (App.currentView === "users-management") {
+          const modal = document.getElementById("globalModal");
+          if (modal && (modal.classList.contains("active") || modal.style.display === "flex" || modal.style.display === "block")) {
+            return; // Tạm dừng render lại nếu đang mở modal chỉnh sửa để tránh gián đoạn nhập liệu
+          }
           const prevPending = StorageService.getPendingUsers().length;
           await StorageService.syncWithCloud();
           const newPending = StorageService.getPendingUsers().length;
@@ -56,7 +60,7 @@ Object.assign(App, {
           clearInterval(App.adminLivePollInterval);
           App.adminLivePollInterval = null;
         }
-      }, 2500);
+      }, 3500);
     }
 
     const allUsers = StorageService.getAllUsers();
@@ -645,9 +649,15 @@ Object.assign(App, {
             </div>
           </td>
           <td>
-            <div style="font-weight: 800; color: #b45309; font-size: 13px;">⚡ ${u.totalExp || 0} EXP</div>
-            <div style="font-weight: 800; color: #15803d; font-size: 12px; margin-top: 1px;">🌟 ${u.contributionPoints || 0} CP</div>
-            <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px;">${u.quizzesCompleted || 0} bài thi</div>
+            <div style="font-weight: 800; color: #b45309; font-size: 13px; display:flex; align-items:center; gap:4px;">
+              <span>⚡ ${(typeof u.seasonExp === 'number' ? u.seasonExp : (u.totalExp || 0)).toLocaleString()} EXP</span>
+              <span style="font-size:10px; font-weight:700; color:#92400e; background:#fef3c7; border:1px solid #fde68a; padding:0 4px; border-radius:3px;">Mùa</span>
+            </div>
+            <div style="font-weight: 800; color: #15803d; font-size: 12px; margin-top: 2px; display:flex; align-items:center; gap:4px;">
+              <span>🌟 ${(typeof u.seasonCp === 'number' ? u.seasonCp : (u.contributionPoints || 0)).toLocaleString()} CP</span>
+              <span style="font-size:10px; font-weight:700; color:#166534; background:#dcfce7; border:1px solid #bbf7d0; padding:0 4px; border-radius:3px;">Mùa</span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 3px;">Tổng: ${(u.totalExp || 0).toLocaleString()} · ${u.quizzesCompleted || 0} bài</div>
           </td>
           <td>
             <span class="${u.status === 'suspended' ? 'status-badge-suspended' : 'status-badge-active'}">
@@ -746,7 +756,7 @@ Object.assign(App, {
     this.openModal();
   },
 
-  saveAdminAdjustPoints(userId) {
+  async saveAdminAdjustPoints(userId) {
     const type = document.getElementById("adjustPointType")?.value || "EXP";
     const scope = document.getElementById("adjustPointScope")?.value || "both";
     const amountVal = document.getElementById("adjustPointAmount")?.value.trim();
@@ -767,9 +777,9 @@ Object.assign(App, {
     const adminName = adminProfile.fullName || "Quản trị viên";
 
     try {
-      StorageService.adminAdjustUserPoints(userId, type, amount, scope, reasonVal, adminName);
+      await StorageService.adminAdjustUserPoints(userId, type, amount, scope, reasonVal, adminName);
       this.closeModal();
-      this.showToast(`✅ Đã điều chỉnh ${amount > 0 ? '+' : ''}${amount} ${type} cho sinh viên thành công!`, "success", 4000);
+      this.showToast(`✅ Đã điều chỉnh ${amount > 0 ? '+' : ''}${amount} ${type} và đồng bộ Cloud thành công!`, "success", 4000);
       
       const main = document.getElementById("mainContent");
       if (document.querySelector(".view-admin-leaderboard")) {
@@ -840,7 +850,7 @@ Object.assign(App, {
     this.openModal();
   },
 
-  saveResetUserPointsAction(userId) {
+  async saveResetUserPointsAction(userId) {
     const resetType = document.getElementById("resetUserPointType")?.value || "all";
     const scope = document.getElementById("resetUserPointScope")?.value || "season";
     const reasonVal = document.getElementById("resetUserPointReason")?.value.trim();
@@ -854,9 +864,9 @@ Object.assign(App, {
     const adminName = adminProfile.fullName || "Quản trị viên";
 
     try {
-      StorageService.resetUserPoints(userId, resetType, scope, reasonVal, adminName);
+      await StorageService.resetUserPoints(userId, resetType, scope, reasonVal, adminName);
       this.closeModal();
-      this.showToast("✅ Đã đặt lại điểm của thành viên về 0 và gửi thông báo thành công!", "success", 4000);
+      this.showToast("✅ Đã đặt lại điểm của thành viên về 0 và đồng bộ Cloud thành công!", "success", 4000);
 
       const main = document.getElementById("mainContent");
       if (document.querySelector(".view-admin-leaderboard")) {
@@ -1238,7 +1248,7 @@ Object.assign(App, {
     this.openModal();
   },
 
-  confirmBulkResetPointsAction() {
+  async confirmBulkResetPointsAction() {
     const type = document.getElementById("bulkResetType")?.value || "all";
     const scope = document.getElementById("bulkResetScope")?.value || "season";
     const reason = document.getElementById("bulkResetReason")?.value.trim();
@@ -1252,15 +1262,17 @@ Object.assign(App, {
     const adminProfile = StorageService.getUserProfile();
     const adminName = adminProfile.fullName || "Quản trị viên";
 
-    ids.forEach(id => {
+    for (const id of ids) {
       try {
-        StorageService.resetUserPoints(id, type, scope, reason, adminName);
-      } catch (e) {}
-    });
+        await StorageService.resetUserPoints(id, type, scope, reason, adminName);
+      } catch (e) {
+        console.warn(`Reset points for ${id} failed:`, e);
+      }
+    }
 
     this.clearAdminMemberSelections();
     this.closeModal();
-    this.showToast(`✅ Đã đặt lại điểm của ${ids.length} thành viên thành công!`, "success", 4000);
+    this.showToast(`✅ Đã đặt lại điểm của ${ids.length} thành viên và đồng bộ Cloud thành công!`, "success", 4000);
     this.renderLeaderboardAdminView(document.getElementById("mainContent"));
   },
 
