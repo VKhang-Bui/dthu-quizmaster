@@ -115,6 +115,39 @@ const Icons = {
    * @param {string} role Vai trò (admin, editor, student)
    * @param {string} customClass Class CSS
    */
+  getAvatarById(avatarId) {
+    if (!avatarId) return this.MEMBER_AVATARS[0];
+    const emojiMap = {
+      '👨‍🎓': 'avatar-student',
+      '👩‍🎓': 'avatar-scholar',
+      '🧑‍💻': 'avatar-coder',
+      '👩‍💻': 'avatar-coder',
+      '🧪': 'avatar-science',
+      '🧬': 'avatar-science',
+      '🌟': 'avatar-star',
+      '⭐': 'avatar-star',
+      '📚': 'avatar-scholar',
+      '🎯': 'avatar-target',
+      '🦁': 'avatar-flame',
+      '🔥': 'avatar-flame',
+      '🦉': 'avatar-zen',
+      '🌙': 'avatar-zen',
+      '🚀': 'avatar-zap',
+      '⚡': 'avatar-zap',
+      '👑': 'avatar-crown',
+      '🛡️': 'avatar-shield'
+    };
+    const resolvedId = emojiMap[avatarId] || avatarId;
+    return this.MEMBER_AVATARS.find(a => a.id === resolvedId) || this.MEMBER_AVATARS[0];
+  },
+
+  /**
+   * Render avatar thành viên dạng huy hiệu gradient tròn cao cấp từ Icons.MEMBER_AVATARS
+   * @param {string} avatarKey ID avatar hoặc emoji cũ
+   * @param {number} size Kích thước đường kính px
+   * @param {string} role Vai trò (admin, editor, student)
+   * @param {string} customClass Class CSS
+   */
   renderAvatar(avatarKey, size = 32, role = "student", customClass = "") {
     if (!avatarKey || avatarKey === "guest") {
       return `
@@ -124,40 +157,7 @@ const Icons = {
       `;
     }
 
-    if (role === "admin") {
-      return `
-        <div class="user-avatar-badge admin ${customClass}" style="width:${size}px; height:${size}px; border-radius:50%; background:linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color:#fff; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(245, 158, 11, 0.35); flex-shrink:0;" title="Quản Trị Viên (Admin)">
-          ${this.get('crown', Math.round(size * 0.52), '', '#ffffff')}
-        </div>
-      `;
-    }
-
-    if (role === "editor") {
-      return `
-        <div class="user-avatar-badge editor ${customClass}" style="width:${size}px; height:${size}px; border-radius:50%; background:linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); color:#fff; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(139, 92, 246, 0.35); flex-shrink:0;" title="Ban Biên Tập (Editor)">
-          ${this.get('shieldCheck', Math.round(size * 0.52), '', '#ffffff')}
-        </div>
-      `;
-    }
-
-    // Map các emoji cũ sang ID avatar tương ứng
-    const emojiMap = {
-      '👨‍🎓': 'avatar-student',
-      '👩‍🎓': 'avatar-scholar',
-      '🧑‍💻': 'avatar-coder',
-      '👩‍💻': 'avatar-coder',
-      '🧪': 'avatar-science',
-      '🧬': 'avatar-science',
-      '🌟': 'avatar-star',
-      '📚': 'avatar-scholar',
-      '🎯': 'avatar-target',
-      '🦁': 'avatar-flame',
-      '🦉': 'avatar-zen',
-      '🚀': 'avatar-zap'
-    };
-
-    const resolvedId = emojiMap[avatarKey] || avatarKey;
-    const av = this.MEMBER_AVATARS.find(a => a.id === resolvedId) || this.MEMBER_AVATARS[0];
+    const av = this.getAvatarById(avatarKey);
 
     return `
       <div class="user-avatar-badge ${customClass}" style="width:${size}px; height:${size}px; border-radius:50%; background:${av.bg}; color:#fff; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 2px 8px ${av.shadow}; flex-shrink:0;" title="${av.name}">
@@ -168,3 +168,4 @@ const Icons = {
 };
 
 window.Icons = Icons;
+

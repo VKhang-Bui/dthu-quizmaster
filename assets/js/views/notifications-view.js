@@ -37,7 +37,7 @@ Object.assign(App, {
     } else if (activeFilter === "points") {
       filteredNotifs = allNotifs.filter(n => n.pointsDelta !== null);
     } else if (activeFilter === "admin") {
-      filteredNotifs = allNotifs.filter(n => n.type === "admin_adjust");
+      filteredNotifs = allNotifs.filter(n => n.type === "admin_adjust" || n.type === "admin_modification");
     }
 
     container.innerHTML = `
@@ -71,7 +71,7 @@ Object.assign(App, {
             ${Icons.get('bell', 14)} <span>Thông Báo Cá Nhân</span> <span class="badge-tab-count">${allNotifs.length}</span>
           </button>
           <button class="hub-tab-btn ${activeTab === 'changelog' ? 'active' : ''}" onclick="App.notifTab = 'changelog'; App.renderNotificationsView(document.getElementById('mainContent'));" style="display:inline-flex; align-items:center; gap:6px;">
-            ${Icons.get('sparkles', 14)} <span>Bản Tin Cập Nhật Hệ Thống</span> <span class="badge-tab-count">v3.1.4</span>
+            ${Icons.get('sparkles', 14)} <span>Bản Tin Cập Nhật Hệ Thống</span> <span class="badge-tab-count">v4.2.0</span>
           </button>
         </div>
 
@@ -113,7 +113,7 @@ Object.assign(App, {
                 } else if (n.type === "cp_reward") {
                   iconHtml = Icons.get('star', 18, '', '#15803d');
                   badgeClass = "badge-success";
-                } else if (n.type === "admin_adjust") {
+                } else if (n.type === "admin_adjust" || n.type === "admin_modification") {
                   iconHtml = Icons.get('shieldCheck', 18, '', '#7c3aed');
                   badgeClass = "badge-purple";
                 } else if (n.type === "draft_approved") {
@@ -157,6 +157,56 @@ Object.assign(App, {
         ` : `
           <!-- Tab Bản Tin Cập Nhật Hệ Thống (Release Notes & Changelog) -->
           <div style="display: flex; flex-direction: column; gap: 18px;">
+            <!-- Phiên bản 4.2.0 (Mới Nhất) -->
+            <div class="changelog-card" style="border-left: 4px solid #7c3aed; background: linear-gradient(135deg, var(--surface) 0%, #faf5ff 100%);">
+              <div class="changelog-card-header">
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                  <span class="changelog-tag" style="background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%); color: #ffffff; font-weight: 800;">Phiên bản v4.2.0 · Mới nhất</span>
+                  <strong style="font-size: 16.5px; color: var(--text-primary);">Đại Tu Toàn Diện: 12 Biểu Tượng SVG Gradient, OTP Gmail Thật, Bảo Mật Hồ Sơ 14 Ngày &amp; Thuần Khiết Hóa Cloudflare D1</strong>
+                </div>
+                <span style="font-size: 12.5px; color: var(--text-tertiary);">20/08/2026</span>
+              </div>
+              <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.75;">
+                <li>
+                  <strong>🎨 Bộ 12 Biểu Tượng Thành Viên SVG Gradient Độc Quyền</strong>:
+                  Thay thế toàn bộ icon emoji đơn điệu bằng 12 avatar đồ họa vector đa tầng màu sắc rực rỡ (<em>Sinh Viên Năng Động, Nhà Khoa Học, Thạc Sĩ, Học Giả, Kỹ Sư, Nữ Sinh Tri Thức, v.v.</em>), hiển thị sắc nét trên mọi độ phân giải.
+                </li>
+                <li>
+                  <strong>📧 Xác Thực OTP 6 Số Qua Gmail Thật (Google Apps Script Live)</strong>:
+                  Tích hợp trực tiếp dịch vụ gửi email tự động qua Google Apps Script Web App. Mã xác thực 6 chữ số có hiệu lực trong 300 giây được gửi tức thì về hòm thư điện tử của sinh viên khi đặt lại mã PIN hoặc cập nhật thông tin.
+                </li>
+                <li>
+                  <strong>🛡️ Quy Tắc Bảo Mật Hồ Sơ &amp; Cooldown 14 Ngày/Lần</strong>:
+                  Trong hồ sơ cá nhân, mọi thay đổi thông tin định danh (trừ Avatar) bắt buộc phải nhập mã OTP xác thực và mỗi tài khoản (trừ Quản trị viên) chỉ được phép thay đổi 1 lần trong 14 ngày.
+                </li>
+                <li>
+                  <strong>⏱️ Cơ Chế Chống Spam OTP 30 Giây</strong>:
+                  Sau khi yêu cầu gửi OTP, hệ thống khóa nút gửi lại trong 30 giây đầu tiên (đếm ngược từ 300s về 270s mới được tạo mã mới), ngăn chặn triệt để hành vi spam email.
+                </li>
+                <li>
+                  <strong>🔒 Khóa &amp; Mặc Định Ẩn Toàn Bộ Tiện Ích Ở Chế Độ Khách</strong>:
+                  Dynamic Island và Trung Tâm Tiện Ích Học Tập Nổi (Study Dock) mặc định ẩn hoàn toàn đối với tài khoản Khách chưa đăng nhập, bảo đảm giao diện gọn gàng và thúc đẩy sinh viên tạo tài khoản học tập.
+                </li>
+                <li>
+                  <strong>📜 Quy Trình Xử Lý Từ Chối &amp; Form Đăng Ký Lại Kèm Thư Nguyện Vọng</strong>:
+                  Khi hồ sơ bị Admin từ chối, form đăng ký lại được làm mới trắng tinh 100% kèm ô viết <em>"Bức thư gửi Ban Quản Trị trình bày nguyện vọng tham gia hệ thống"</em> để Admin thẩm định trực quan.
+                </li>
+                <li>
+                  <strong>🔔 Hệ Thống Thông Báo Thời Gian Thực Cho Ban Quản Trị</strong>:
+                  Tự động gửi thông báo tức thì đến hòm thư của Admin &amp; Editor khi có sinh viên gửi hồ sơ đăng ký mới hoặc nộp lại hồ sơ kèm thư giải trình.
+                </li>
+                <li>
+                  <strong>☁️ Tối Ưu CSDL Cloudflare D1 Thuần Khiết &amp; Dọn Dẹp Thư Mục Gốc</strong>:
+                  Di chuyển toàn bộ dữ liệu tĩnh sang thư mục <code>backup/</code>, tối ưu hóa các câu truy vấn D1 Database, giảm tài nguyên tải trang và nâng cao tốc độ phản hồi.
+                </li>
+              </ul>
+              <div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--border); display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-sm btn-primary" onclick="App.navigateTo('about')" style="font-weight: 700; background: #7c3aed; border-color: #7c3aed; display:inline-flex; align-items:center; gap:5px;">
+                  ${Icons.get('sparkles', 13)} <span>Khám Phá Chi Tiết Bản 4.2.0</span> ➔
+                </button>
+              </div>
+            </div>
+
             <!-- Phiên bản 3.1.4 -->
             <div class="changelog-card" style="border-left: 4px solid #2563eb; background: linear-gradient(135deg, var(--surface) 0%, #eff6ff 100%);">
               <div class="changelog-card-header">

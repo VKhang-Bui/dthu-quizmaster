@@ -51,17 +51,21 @@ Object.assign(App, {
       return `<div style="text-align: center; padding: 48px; color: var(--text-tertiary); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);"><div style="color: var(--text-tertiary); margin-bottom: 10px; display:flex; justify-content:center;">${Icons.get('fileText', 40)}</div><h3>Chưa có môn học chính thức nào.</h3><p style="margin-top: 6px;">Bấm "Thêm môn học" hoặc nhập đề qua Parser.</p></div>`;
     }
     return '<div style="display: flex; flex-direction: column; gap: 14px;">' +
-      subjects.map(sub => '<div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">' +
+      subjects.map(sub => '<div style="background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-md); padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; box-shadow: 0 2px 6px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseenter="this.style.borderColor=\'var(--brand-primary)\'; this.style.boxShadow=\'0 6px 18px rgba(37,99,235,0.08)\';" onmouseleave="this.style.borderColor=\'var(--border)\'; this.style.boxShadow=\'0 2px 6px rgba(0,0,0,0.03)\';">' +
         '<div style="flex: 1; min-width: 250px;">' +
-          '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;"><span class="badge badge-gray">' + (sub.code || sub.id) + '</span><span class="badge badge-blue">' + (sub.department || 'ĐH Đồng Tháp') + '</span></div>' +
-          '<h3 style="font-size: 16.5px; margin-bottom: 2px; color: var(--text-primary);">' + sub.name + '</h3>' +
-          '<div style="font-size: 12.5px; color: var(--text-tertiary);">' + (sub.questions ? sub.questions.length : 0) + ' câu hỏi · ' + (sub.chapters ? sub.chapters.length : 0) + ' chương · Tác giả: <strong>' + (sub.author || 'Chưa cập nhật') + '</strong></div>' +
+          '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;"><span class="badge" style="background:#e0e7ff; color:#4338ca; font-weight:800; font-family:var(--font-mono);">' + (sub.code || sub.id) + '</span><span class="badge badge-blue">' + (sub.department || 'ĐH Đồng Tháp') + '</span></div>' +
+          '<h3 style="font-size: 17px; font-weight: 800; margin-bottom: 4px; color: var(--text-primary);">' + sub.name + '</h3>' +
+          '<div style="font-size: 12.5px; color: var(--text-tertiary); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">' +
+            '<span style="background: #f0fdf4; color: #15803d; padding: 2px 8px; border-radius: 12px; font-weight: 700; border: 1px solid #bbf7d0;">⚡ ' + (sub.questions ? sub.questions.length : 0) + ' câu hỏi</span>' +
+            '<span style="background: #f8fafc; color: #475569; padding: 2px 8px; border-radius: 12px; border: 1px solid #e2e8f0;">📚 ' + (sub.chapters ? sub.chapters.length : 0) + ' chương</span>' +
+            '<span>✍️ Tác giả: <strong>' + (sub.author || 'Chưa cập nhật') + '</strong></span>' +
+          '</div>' +
         '</div>' +
         '<div style="display: flex; gap: 8px; flex-wrap: wrap;">' +
-          '<button class="btn btn-sm btn-primary" onclick="App.openQuizConfigModal(\'' + sub.id + '\')" style="display:inline-flex; align-items:center; gap:4px;">' + Icons.get('target', 13) + ' <span>Ôn Thi</span></button>' +
-          '<button class="btn btn-sm" onclick="App.navigateTo(\'subject-detail\', { subjectId: \'' + sub.id + '\' })" style="display:inline-flex; align-items:center; gap:4px;">' + Icons.get('manage', 13) + ' <span>Quản lý</span></button>' +
-          '<button class="btn btn-sm" onclick="ImportExportService.exportSubject(\'' + sub.id + '\')" style="display:inline-flex; align-items:center; gap:4px;">' + Icons.get('download', 13) + ' <span>JSON</span></button>' +
-          '<button class="btn btn-danger btn-sm" onclick="App.deleteSubjectConfirm(\'' + sub.id + '\')" style="display:inline-flex; align-items:center; gap:4px;">' + Icons.get('trash', 13) + ' <span>Xóa</span></button>' +
+          '<button class="btn btn-sm btn-primary" onclick="App.openQuizConfigModal(\'' + sub.id + '\')" style="display:inline-flex; align-items:center; gap:5px; font-weight:700;">' + Icons.get('target', 13) + ' <span>Ôn Thi</span></button>' +
+          '<button class="btn btn-sm" onclick="App.navigateTo(\'subject-detail\', { subjectId: \'' + sub.id + '\' })" style="display:inline-flex; align-items:center; gap:5px;">' + Icons.get('manage', 13) + ' <span>Chi Tiết</span></button>' +
+          '<button class="btn btn-sm" onclick="ImportExportService.exportSubject(\'' + sub.id + '\')" style="display:inline-flex; align-items:center; gap:5px;">' + Icons.get('download', 13) + ' <span>JSON</span></button>' +
+          '<button class="btn btn-danger btn-sm" onclick="App.deleteSubjectConfirm(\'' + sub.id + '\')" style="display:inline-flex; align-items:center; gap:5px;">' + Icons.get('trash', 13) + ' <span>Xóa</span></button>' +
         '</div>' +
       '</div>').join('') + '</div>';
   },
@@ -113,6 +117,31 @@ Object.assign(App, {
       warningKey: "delete_subject",
       onConfirm: () => {
         StorageService.deleteSubject(subjectId);
+        this.renderManageView(document.getElementById("mainContent"));
+      }
+    });
+  },
+
+  approveDraft(draftId) {
+    const res = StorageService.approveDraft(draftId);
+    if (res) {
+      this.showToast(`🎉 Đã duyệt bộ đề và gộp vào môn "${res.name}" (${res.code || res.id}) thành công!`, "success", 4500);
+      this.renderHeader();
+      this.renderManageView(document.getElementById("mainContent"));
+    }
+  },
+
+  rejectDraftConfirm(draftId) {
+    this.showConfirmDialog({
+      title: "Xác nhận từ chối đề thi",
+      message: "Bạn có chắc chắn muốn từ chối bộ đề này không? Bộ đề sẽ bị xóa vĩnh viễn khỏi hàng đợi duyệt và CSDL Cloud.",
+      icon: "⚠️",
+      confirmText: "Từ chối & Xóa",
+      isDanger: true,
+      onConfirm: () => {
+        StorageService.rejectDraft(draftId);
+        this.showToast("✅ Đã xóa vĩnh viễn đề thi đóng góp!", "success", 3000);
+        this.renderHeader();
         this.renderManageView(document.getElementById("mainContent"));
       }
     });

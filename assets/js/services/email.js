@@ -5,14 +5,14 @@
  */
 const EmailService = {
   STORAGE_KEY_URL: "dthu_quiz_apps_script_url",
-  DEFAULT_APPS_SCRIPT_URL: "",
+  DEFAULT_APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbyB7h6NZRX6N2UbDltifIGM-Q2okseahRqSEQ3RBNiFfzbZIgi2Bw2CEA5CGp3ldAsp/exec",
   ADMIN_EMAIL: "vkhg.bui@gmail.com, giaosukhang621@gmail.com",
   ADMIN_PRIMARY_EMAIL: "vkhg.bui@gmail.com",
   ADMIN_BACKUP_EMAIL: "",
-  ADMIN_PHONE: "0000000000",
-  ADMIN_NAME: "Shina Sanora",
-  ADMIN_CLASS: "Shinora Dev",
-  ADMIN_MSSV: "ADMIN_MSSV",
+  ADMIN_PHONE: "0354616301",
+  ADMIN_NAME: "Bùi Văn Khang (Shina Sanora)",
+  ADMIN_CLASS: "ĐHCNSH24A",
+  ADMIN_MSSV: "0024418475",
   ADMIN_UNIT: "Shinora Academic Studio",
   DEFAULT_EXPIRY_SECONDS: 300, // 300 giây (5 phút)
 
@@ -177,3 +177,7 @@ const EmailService = {
     };
   }
 };
+
+if (typeof window !== "undefined") window.EmailService = EmailService;
+if (typeof global !== "undefined") global.EmailService = EmailService;
+

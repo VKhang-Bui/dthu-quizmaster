@@ -26,6 +26,9 @@ CREATE TABLE IF NOT EXISTS users (
   streak_days INTEGER DEFAULT 1,                  -- Chuỗi ngày học liên tục (🔥)
   quizzes_completed INTEGER DEFAULT 0,            -- Tổng số bài thi đã hoàn thành
   status TEXT DEFAULT 'pending_approval',         -- 'active', 'pending_approval', 'rejected'
+  presence_status TEXT DEFAULT 'offline',         -- 'online', 'afk', 'offline'
+  presence_context TEXT DEFAULT 'Trang chủ',      -- 'Trang chủ', 'Khảo thí', 'Nhập đề', 'Tài liệu', etc.
+  last_seen_at TEXT DEFAULT CURRENT_TIMESTAMP,    -- Thời điểm hoạt động gần nhất
   permissions TEXT DEFAULT '{}' CHECK(json_valid(permissions)), -- Ràng buộc JSON hợp lệ
   approved_by TEXT DEFAULT '',                    -- Người phê duyệt tài khoản
   approved_at TEXT,                               -- Thời điểm phê duyệt

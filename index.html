@@ -40,10 +40,10 @@
   <main id="mainContent" class="app-main"></main>
 
   <!-- Shinora Dynamic Island Container (Đảo Động Thông Minh Biến Hình) -->
-  <div id="dynamicIslandContainer"></div>
+  <div id="dynamicIslandContainer" style="display: none;"></div>
 
   <!-- Shinora Floating Study Dock Container (Thanh Tiện Ích Nổi Học Tập Đa Năng) -->
-  <div id="studyDockContainer"></div>
+  <div id="studyDockContainer" style="display: none;"></div>
 
   <!-- User Side Drawer (Thanh Trượt Bên Phải) -->
   <div class="drawer-overlay" id="userDrawerOverlay" onclick="App.closeUserDrawer()"></div>
@@ -190,7 +190,7 @@
           </div>
         </div>
         <div class="footer-bottom-right">
-          <span class="footer-meta-pill">v3.1.4</span>
+          <span class="footer-meta-pill">v4.2.0 (Pure Cloudflare D1 Edition)</span>
           <button class="footer-back-to-top" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })" title="Cuộn lên đầu trang">
             <span>Về Đầu Trang</span>
             <span class="arrow-up">↑</span>
@@ -203,10 +203,12 @@
   <!-- Core JavaScript Modules (Tuần tự để hỗ trợ chạy file:// offline) -->
   <script src="assets/js/services/icons.js"></script>
   <script src="assets/js/services/api-config.js"></script>
+  <script src="assets/js/services/cloudflare-client.js"></script>
   <script src="assets/js/services/supabase-client.js"></script>
   <script src="assets/js/data/default-banks.js"></script>
   <script src="assets/js/services/data-loader.js"></script>
   <script src="assets/js/services/storage.js"></script>
+  <script src="assets/js/services/sync-manager.js"></script>
   <script src="assets/js/services/email.js"></script>
   <script src="assets/js/services/quiz-engine.js"></script>
   <script src="assets/js/services/import-export.js"></script>

@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "shinora-quizmaster",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-15",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": ".",
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "shinora-quiz-db",
+      "database_id": "4ccdab38-abd7-42b9-8179-b26e35094c65",
+      "remote": true
+    }
+  ]
+}

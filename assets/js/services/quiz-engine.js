@@ -59,9 +59,10 @@ const QuizEngine = {
         const indexedOpts = q.options.map((opt, oi) => ({ ...opt, origIdx: oi }));
         const shuffledOpts = this.shuffleArray(indexedOpts);
         const newAnswerIndex = shuffledOpts.findIndex(opt => opt.origIdx === q.answerIndex);
+        const finalOpts = shuffledOpts.map(({ origIdx, ...rest }) => rest);
         return {
           ...q,
-          options: shuffledOpts,
+          options: finalOpts,
           answerIndex: newAnswerIndex >= 0 ? newAnswerIndex : q.answerIndex
         };
       });
@@ -110,7 +111,7 @@ const QuizEngine = {
 
     session.questions.forEach((q, idx) => {
       const userAns = session.answers[q.id];
-      const isAttempted = userAns !== undefined;
+      const isAttempted = typeof userAns === 'number' && userAns >= 0;
       const isCorrect = isAttempted && userAns === q.answerIndex;
 
       if (!isAttempted) {
@@ -160,7 +161,9 @@ const QuizEngine = {
     };
 
     // Lưu vào lịch sử (Chỉ lưu khi thi thử)
-    StorageService.saveAttempt(result);
+    if (session.mode === "exam") {
+      StorageService.saveAttempt(result);
+    }
 
     return { result, details };
   }

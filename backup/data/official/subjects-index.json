@@ -40,5 +40,27 @@
     "file": "vi-sinh-vat.json",
     "status": "official",
     "updatedAt": "2026-08-17"
+  },
+  {
+    "id": "SUB_1786975462944",
+    "code": "BT4026",
+    "name": "Tin Sinh Hoc",
+    "department": "Khoa Công Nghệ - Kỹ Thuật",
+    "author": "Bùi Văn Khang",
+    "description": "",
+    "icon": "📚",
+    "file": "tin-sinh-hoc.json",
+    "totalQuestions": 106
+  },
+  {
+    "id": "SUB_1787130055148",
+    "code": "GE405",
+    "name": "Tư Tưởng Hồ Chí Minh",
+    "department": "Khoa Công Nghệ - Kỹ Thuật",
+    "author": "Bùi Văn Khang",
+    "description": "",
+    "icon": "📚",
+    "file": "tu-tuong-hcm.json",
+    "totalQuestions": 223
   }
 ]

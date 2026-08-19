@@ -139,14 +139,15 @@ Object.assign(App, {
     `;
   },
 
-  renderExamHistoryView(container) {
-    if (!StorageService.isLoggedIn()) {
+  async renderExamHistoryView(container) {
+    const isLogged = StorageService.isLoggedIn();
+    if (!isLogged) {
       container.innerHTML = `
-        <div style="text-align: center; padding: 70px 20px; max-width: 550px; margin: 0 auto;">
-          <div style="color: var(--text-tertiary); margin-bottom: 14px; display:flex; justify-content:center;">${Icons.get('history', 52)}</div>
-          <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary);">Lịch Sử Thi & Nhật Ký Làm Bài</h3>
+        <div style="text-align: center; padding: 70px 20px; max-width: 600px; margin: 0 auto;">
+          <div style="color: var(--text-tertiary); margin-bottom: 12px; display:flex; justify-content:center;">${Icons.get('history', 52)}</div>
+          <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary);">Lịch Sử Thi Dành Riêng Cho Thành Viên</h3>
           <p style="color: var(--text-secondary); margin-top: 8px; line-height: 1.6;">
-            Vui lòng đăng nhập tài khoản để hệ thống tự động ghi nhận và phân tích tối đa 10 lần thi thử gần nhất (lưu trong 30 ngày) của bạn.
+            Bạn hiện đang ở chế độ <strong>Khách (Guest)</strong>. Vui lòng đăng nhập bằng Mã số sinh viên (MSSV) để xem và lưu trữ lịch sử các lần thi thử, tự động tính điểm trung bình và biểu đồ tiến bộ học tập.
           </p>
           <div style="display: flex; gap: 10px; justify-content: center; margin-top: 22px;">
             <button class="btn btn-primary" onclick="App.openAccountSwitcherModal()" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('key', 14)} <span>Đăng Nhập Ngay</span> ${Icons.get('arrowRight', 12)}</button>
@@ -157,7 +158,23 @@ Object.assign(App, {
       return;
     }
 
-    const examHistory = StorageService.getUserExamHistory();
+    let examHistory = StorageService.getUserExamHistory();
+    // Tự động khôi phục lịch sử thi từ Cloudflare D1 nếu LocalStorage đang trống (khi đổi máy / xóa cache)
+    if (examHistory.length === 0 && typeof CloudflareClient !== "undefined") {
+      try {
+        const cloudHistory = await CloudflareClient.getMyQuizHistory();
+        if (Array.isArray(cloudHistory) && cloudHistory.length > 0) {
+          const profile = StorageService.getUserProfile();
+          const currentUserId = profile ? profile.id : "guest";
+          const all = StorageService.getHistory();
+          const other = all.filter(h => h.userId && h.userId !== currentUserId);
+          const merged = [...cloudHistory, ...other];
+          StorageService.safeSetHistory(merged);
+          examHistory = StorageService.getUserExamHistory();
+        }
+      } catch (e) {}
+    }
+
     const count = examHistory.length;
     const avgScore = count > 0 ? (examHistory.reduce((s, a) => s + (a.score10 || 0), 0) / count).toFixed(1) : "0.0";
     const passCount = examHistory.filter(a => a.isPassed).length;

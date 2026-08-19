@@ -106,11 +106,13 @@ var App = {
           }
         };
 
-        // Chạy khởi tạo ban đầu
+        // Chạy khởi tạo ban đầu 1 lần duy nhất khi mở app
         runBackgroundSync(true);
+      }
 
-        // Vòng lặp Real-time Heartbeat mỗi 3.5 giây
-        setInterval(() => runBackgroundSync(false), 3500);
+      // Khởi tạo Background SyncManager (Đồng bộ ngầm bài thi lên Cloudflare D1 khi có mạng)
+      if (typeof SyncManager !== "undefined" && typeof SyncManager.init === "function") {
+        SyncManager.init();
       }
     } catch (err) {
       console.error("App init fatal error:", err);
@@ -259,11 +261,8 @@ var App = {
       }
     }
 
-    // Hiển thị nút tiện ích nổi đa năng (Floating Study Dock) ở các màn hình
-    const floatingGuideBtn = document.getElementById("floatingGuideBtn");
-    if (floatingGuideBtn) {
-      floatingGuideBtn.style.display = "flex";
-    }
+    // Đồng bộ hiển thị các tiện ích nổi (Dynamic Island & Study Dock) theo trạng thái đăng nhập
+    this.updateFloatingDocksVisibility();
 
     // Hủy timer nếu rời khỏi phòng thi
     if (this.timerInterval && view !== "quiz") {
@@ -447,36 +446,98 @@ var App = {
       }
     });
 
-    // Tự động đồng bộ Supabase khi chuyển tab / mở lại màn hình điện thoại (Real-time auto sync)
-    window.addEventListener("focus", () => {
-      if (typeof StorageService !== "undefined" && typeof StorageService.syncWithCloud === "function") {
-        StorageService.syncWithCloud().then(() => {
-          App.renderHeader();
-          if (App.currentView === "users-management") {
-            App.renderUsersManagementView(document.getElementById("mainContent"));
-          }
-        }).catch(() => {});
+    // Khởi tạo Bộ máy theo dõi trạng thái hoạt động thông minh (Presence & Activity Engine)
+    this.initPresenceTracker();
+  },
+
+  initPresenceTracker() {
+    let lastReportTime = 0;
+    let currentPresenceState = "online";
+    let afkTimer = null;
+
+    const getContextTitle = () => {
+      const viewMap = {
+        home: "Trang chủ",
+        quiz: "Luyện thi / Khảo thí",
+        parser: "Bóc tách & Nhập đề",
+        materials: "Kho tài liệu",
+        leaderboard: "Bảng xếp hạng",
+        "users-management": "Quản trị người dùng",
+        manage: "Quản lý ngân hàng",
+        guide: "Hướng dẫn sử dụng",
+        about: "Giới thiệu",
+        notifications: "Trung tâm thông báo",
+        "result-history": "Lịch sử thi thử",
+        register: "Đăng ký thành viên"
+      };
+      return viewMap[this.currentView] || "Trang chủ";
+    };
+
+    const report = (status, force = false) => {
+      const now = Date.now();
+      if (!force && (now - lastReportTime < 25000) && status === currentPresenceState) {
+        return; // Throttled chống spam F5 và tải trang
       }
+      lastReportTime = now;
+      currentPresenceState = status;
+      const context = getContextTitle();
+      if (typeof CloudflareClient !== "undefined" && typeof CloudflareClient.reportPresence === "function") {
+        CloudflareClient.reportPresence(status, context);
+      }
+    };
+
+    const resetAfkTimer = () => {
+      if (afkTimer) clearTimeout(afkTimer);
+      if (currentPresenceState === "afk") {
+        report("online", true);
+      }
+      // Sau 5 phút (300.000 ms) không tương tác -> AFK (Không gửi request trong 5 phút này)
+      afkTimer = setTimeout(() => {
+        report("afk", true);
+      }, 300000);
+    };
+
+    // 1. Khởi động báo danh lần đầu khi vào app (sau 2.5s)
+    setTimeout(() => {
+      report("online", true);
+      resetAfkTimer();
+    }, 2500);
+
+    // 2. Lắng nghe tương tác người dùng để duy trì online
+    const userEvents = ["mousemove", "keydown", "touchstart", "scroll", "click"];
+    userEvents.forEach(evt => {
+      window.addEventListener(evt, () => resetAfkTimer(), { passive: true });
     });
 
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") {
-        if (typeof StorageService !== "undefined" && typeof StorageService.syncWithCloud === "function") {
-          StorageService.syncWithCloud().then(() => {
-            App.renderHeader();
-            if (App.currentView === "users-management") {
-              App.renderUsersManagementView(document.getElementById("mainContent"));
-            }
-          }).catch(() => {});
-        }
+    // 3. Khi đóng tab / tắt trình duyệt -> gửi offline
+    window.addEventListener("pagehide", () => {
+      if (typeof CloudflareClient !== "undefined" && typeof CloudflareClient.reportPresence === "function") {
+        CloudflareClient.reportPresence("offline", "Ngoại tuyến");
       }
     });
+  },
+
+  updateFloatingDocksVisibility() {
+    const isLogged = Boolean(typeof StorageService !== "undefined" && typeof StorageService.isLoggedIn === "function" && StorageService.isLoggedIn());
+    const diContainer = document.getElementById("dynamicIslandContainer");
+    if (diContainer) {
+      const isDiEnabled = Boolean(typeof DynamicIsland !== "undefined" && DynamicIsland.settings && DynamicIsland.settings.enabled !== false);
+      diContainer.style.display = (isLogged && isDiEnabled) ? "block" : "none";
+    }
+    const floatingGuideBtn = document.getElementById("floatingGuideBtn");
+    if (floatingGuideBtn) {
+      floatingGuideBtn.style.display = isLogged ? "flex" : "none";
+    }
+    if (typeof DynamicIsland !== "undefined" && typeof DynamicIsland.updateDisplay === "function") {
+      DynamicIsland.updateDisplay();
+    }
   },
 
   initDraggableGuideButton() {
     // Khởi tạo Trung Tâm Tiện Ích Học Tập Nổi (Shinora Floating Study Dock v3.2 Pro)
     if (typeof StudyDockView !== "undefined" && typeof StudyDockView.init === "function") {
       StudyDockView.init();
+      this.updateFloatingDocksVisibility();
       return;
     }
 

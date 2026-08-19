@@ -212,6 +212,10 @@ const StudyDockView = {
     }, 1000);
   },
 
+  isUserAllowed() {
+    return Boolean(typeof StorageService !== "undefined" && typeof StorageService.isLoggedIn === "function" && StorageService.isLoggedIn());
+  },
+
   renderContainer() {
     let container = document.getElementById("studyDockContainer");
     if (!container) {
@@ -228,9 +232,11 @@ const StudyDockView = {
       document.body.appendChild(warmOverlay);
     }
 
+    const isAllowed = this.isUserAllowed();
+
     container.innerHTML = `
       <!-- Nút Nổi Viên Thuốc Đa Năng -->
-      <div class="floating-dock-pill" id="floatingGuideBtn" role="button" aria-label="Trung tâm tiện ích học tập" title="💡 Nhấp để mở Tiện ích · Nhấn giữ để kéo thả">
+      <div class="floating-dock-pill" id="floatingGuideBtn" role="button" aria-label="Trung tâm tiện ích học tập" title="💡 Nhấp để mở Tiện ích · Nhấn giữ để kéo thả" style="${isAllowed ? 'display:flex;' : 'display:none;'}">
         <span class="dock-pill-icon" id="dockPillIcon" style="display:flex; align-items:center;">${Icons.get('sparkles', 18)}</span>
         <span class="dock-pill-label" id="dockPillLabel">Tiện ích</span>
         <span class="dock-pill-badge" id="dockPillBadge" style="display: none;"></span>
@@ -947,6 +953,13 @@ const StudyDockView = {
   },
 
   open() {
+    if (!this.isUserAllowed()) {
+      if (typeof App !== "undefined" && typeof App.showToast === "function") {
+        App.showToast("🔒 Trung tâm Tiện ích học tập và Dynamic Island chỉ dành cho thành viên đã đăng nhập!", "info", 3500);
+      }
+      return;
+    }
+
     this.isOpen = true;
     const modal = document.getElementById("dockModal");
     const backdrop = document.getElementById("dockBackdrop");
@@ -1695,6 +1708,10 @@ const StudyDockView = {
     };
 
     const initPos = () => {
+      const isAllowed = StudyDockView.isUserAllowed();
+      btn.style.display = isAllowed ? "flex" : "none";
+      if (!isAllowed) return;
+
       const btnW = btn.offsetWidth || 120;
       const btnH = btn.offsetHeight || 40;
       if (savedPos && typeof savedPos.left === "number" && typeof savedPos.top === "number") {
@@ -1712,6 +1729,7 @@ const StudyDockView = {
     let startX = 0, startY = 0, startLeft = 0, startTop = 0;
 
     const onPointerStart = (clientX, clientY) => {
+      if (!StudyDockView.isUserAllowed()) return;
       StudyDockView.resetIdleTimer();
       const rect = btn.getBoundingClientRect();
       startX = clientX;
@@ -1755,6 +1773,12 @@ const StudyDockView = {
       btn.classList.remove("is-dragging");
 
       if (!isDragging) {
+        if (!StudyDockView.isUserAllowed()) {
+          if (typeof App !== "undefined" && typeof App.showToast === "function") {
+            App.showToast("🔒 Trung tâm Tiện ích học tập và Dynamic Island chỉ dành cho thành viên đã đăng nhập!", "info", 3500);
+          }
+          return;
+        }
         StudyDockView.toggle();
         return;
       }

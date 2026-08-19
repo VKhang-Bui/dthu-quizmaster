@@ -72,12 +72,7 @@ Object.assign(App, {
           <div class="form-group" style="margin: 0;">
             <label class="form-label">Avatar đại diện:</label>
             <select id="newUsrAvatar" class="form-control">
-              <option value="👨‍🎓">👨‍🎓 Nam Sinh Viên</option>
-              <option value="👩‍🎓">👩‍🎓 Nữ Sinh Viên</option>
-              <option value="🧑‍💻">🧑‍💻 Lập Trình Viên</option>
-              <option value="🧪">🧪 Nhà Khoa Học</option>
-              <option value="🧬">🧬 Sinh Học</option>
-              <option value="🌟">🌟 Tinh Hoa</option>
+              ${Icons.MEMBER_AVATARS.map(av => `<option value="${av.id}">${av.name}</option>`).join('')}
             </select>
           </div>
         </div>
@@ -232,103 +227,164 @@ Object.assign(App, {
     const body = document.getElementById("modalBody");
     const footer = document.getElementById("modalFooter");
 
-    title.textContent = `✏️ Xem & Chỉnh Sửa Thông Tin: ${user.fullName}`;
+    const currentAvatar = (Icons.getAvatarById(user.avatar) || Icons.MEMBER_AVATARS[0]).id;
+    const seasonExpVal = typeof user.seasonExp === "number" ? user.seasonExp : (user.totalExp || 0);
+    const totalExpVal = user.totalExp || 0;
+    const seasonCpVal = typeof user.seasonCp === "number" ? user.seasonCp : (user.contributionPoints || 0);
+    const totalCpVal = user.contributionPoints || 0;
+
+    title.textContent = `✏️ Chỉnh Sửa Hồ Sơ: ${user.fullName}`;
 
     body.innerHTML = `
-      <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; flex-direction: column; gap: 14px; max-height: 70vh; overflow-y: auto; padding-right: 4px;">
         <!-- Metadata Header Pill -->
         <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 12.5px; color: var(--text-secondary); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
           <div>🆔 ID Hệ thống: <code>${user.id}</code></div>
-          <div>📅 Đăng ký: <strong>${user.registeredAt || user.createdAt ? new Date(user.registeredAt || user.createdAt).toLocaleDateString('vi-VN') : 'Mặc định'}</strong></div>
+          <div>📅 Ngày tạo: <strong>${user.registeredAt || user.createdAt ? new Date(user.registeredAt || user.createdAt).toLocaleDateString('vi-VN') : 'Mặc định'}</strong></div>
           ${user.approvedBy ? `<div>✓ Duyệt bởi: <strong>${user.approvedBy}</strong></div>` : ''}
         </div>
 
-        <div class="form-group" style="margin: 0;">
-          <label class="form-label">Họ và tên (*):</label>
-          <input type="text" id="editUsrName" class="form-control" value="${user.fullName}">
+        <!-- Khối 1: Thông tin cá nhân & Avatar -->
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight:700;">Họ và tên (*):</label>
+            <input type="text" id="editUsrName" class="form-control" value="${user.fullName || ''}">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight:700;">Avatar (12 Mẫu):</label>
+            <select id="editUsrAvatar" class="form-control" style="font-weight:600;">
+              ${Icons.MEMBER_AVATARS.map(av => `<option value="${av.id}" ${av.id === currentAvatar ? 'selected' : ''}>${av.name}</option>`).join('')}
+            </select>
+          </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div class="form-group" style="margin: 0;">
-            <label class="form-label">Mã số sinh viên (MSSV) (*):</label>
+            <label class="form-label" style="font-weight:700;">Mã số sinh viên (MSSV) (*):</label>
             <input type="text" id="editUsrId" class="form-control" value="${user.studentId || ''}">
           </div>
           <div class="form-group" style="margin: 0;">
-            <label class="form-label">Email sinh viên / Đăng ký (*):</label>
-            <input type="email" id="editUsrEmail" class="form-control" value="${user.email || (user.studentId ? user.studentId + '@dthu.edu.vn' : '')}" placeholder="Ví dụ: 220101001@dthu.edu.vn">
+            <label class="form-label" style="font-weight:700;">Lớp học:</label>
+            <input type="text" id="editUsrClass" class="form-control" value="${user.className || ''}" placeholder="VD: ĐHCNSH24A">
           </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div class="form-group" style="margin: 0;">
-            <label class="form-label">Mã PIN Đăng nhập (6 số):</label>
+            <label class="form-label" style="font-weight:700;">Email liên hệ (*):</label>
+            <input type="email" id="editUsrEmail" class="form-control" value="${user.email || (user.studentId ? user.studentId + '@dthu.edu.vn' : '')}" placeholder="VD: 220101001@dthu.edu.vn">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight:700;">Số điện thoại:</label>
+            <input type="text" id="editUsrPhone" class="form-control" value="${user.phone || ''}" placeholder="VD: 0354xxxxxx">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight:700;">Mã PIN Đăng nhập (6 số):</label>
             <div style="position: relative;">
-              <input type="password" id="editUsrPin" class="form-control" value="${user.pinCode || '123456'}" maxlength="6" style="padding-right: 36px;">
+              <input type="password" id="editUsrPin" class="form-control" value="${user.pinCode || '123456'}" maxlength="6" style="padding-right: 36px; font-weight:700;">
               <button type="button" class="btn btn-sm" style="position: absolute; right: 4px; top: 50%; transform: translateY(-50%); padding: 2px 6px; border: none; background: transparent; cursor: pointer; font-size: 13px;" onclick="const el = document.getElementById('editUsrPin'); el.type = el.type === 'password' ? 'text' : 'password';" title="Hiện/Ẩn PIN">👁️</button>
             </div>
           </div>
           <div class="form-group" style="margin: 0;">
-            <label class="form-label">Khoa / Chuyên ngành:</label>
-            <input type="text" id="editUsrDept" class="form-control" value="${user.department || ''}">
+            <label class="form-label" style="font-weight:700;">Khoa / Chuyên ngành:</label>
+            <input type="text" id="editUsrDept" class="form-control" value="${user.department || 'Khoa Kỹ thuật - Công nghệ'}">
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+        <!-- Khối 2: Vai trò, Trạng thái & Điểm số -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div class="form-group" style="margin: 0;">
-            <label class="form-label">Vai trò (*):</label>
-            <select id="editUsrRole" class="form-control" onchange="App.onEditUserRoleChange(this.value)">
+            <label class="form-label" style="font-weight:700;">Vai trò hệ thống (*):</label>
+            <select id="editUsrRole" class="form-control" onchange="App.onEditUserRoleChange(this.value)" style="font-weight:700;">
               <option value="student" ${user.role === 'student' ? 'selected' : ''}>👨‍🎓 Sinh Viên</option>
               <option value="editor" ${user.role === 'editor' ? 'selected' : ''}>🛡️ Ban Biên Tập (Editor)</option>
               <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>👑 Quản Trị Viên (Admin)</option>
             </select>
           </div>
           <div class="form-group" style="margin: 0;">
-            <label class="form-label" title="Điểm kinh nghiệm học tập mùa này">Điểm EXP (Mùa này):</label>
-            <input type="number" id="editUsrExp" class="form-control" value="${typeof user.seasonExp === 'number' ? user.seasonExp : (user.totalExp || 0)}">
+            <label class="form-label" style="font-weight:700;">Trạng thái tài khoản (*):</label>
+            <select id="editUsrStatus" class="form-control" style="font-weight:700;">
+              <option value="active" ${user.status === 'active' ? 'selected' : ''}>🟢 Đang hoạt động (Active)</option>
+              <option value="suspended" ${user.status === 'suspended' ? 'selected' : ''}>🔴 Tạm khóa (Suspended)</option>
+              <option value="pending_approval" ${user.status === 'pending_approval' ? 'selected' : ''}>🟡 Chờ phê duyệt (Pending)</option>
+            </select>
           </div>
-          <div class="form-group" style="margin: 0;">
-            <label class="form-label" title="Điểm cống hiến dữ liệu mùa này">Điểm CP (Mùa này):</label>
-            <input type="number" id="editUsrCp" class="form-control" value="${typeof user.seasonCp === 'number' ? user.seasonCp : (user.contributionPoints || 0)}">
+        </div>
+
+        <!-- Khối 3: Điểm số Học tập & Cống hiến -->
+        <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px;">
+          <div style="font-size: 12.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">⚡/🌟 Quản Lý Điểm Số:</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px;">
+            <div>
+              <label style="font-size: 11px; color: #b45309; font-weight: 700;">EXP Mùa:</label>
+              <input type="number" id="editUsrExp" class="form-control" value="${seasonExpVal}" style="font-weight:700; color:#b45309;">
+            </div>
+            <div>
+              <label style="font-size: 11px; color: var(--text-secondary); font-weight: 700;">EXP Tổng:</label>
+              <input type="number" id="editUsrTotalExp" class="form-control" value="${totalExpVal}" style="font-weight:700;">
+            </div>
+            <div>
+              <label style="font-size: 11px; color: #15803d; font-weight: 700;">CP Mùa:</label>
+              <input type="number" id="editUsrCp" class="form-control" value="${seasonCpVal}" style="font-weight:700; color:#15803d;">
+            </div>
+            <div>
+              <label style="font-size: 11px; color: var(--text-secondary); font-weight: 700;">CP Tổng:</label>
+              <input type="number" id="editUsrTotalCp" class="form-control" value="${totalCpVal}" style="font-weight:700;">
+            </div>
           </div>
         </div>
 
         <!-- Bộ cấp quyền chi tiết -->
-        <div style="border-top: 1px dashed var(--border); padding-top: 12px; margin-top: 4px;">
+        <div style="border-top: 1px dashed var(--border); padding-top: 10px;">
           <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 8px; display: block;">
             Cấp quyền hạn chi tiết:
           </label>
-          <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
             <label class="perm-checkbox-item">
               <input type="checkbox" id="editPermApproveDrafts" ${perms.canApproveDrafts ? 'checked' : ''}>
               <div>
-                <strong style="font-size: 13px; display: block;">Duyệt đề thi đóng góp (canApproveDrafts)</strong>
-                <span style="font-size: 12px; color: var(--text-secondary);">Cho phép xem xét, chỉnh sửa và phê duyệt các bộ đề cộng đồng.</span>
+                <strong style="font-size: 12.5px; display: block;">Duyệt đề thi đóng góp</strong>
+                <span style="font-size: 11.5px; color: var(--text-secondary);">canApproveDrafts</span>
               </div>
             </label>
 
             <label class="perm-checkbox-item">
               <input type="checkbox" id="editPermEditSubjects" ${perms.canEditSubjects ? 'checked' : ''}>
               <div>
-                <strong style="font-size: 13px; display: block;">Quản lý & Sửa đề gốc (canEditSubjects)</strong>
-                <span style="font-size: 12px; color: var(--text-secondary);">Cho phép thêm môn mới, tạo chương và xóa câu hỏi gốc.</span>
+                <strong style="font-size: 12.5px; display: block;">Quản lý & Sửa đề gốc</strong>
+                <span style="font-size: 11.5px; color: var(--text-secondary);">canEditSubjects</span>
               </div>
             </label>
 
             <label class="perm-checkbox-item">
               <input type="checkbox" id="editPermManageMaterials" ${perms.canManageMaterials ? 'checked' : ''}>
               <div>
-                <strong style="font-size: 13px; display: block;">Quản lý tài liệu (.txt) (canManageMaterials)</strong>
-                <span style="font-size: 12px; color: var(--text-secondary);">Cho phép tải lên và chỉnh sửa kho tài liệu học tập.</span>
+                <strong style="font-size: 12.5px; display: block;">Quản lý tài liệu (.txt)</strong>
+                <span style="font-size: 11.5px; color: var(--text-secondary);">canManageMaterials</span>
               </div>
             </label>
 
             <label class="perm-checkbox-item">
               <input type="checkbox" id="editPermManageUsers" ${perms.canManageUsers ? 'checked' : ''}>
               <div>
-                <strong style="font-size: 13px; display: block;">Quản lý người dùng & Phân quyền (canManageUsers)</strong>
-                <span style="font-size: 12px; color: var(--text-secondary);">Toàn quyền thêm/sửa/khóa thành viên và phân quyền.</span>
+                <strong style="font-size: 12.5px; display: block;">Quản lý người dùng</strong>
+                <span style="font-size: 11.5px; color: var(--text-secondary);">canManageUsers</span>
               </div>
             </label>
+          </div>
+        </div>
+
+        <!-- Khối 4: Lý do chỉnh sửa & Thông báo cá nhân gửi sinh viên -->
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); padding: 12px 14px;">
+          <label class="form-label" style="font-size: 13px; font-weight: 700; color: #1e40af; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+            ${Icons.get('bell', 14)} <span>Lý do chỉnh sửa & Lời nhắn gửi sinh viên (*):</span>
+          </label>
+          <textarea id="editAdminReason" class="form-control" style="min-height: 65px; font-size: 13px;" placeholder="Nhập lý do thay đổi để gửi thông báo minh bạch tới hộp thư của sinh viên này...">Cập nhật thông tin và phân quyền tài khoản bởi Ban Quản Trị</textarea>
+          <div style="font-size: 11.5px; color: #3b82f6; margin-top: 4px;">
+            ℹ️ Hệ thống sẽ tự động gửi 1 Thông báo Cá nhân vào tài khoản của sinh viên để giải thích lý do thay đổi.
           </div>
         </div>
       </div>
@@ -336,7 +392,9 @@ Object.assign(App, {
 
     footer.innerHTML = `
       <button class="btn" onclick="App.closeModal()">Hủy</button>
-      <button class="btn btn-primary" onclick="App.saveEditedUser('${user.id}')">Lưu Thay Đổi</button>
+      <button class="btn btn-primary" onclick="App.saveEditedUser('${user.id}')" style="display:inline-flex; align-items:center; gap:6px;">
+        ${Icons.get('checkCircle', 14)} <span>Lưu Thay Đổi & Gửi Thông Báo</span>
+      </button>
     `;
 
     this.openModal();
@@ -344,13 +402,20 @@ Object.assign(App, {
 
   async saveEditedUser(userId) {
     const name = document.getElementById("editUsrName")?.value.trim();
+    const avatar = document.getElementById("editUsrAvatar")?.value || "avatar-student";
     const id = document.getElementById("editUsrId")?.value.trim();
+    const className = document.getElementById("editUsrClass")?.value.trim() || "";
     const email = document.getElementById("editUsrEmail")?.value.trim();
+    const phone = document.getElementById("editUsrPhone")?.value.trim() || "";
     const pin = document.getElementById("editUsrPin")?.value.trim();
     const dept = document.getElementById("editUsrDept")?.value.trim();
     const role = document.getElementById("editUsrRole")?.value || "student";
-    const exp = parseInt(document.getElementById("editUsrExp")?.value, 10) || 0;
-    const cp = parseInt(document.getElementById("editUsrCp")?.value, 10) || 0;
+    const status = document.getElementById("editUsrStatus")?.value || "active";
+    const seasonExp = parseInt(document.getElementById("editUsrExp")?.value, 10) || 0;
+    const totalExp = parseInt(document.getElementById("editUsrTotalExp")?.value, 10) || seasonExp;
+    const seasonCp = parseInt(document.getElementById("editUsrCp")?.value, 10) || 0;
+    const totalCp = parseInt(document.getElementById("editUsrTotalCp")?.value, 10) || seasonCp;
+    const adminReason = document.getElementById("editAdminReason")?.value.trim() || "Cập nhật thông tin và quyền hạn tài khoản bởi Ban Quản Trị";
 
     if (!name) {
       this.showToast("⚠️ Họ và tên không được để trống!", "warning");
@@ -378,32 +443,53 @@ Object.assign(App, {
       canEditSubjects: document.getElementById("editPermEditSubjects")?.checked || false,
       canManageMaterials: document.getElementById("editPermManageMaterials")?.checked || false,
       canManageUsers: document.getElementById("editPermManageUsers")?.checked || false,
-      seasonExp: exp,
-      contributionPoints: cp,
-      seasonCp: cp
+      seasonExp: seasonExp,
+      contributionPoints: totalCp,
+      seasonCp: seasonCp
     };
+
+    const adminProfile = StorageService.getUserProfile();
+    const adminName = adminProfile ? (adminProfile.fullName || "Quản trị viên") : "Quản trị viên";
 
     try {
       await StorageService.updateUser(userId, {
         fullName: name,
+        avatar: avatar,
         studentId: id,
+        className: className,
         email: email ? email.toLowerCase() : "",
+        phone: phone,
         pinCode: pin,
         department: dept,
         role: role,
-        totalExp: exp,
-        seasonExp: exp,
-        contributionPoints: cp,
-        seasonCp: cp,
+        status: status,
+        totalExp: totalExp,
+        seasonExp: seasonExp,
+        contributionPoints: totalCp,
+        seasonCp: seasonCp,
         permissions: perms
       });
 
-      const adminProfile = StorageService.getUserProfile();
-      StorageService.addAuditLog("EDIT_USER", name, `Cập nhật thông tin & phân quyền thành viên [${id || userId}] (Vai trò: ${role})`, adminProfile.fullName || "Quản trị viên");
+      // 1. Tự động gửi Thông báo Cá nhân vào Hộp thư của sinh viên
+      StorageService.addNotification(userId, {
+        type: "admin_modification",
+        title: "🔔 Hồ Sơ Của Bạn Vừa Được Cập Nhật",
+        message: `Quản trị viên ${adminName} đã cập nhật thông tin và phân quyền tài khoản của bạn.\nLý do: "${adminReason}"`,
+        pointsDelta: seasonExp,
+        pointType: "EXP"
+      });
+
+      // 2. Ghi nhật ký kiểm toán hệ thống
+      StorageService.addAuditLog(
+        "EDIT_USER",
+        name,
+        `Cập nhật hồ sơ thành viên [${id || userId}] (Vai trò: ${role} | Trạng thái: ${status}). Lý do: ${adminReason}`,
+        adminName
+      );
 
       this.closeModal();
       this.renderHeader();
-      this.showToast("✅ Đã cập nhật quyền hạn và thông tin người dùng thành công lên Cloud!", "success", 3000);
+      this.showToast("✅ Đã lưu thay đổi và gửi thông báo cá nhân thành công!", "success", 3500);
       this.renderUsersManagementView(document.getElementById("mainContent"));
     } catch (err) {
       this.showToast("❌ Lỗi khi cập nhật người dùng: " + err.message, "danger", 4000);
@@ -542,63 +628,49 @@ Object.assign(App, {
       return;
     }
 
-    this.showToast("⏳ Đang xác thực với CSDL Đám Mây Supabase...", "info", 1500);
+    this.showToast("⏳ Đang xác thực với CSDL Đám Mây Cloudflare D1...", "info", 1500);
 
     try {
-      // 1. Kiểm tra trên Supabase Cloud trước để lấy trạng thái duyệt mới nhất
-      if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
-        const cloudUser = await SupabaseClient.getUserByStudentId(mssv);
-        if (cloudUser) {
-          if (cloudUser.status === "pending_approval") {
-            throw new Error("Tài khoản của bạn đang trong trạng thái CHỜ ADMIN DUYỆT!");
-          }
-          if (cloudUser.status === "suspended") {
-            throw new Error("Tài khoản của bạn đã bị tạm khóa bởi Quản trị viên!");
-          }
-          if (cloudUser.pin_code && pin && cloudUser.pin_code !== pin) {
-            throw new Error("Mã PIN bảo mật không chính xác!");
-          }
-          
-          const perms = (cloudUser.permissions && typeof cloudUser.permissions === "object") ? cloudUser.permissions : {};
-          const exp = typeof cloudUser.total_exp === "number" ? cloudUser.total_exp : 0;
-          const seasonExp = typeof perms.seasonExp === "number" ? perms.seasonExp : exp;
-          const cp = typeof perms.contributionPoints === "number" ? perms.contributionPoints : 0;
-          const seasonCp = typeof perms.seasonCp === "number" ? perms.seasonCp : cp;
+      // 1. Kiểm tra trên Cloudflare D1 Database qua Worker API
+      if (typeof CloudflareClient !== "undefined") {
+        try {
+          const cloudUser = await CloudflareClient.login(mssv, pin);
+          if (cloudUser) {
+            if (cloudUser.status === "pending_approval") {
+              throw new Error("Tài khoản của bạn đang trong trạng thái CHỜ ADMIN DUYỆT!");
+            }
+            if (cloudUser.status === "rejected") {
+              this.closeModal();
+              this.showConfirmDialog({
+                title: "Hồ Sơ Đã Bị Từ Chối",
+                message: `Tài khoản MSSV <strong>${mssv}</strong> đã bị Ban Quản Trị từ chối duyệt.<br><br>Lý do: <em>${cloudUser.rejectReason || 'Thông tin không khớp với danh sách sinh viên hoặc chưa hợp lệ.'}</em><br><br>Bạn có muốn đăng ký lại kèm một bức thư trình bày rõ nguyện vọng gửi Admin không?`,
+                icon: "❌",
+                confirmText: "📝 Viết Thư & Đăng Ký Lại",
+                cancelText: "Đóng",
+                onConfirm: () => {
+                  this.renderReRegistrationView(document.getElementById("mainContent"));
+                }
+              });
+              return;
+            }
+            if (cloudUser.status === "suspended") {
+              throw new Error("Tài khoản của bạn hiện đang bị tạm khóa bởi Quản trị viên!");
+            }
 
-          const mapped = {
-            id: cloudUser.id,
-            studentId: cloudUser.student_id || "",
-            className: cloudUser.class_name || "",
-            fullName: cloudUser.full_name || "",
-            email: cloudUser.email || "",
-            phone: cloudUser.phone || "",
-            department: cloudUser.department || "Khoa Kỹ thuật - Công nghệ",
-            role: cloudUser.role || "student",
-            pinCode: cloudUser.pin_code || "123456",
-            avatar: cloudUser.avatar || "👨‍🎓",
-            totalExp: exp,
-            seasonExp: seasonExp,
-            contributionPoints: cp,
-            seasonCp: seasonCp,
-            cumulativeQuestions: perms.cumulativeQuestions || 0,
-            cumulativeChars: perms.cumulativeChars || 0,
-            cumulativeReviewed: perms.cumulativeReviewed || 0,
-            streakDays: typeof cloudUser.streak_days === "number" ? cloudUser.streak_days : 1,
-            quizzesCompleted: typeof cloudUser.quizzes_completed === "number" ? cloudUser.quizzes_completed : 0,
-            status: cloudUser.status || "active",
-            permissions: perms,
-            approvedBy: cloudUser.approved_by || "",
-            approvedAt: cloudUser.approved_at || null,
-            createdAt: cloudUser.created_at || new Date().toISOString()
-          };
-          StorageService.updateUser(mapped.id, mapped);
-          StorageService.saveUserProfile(mapped);
+            StorageService.updateUser(cloudUser.id, cloudUser);
+            StorageService.saveUserProfile(cloudUser);
 
-          this.closeModal();
-          this.renderHeader();
-          this.showToast(`🎉 Đăng nhập thành công! Chào mừng ${mapped.fullName} (${mapped.role.toUpperCase()})`, "success", 3500);
-          this.navigateTo("home");
-          return;
+            this.closeModal();
+            this.renderHeader();
+            this.showToast(`🎉 Đăng nhập thành công! Chào mừng ${cloudUser.fullName} (${(cloudUser.role || 'student').toUpperCase()})`, "success", 3500);
+            this.navigateTo("home");
+            return;
+          }
+        } catch (cfErr) {
+          if (cfErr.message && (cfErr.message.includes("CHỜ") || cfErr.message.includes("từ chối") || cfErr.message.includes("không chính xác"))) {
+            throw cfErr;
+          }
+          console.warn("[Cloudflare D1 login fallback]:", cfErr);
         }
       }
 
@@ -1198,5 +1270,102 @@ ${ticket.content || ticket.note || 'Không có nội dung chi tiết.'}
 
     this.closeModal();
     this.showToast(`🎉 Cảm ơn bạn! Lời nhắn đã được chuyển tiếp thành công đến Ban Quản Trị Shinora Studio!`, "success", 5000);
+  },
+
+  openAvatarPickerModal(targetUserId = null) {
+    let targetUser = null;
+    if (targetUserId) {
+      targetUser = StorageService.getUserById(targetUserId);
+    } else {
+      if (!StorageService.isLoggedIn()) {
+        this.showToast("⚠️ Vui lòng đăng nhập để thay đổi Avatar cá nhân!", "warning");
+        this.openAccountSwitcherModal();
+        return;
+      }
+      targetUser = StorageService.getUserProfile();
+    }
+
+    if (!targetUser) return;
+
+    this.editingAvatarUserId = targetUser.id;
+    const currentAvatarId = (Icons.getAvatarById(targetUser.avatar) || Icons.MEMBER_AVATARS[0]).id;
+    this.selectedAvatarId = currentAvatarId;
+
+    const modalContent = `
+      <div class="modal-content-inner" style="max-width: 580px; padding: 24px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border); padding-bottom:12px;">
+          <h3 style="margin:0; font-size:18px; font-weight:800; display:flex; align-items:center; gap:8px;">
+            ${Icons.get('sparkles', 18)} <span>Chọn Avatar Cho: ${targetUser.fullName}</span>
+          </h3>
+          <button class="modal-close" onclick="App.closeModal()">&times;</button>
+        </div>
+
+        <p style="font-size:13.5px; color:var(--text-secondary); margin-bottom:18px; line-height:1.5;">
+          Chọn 1 trong 12 huy hiệu độc quyền của Shinora QuizMaster để làm avatar đại diện trên Bảng xếp hạng và hệ thống:
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(115px, 1fr)); gap: 12px; max-height: 380px; overflow-y: auto; padding: 4px;">
+          ${Icons.MEMBER_AVATARS.map(av => {
+            const isSelected = (av.id === currentAvatarId);
+            return `
+              <div id="avatar_card_${av.id}" onclick="App.selectAvatarCard('${av.id}')" class="avatar-pick-card" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:14px 8px; border:2px solid ${isSelected ? 'var(--brand-primary)' : 'var(--border)'}; background:${isSelected ? '#eff6ff' : 'var(--surface)'}; border-radius:var(--radius-md); cursor:pointer; transition:all 0.2s ease;">
+                <div style="margin-bottom:8px;">
+                  ${Icons.renderAvatar(av.id, 46, targetUser.role)}
+                </div>
+                <span style="font-size:12.5px; font-weight:700; color:var(--text-primary); text-align:center;">${av.name}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:22px; border-top:1px solid var(--border); padding-top:16px;">
+          <button class="btn" onclick="App.closeModal()">Hủy</button>
+          <button class="btn btn-primary" onclick="App.saveUserAvatar()" style="display:inline-flex; align-items:center; gap:6px;">
+            ${Icons.get('checkCircle', 14)} <span>Lưu Avatar</span>
+          </button>
+        </div>
+      </div>
+    `;
+
+    this.showModal(modalContent);
+  },
+
+  selectAvatarCard(avatarId) {
+    this.selectedAvatarId = avatarId;
+    document.querySelectorAll('.avatar-pick-card').forEach(el => {
+      el.style.borderColor = 'var(--border)';
+      el.style.background = 'var(--surface)';
+    });
+    const target = document.getElementById(`avatar_card_${avatarId}`);
+    if (target) {
+      target.style.borderColor = 'var(--brand-primary)';
+      target.style.background = '#eff6ff';
+    }
+  },
+
+  async saveUserAvatar() {
+    if (!this.selectedAvatarId) return;
+    const userId = this.editingAvatarUserId;
+    if (!userId) return;
+
+    const currentProfile = StorageService.getUserProfile();
+    const isEditingSelf = currentProfile && currentProfile.id === userId;
+
+    await StorageService.updateUser(userId, { avatar: this.selectedAvatarId });
+
+    if (isEditingSelf) {
+      currentProfile.avatar = this.selectedAvatarId;
+      StorageService.saveUserProfile(currentProfile);
+      this.renderHeader();
+    }
+
+    this.closeModal();
+    this.showToast("✅ Đã cập nhật Avatar đại diện thành công!", "success", 3000);
+
+    const main = document.getElementById("mainContent");
+    if (this.currentView === "users-management" && main) {
+      this.renderUsersManagementView(main);
+    }
   }
 });
+

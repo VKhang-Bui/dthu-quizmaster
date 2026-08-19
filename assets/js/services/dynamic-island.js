@@ -191,6 +191,10 @@ const DynamicIsland = {
     } catch (e) {}
   },
 
+  isUserAllowed() {
+    return Boolean(typeof StorageService !== "undefined" && typeof StorageService.isLoggedIn === "function" && StorageService.isLoggedIn());
+  },
+
   // ── 1. KHỞI TẠO DOM CONTAINER ──────────────────────────────
   renderContainer() {
     let container = document.getElementById("dynamicIslandContainer");
@@ -199,6 +203,9 @@ const DynamicIsland = {
       container.id = "dynamicIslandContainer";
       document.body.appendChild(container);
     }
+
+    const isAllowed = this.isUserAllowed();
+    container.style.display = (isAllowed && this.settings.enabled) ? "block" : "none";
 
     container.innerHTML = `
       <!-- Khung phát YouTube ẩn 1x1px ngầm -->
@@ -301,7 +308,13 @@ const DynamicIsland = {
 
   // ── 3. STATE MACHINE & MORPHING CONTROLLER ────────────────
   setMorphState(nextState) {
-    if (!this.settings.enabled) return;
+    if (!this.settings.enabled || !this.isUserAllowed()) {
+      const container = document.getElementById("dynamicIslandContainer");
+      if (container) container.style.display = "none";
+      const pill = document.getElementById("dynamicIslandPill");
+      if (pill) pill.style.display = "none";
+      return;
+    }
     this.currentState = nextState;
 
     const pill = document.getElementById("dynamicIslandPill");
@@ -346,6 +359,7 @@ const DynamicIsland = {
   },
 
   expandToFull(tab = "music") {
+    if (!this.isUserAllowed()) return;
     this.activeTab = tab;
     this.playerSubView = "main";
     this.clearStealthTimer();
@@ -360,6 +374,7 @@ const DynamicIsland = {
 
   // ── CHẾ ĐỘ STEALTH NOTCH (VẠCH ẨN TỐI THƯỢNG) ────────────
   wakeFromStealth() {
+    if (!this.isUserAllowed()) return;
     if (this.currentState === "stealth") {
       this.setMorphState("compact");
     }
@@ -392,9 +407,15 @@ const DynamicIsland = {
   },
 
   updateDisplay() {
+    const isAllowed = this.isUserAllowed();
+    const container = document.getElementById("dynamicIslandContainer");
+    if (container) {
+      container.style.display = (isAllowed && this.settings.enabled) ? "block" : "none";
+    }
+
     const pill = document.getElementById("dynamicIslandPill");
     if (pill) {
-      if (!this.settings.enabled) {
+      if (!this.settings.enabled || !isAllowed) {
         pill.style.display = "none";
         return;
       } else {
@@ -1800,7 +1821,7 @@ const DynamicIsland = {
 
     // Hover trên Desktop
     pill.addEventListener("mouseenter", () => {
-      if (!this.settings.enabled) return;
+      if (!this.settings.enabled || !this.isUserAllowed()) return;
       this.isHovered = true;
 
       // Đánh thức từ stealth hoặc mở rộng từ compact
@@ -1812,7 +1833,7 @@ const DynamicIsland = {
     });
 
     pill.addEventListener("mouseleave", () => {
-      if (!this.settings.enabled) return;
+      if (!this.settings.enabled || !this.isUserAllowed()) return;
       this.isHovered = false;
 
       if (this.currentState === "expanded") {
@@ -1836,6 +1857,7 @@ const DynamicIsland = {
 
     // Phím tắt nhanh: Phím `~` (tilde / backquote) hoặc `Ctrl + Space` để mở/thu đảo
     document.addEventListener("keydown", (e) => {
+      if (!this.settings.enabled || !this.isUserAllowed()) return;
       if (e.key === "Escape" && this.currentState === "full") {
         this.collapseToCompact();
       } else if ((e.key === "`" || e.key === "~" || (e.ctrlKey && e.code === "Space")) && !["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) {

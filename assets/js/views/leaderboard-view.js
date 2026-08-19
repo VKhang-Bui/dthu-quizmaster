@@ -68,12 +68,31 @@ Object.assign(App, {
 
     container.innerHTML = `
       <div class="view-leaderboard" style="max-width: 1080px; margin: 0 auto; padding: 24px 16px;">
-        <!-- Nút Chuyển Sang Trang Quản Trị (Chỉ hiển thị cho Admin) -->
+        <!-- Thanh Điều Khiển Quản Trị Mùa Giải & BXH (Dành riêng cho Admin) -->
         ${isAdmin ? `
-          <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
-            <button class="btn btn-sm" style="background:#fefce8; color:#854d0e; border:1px solid #facc15; font-weight:700; display:inline-flex; align-items:center; gap:6px;" onclick="App.navigateTo('leaderboard-admin')">
-              ${Icons.get('crown', 14)} <span>Trang Quản Trị BXH & Mùa Giải</span> ${Icons.get('arrowRight', 12)}
-            </button>
+          <div style="background: linear-gradient(135deg, rgba(254, 243, 199, 0.65) 0%, rgba(253, 230, 138, 0.45) 100%); border: 1.5px solid #f59e0b; border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 20px; box-shadow: 0 4px 16px rgba(245, 158, 11, 0.18); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 40px; height: 40px; border-radius: 10px; background: #fef3c7; color: #b45309; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 0 12px rgba(245, 158, 11, 0.35); flex-shrink: 0;">
+                👑
+              </div>
+              <div>
+                <div style="font-size: 14px; font-weight: 800; color: #92400e; display: flex; align-items: center; gap: 6px;">
+                  <span>Bảng Điều Khiển Quản Trị Mùa Giải</span>
+                  <span class="badge" style="background:#fef3c7; color:#b45309; font-size:10px; font-weight:800; border: 1px solid #fde68a;">Admin Hub</span>
+                </div>
+                <div style="font-size: 12px; color: #78350f; margin-top: 2px;">
+                  Mùa hiện tại: <strong>${settings.seasonName || 'Học Kỳ 1 (2026 - 2027)'}</strong> · Trạng thái: <strong>${settings.isPublic !== false ? '🟢 Công Khai' : '🔴 Tạm Khóa'}</strong>
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+              <button class="btn btn-sm" style="background: #ffffff; color: #b45309; border: 1px solid #fde68a; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);" onclick="App.navigateTo('leaderboard-admin')">
+                ${Icons.get('settings', 13)} <span>Cấu Hình Mùa Giải</span>
+              </button>
+              <button class="btn btn-sm btn-danger" style="font-weight: 700; display: inline-flex; align-items: center; gap: 5px;" onclick="App.confirmResetSeasonPoints()">
+                ${Icons.get('refresh', 13)} <span>Reset Điểm Mùa Này</span>
+              </button>
+            </div>
           </div>
         ` : ''}
 

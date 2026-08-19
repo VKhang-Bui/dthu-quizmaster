@@ -85,6 +85,10 @@ Object.assign(App, {
         </div>
       </div>
     `;
+
+    if (typeof this.updateFloatingDocksVisibility === "function") {
+      this.updateFloatingDocksVisibility();
+    }
   },
 
   openUserDrawer(level = "main") {
@@ -107,6 +111,9 @@ Object.assign(App, {
     this.closeUserDrawer();
     this.closeModal();
     this.renderHeader();
+    if (typeof this.updateFloatingDocksVisibility === "function") {
+      this.updateFloatingDocksVisibility();
+    }
     this.showToast("👋 Đã đăng xuất về chế độ Khách!", "info", 2500);
     this.navigateTo("home", {}, true);
   },
@@ -162,7 +169,12 @@ Object.assign(App, {
             <div class="drawer-slide-content">
               <!-- Thẻ Hồ Sơ Sinh Viên -->
               <div class="user-hub-profile-card">
-                <div style="display: flex; align-items: center;">${Icons.renderAvatar(profile.avatar || 'avatar-student', 44, profile.role)}</div>
+                <div style="display: flex; align-items: center; position: relative; cursor: pointer;" onclick="App.renderDrawerLevel('settings-profile')" title="Nhấp để tùy chỉnh Hồ Sơ & Avatar">
+                  ${Icons.renderAvatar(profile.avatar || 'avatar-student', 44, profile.role)}
+                  <div style="position: absolute; bottom: -2px; right: -2px; background: var(--surface); border: 1px solid var(--border); border-radius: 50%; padding: 2px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+                    ${Icons.get('sparkles', 10, '', 'var(--brand-primary)')}
+                  </div>
+                </div>
                 <div style="flex: 1; min-width: 0;">
                   <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
                     <h3 style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${profile.fullName}</h3>
@@ -188,78 +200,77 @@ Object.assign(App, {
                   Tiện ích & Quản lý
                 </div>
                 <div class="drawer-nav-list">
+                  <!-- 1. Giới thiệu dự án (Đưa lên đầu) -->
+                  <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('about');">
+                    <span class="drawer-icon" style="color:#8b5cf6;">${Icons.get('info', 18)}</span>
+                    <span class="drawer-label">Giới Thiệu Dự Án & Tác Giả</span>
+                    <span class="drawer-arrow">${Icons.get('chevronRight', 13)}</span>
+                  </button>
+
+                  <!-- 2. Trung tâm thông báo -->
                   <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('notifications');">
                     <span class="drawer-icon" style="color:#f59e0b;">${Icons.get('bell', 18)}</span>
                     <span class="drawer-label">Trung Tâm Thông Báo</span>
                     ${unreadNotifs > 0 ? `<span class="badge" style="background:#ef4444; color:#fff; font-weight:800; font-size:11px; padding:2px 7px;">${unreadNotifs} mới</span>` : `<span class="drawer-arrow">${Icons.get('chevronRight', 13)}</span>`}
                   </button>
 
+                  <!-- 3. Bảng xếp hạng DThu -->
                   <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('leaderboard');">
                     <span class="drawer-icon" style="color:#eab308;">${Icons.get('trophy', 18)}</span>
                     <span class="drawer-label">Bảng Xếp Hạng DThu</span>
                     <span class="drawer-arrow">${Icons.get('chevronRight', 13)}</span>
                   </button>
 
+                  <!-- 4. Kho tài liệu -->
                   <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('materials');">
                     <span class="drawer-icon" style="color:#3b82f6;">${Icons.get('bookOpen', 18)}</span>
                     <span class="drawer-label">Kho Tài Liệu (.txt)</span>
                     <span class="drawer-arrow">${Icons.get('chevronRight', 13)}</span>
                   </button>
 
-                  <button class="drawer-nav-btn" style="border-color: rgba(168, 85, 247, 0.4); background: rgba(168, 85, 247, 0.06);" onclick="App.closeUserDrawer(); if(window.DynamicIsland) { DynamicIsland.wakeFromStealth(); DynamicIsland.expandToFull('presets'); }">
-                    <span class="drawer-icon" style="color:#a855f7;">${Icons.get('radio', 18)}</span>
-                    <span class="drawer-label"><strong style="color:var(--text-main);">Bài Giảng & Âm Nhạc YouTube</strong></span>
-                    <span class="badge" style="background:#f3e8ff; color:#7e22ce; font-weight:700;">v3.1.4</span>
-                  </button>
-
+                  <!-- 5. Nhập & Đóng góp đề -->
                   <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('parser');">
                     <span class="drawer-icon" style="color:#10b981;">${Icons.get('upload', 18)}</span>
                     <span class="drawer-label">Nhập & Đóng Góp Đề</span>
                     <span class="drawer-arrow">${Icons.get('chevronRight', 13)}</span>
                   </button>
 
+                  <!-- 6. Lịch sử thi -->
                   <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('history');">
                     <span class="drawer-icon" style="color:#8b5cf6;">${Icons.get('history', 18)}</span>
                     <span class="drawer-label">Lịch Sử Thi & Nhật Ký</span>
                     ${examHistory.length > 0 ? `<span class="badge" style="background:#eff6ff; color:#1d4ed8; font-weight:700;">${examHistory.length}/10</span>` : `<span class="drawer-arrow">${Icons.get('chevronRight', 13)}</span>`}
                   </button>
 
-                  <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('manage');">
+                  <!-- 7. Quản lý bộ đề (Thêm hiệu ứng tím phản quang) -->
+                  <button class="drawer-nav-btn" style="border: 1.5px solid rgba(99, 102, 241, 0.4); background: linear-gradient(135deg, rgba(238, 242, 255, 0.5) 0%, rgba(224, 231, 255, 0.3) 100%);" onclick="App.closeUserDrawer(); App.navigateTo('manage');">
                     <span class="drawer-icon" style="color:#6366f1;">${Icons.get('manage', 18)}</span>
-                    <span class="drawer-label">Quản Lý Bộ Đề</span>
-                    ${(profile.role === 'admin' || StorageService.hasPermission('canApproveDrafts')) && drafts.length > 0 ? `<span class="badge" style="background:#fef3c7; color:#92400e; font-weight:700;">${drafts.length} chờ duyệt</span>` : `<span class="drawer-arrow">${Icons.get('chevronRight', 13)}</span>`}
+                    <span class="drawer-label"><strong>Quản Lý Bộ Đề</strong></span>
+                    ${(profile.role === 'admin' || StorageService.hasPermission('canApproveDrafts')) && drafts.length > 0 ? `<span class="badge" style="background:#fef3c7; color:#92400e; font-weight:800; border: 1px solid #fde68a;">${drafts.length} chờ duyệt</span>` : `<span class="badge" style="background:#e0e7ff; color:#4338ca; font-weight:700;">${StorageService.getSubjects().length} môn</span>`}
                   </button>
 
-                  <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.navigateTo('about');">
-                    <span class="drawer-icon" style="color:#8b5cf6;">${Icons.get('info', 18)}</span>
-                    <span class="drawer-label">Giới Thiệu Dự Án</span>
-                    <span class="drawer-arrow">${Icons.get('chevronRight', 13)}</span>
-                  </button>
+                  <!-- 8. Quản trị người dùng (Admin/Editor) -->
+                  ${(profile.role === 'admin' || StorageService.hasPermission('canManageUsers')) ? `
+                    <button class="drawer-nav-btn" style="border: 1.5px solid rgba(59, 130, 246, 0.4); background: #eff6ff; color: #1d4ed8;" onclick="App.closeUserDrawer(); App.navigateTo('users-management');">
+                      <span class="drawer-icon" style="color:#3b82f6;">${Icons.get('users', 18)}</span>
+                      <span class="drawer-label"><strong>Quản Lý Người Dùng</strong></span>
+                      <span class="badge" style="background:#dbeafe; color:#1e40af; font-weight:700;">${StorageService.getActiveUsers().length}</span>
+                    </button>
+                  ` : ''}
 
+                  <!-- 9. Cài đặt hệ thống -->
                   <button class="drawer-nav-btn" style="background: var(--surface-subtle); border-color: var(--brand-primary);" onclick="App.renderDrawerLevel('settings')">
                     <span class="drawer-icon" style="color:var(--brand-primary);">${Icons.get('settings', 18)}</span>
                     <span class="drawer-label"><strong>Cài Đặt Hệ Thống</strong></span>
                     <span class="drawer-arrow">${Icons.get('chevronRight', 13)}</span>
                   </button>
 
+                  <!-- 10. Liên hệ & Góp ý (Đưa về cuối cùng) -->
                   <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.openContactModal();">
                     <span class="drawer-icon" style="color:#06b6d4;">${Icons.get('contact', 18)}</span>
                     <span class="drawer-label">Liên Hệ & Góp Ý</span>
                     <span class="drawer-arrow">${Icons.get('chevronRight', 13)}</span>
                   </button>
-
-                  ${(profile.role === 'admin' || StorageService.hasPermission('canManageUsers')) ? `
-                    <button class="drawer-nav-btn" style="border-color: #eab308; background: #fefce8; color: #854d0e;" onclick="App.closeUserDrawer(); App.navigateTo('leaderboard-admin');">
-                      <span class="drawer-icon" style="color:#eab308;">${Icons.get('crown', 18)}</span>
-                      <span class="drawer-label"><strong>Quản Trị BXH & Mùa Giải</strong></span>
-                      <span class="drawer-arrow">${Icons.get('chevronRight', 13)}</span>
-                    </button>
-                    <button class="drawer-nav-btn" style="border-color: #3b82f6; background: #eff6ff; color: #1d4ed8;" onclick="App.closeUserDrawer(); App.navigateTo('users-management');">
-                      <span class="drawer-icon" style="color:#3b82f6;">${Icons.get('users', 18)}</span>
-                      <span class="drawer-label"><strong>Quản Lý Người Dùng</strong></span>
-                      <span class="badge" style="background:#dbeafe; color:#1e40af; font-weight:700;">${StorageService.getActiveUsers().length}</span>
-                    </button>
-                  ` : ''}
                 </div>
               </div>
             </div>
@@ -330,6 +341,12 @@ Object.assign(App, {
               <button class="drawer-nav-btn" onclick="App.renderDrawerLevel('settings-data')">
                 <span class="drawer-icon" style="color:#6366f1;">${Icons.get('database', 18)}</span>
                 <span class="drawer-label">Sao Lưu & Dữ Liệu</span>
+                <span class="drawer-arrow">${Icons.get('chevronRight', 13)}</span>
+              </button>
+
+              <button class="drawer-nav-btn" onclick="App.closeUserDrawer(); App.openAppsScriptConfigModal();">
+                <span class="drawer-icon" style="color:#0284c7;">${Icons.get('mail', 18)}</span>
+                <span class="drawer-label">Cấu Hình Email Gateway (Google Apps Script)</span>
                 <span class="drawer-arrow">${Icons.get('chevronRight', 13)}</span>
               </button>
 
@@ -506,19 +523,32 @@ Object.assign(App, {
           <button class="drawer-close" onclick="App.closeUserDrawer()">${Icons.get('close', 16)}</button>
         `;
 
-        const avatars = ["👨‍🎓", "👩‍🎓", "🧑‍💻", "🧪", "🧬", "🌟", "📚", "🏆", "🎓", "🦁", "🦉", "🚀"];
+        const currentAvatarId = (Icons.getAvatarById(profile.avatar) || Icons.MEMBER_AVATARS[0]).id;
+        const lastUpdateStr = profile.profileUpdatedAt;
+        let lastUpdateDate = lastUpdateStr ? new Date(lastUpdateStr) : null;
+        let daysSinceUpdate = lastUpdateDate ? ((Date.now() - lastUpdateDate.getTime()) / (1000 * 60 * 60 * 24)) : 999;
+        const isCooldownActive = (profile.role !== "admin") && (daysSinceUpdate < 14);
+        const daysLeft = isCooldownActive ? Math.ceil(14 - daysSinceUpdate) : 0;
 
         bodyHtml = `
           <div class="drawer-slide-content">
-            <!-- Chọn Avatar Emoji -->
+            ${isCooldownActive ? `
+              <div style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 12px; font-size: 12px; color: #b45309; line-height: 1.5;">
+                ⏳ <strong>Giới hạn cập nhật:</strong> Bạn đã đổi thông tin vào ngày <strong>${lastUpdateDate.toLocaleDateString('vi-VN')}</strong>. Bạn có thể cập nhật lại sau <strong>${daysLeft} ngày</strong> nữa (Quy định 14 ngày/lần). <em>Bạn vẫn có thể thay đổi Avatar bất cứ lúc nào!</em>
+              </div>
+            ` : ''}
+
+            <!-- Chọn 12 Avatar SVG Gradient Hiện Đại (Tự do thay đổi) -->
             <div>
-              <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 6px; display: block;">
-                Chọn Avatar đại diện:
+              <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+                <span>Chọn Biểu Tượng Thành Viên (*):</span>
+                <span style="font-size:11.5px; font-weight:700; color:#15803d; background:#dcfce7; padding:2px 6px; border-radius:10px;">Đổi tự do</span>
               </label>
-              <div class="avatar-picker-grid">
-                ${avatars.map(a => `
-                  <button class="avatar-choice-btn ${profile.avatar === a ? 'active' : ''}" onclick="App.selectAvatarDrawer('${a}')">
-                    ${a}
+              <div class="avatar-picker-grid" id="drwAvatarPicker" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-height: 210px; overflow-y: auto; padding: 2px;">
+                ${(typeof Icons !== "undefined" ? Icons.MEMBER_AVATARS : []).map((av) => `
+                  <button type="button" class="avatar-choice-btn ${currentAvatarId === av.id ? 'active' : ''}" onclick="App.selectAvatarDrawer('${av.id}')" title="${av.name}" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 4px; border: 1.5px solid ${currentAvatarId === av.id ? 'var(--brand-primary)' : 'var(--border)'}; background: ${currentAvatarId === av.id ? '#eff6ff' : 'var(--surface)'}; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s ease;">
+                    ${Icons.renderAvatar(av.id, 34, profile.role)}
+                    <span style="font-size: 11px; font-weight: 700; margin-top: 4px; color: var(--text-primary); text-align: center;">${av.name}</span>
                   </button>
                 `).join('')}
               </div>
@@ -526,24 +556,42 @@ Object.assign(App, {
 
             <!-- Họ tên -->
             <div class="form-group" style="margin: 0;">
-              <label class="form-label" style="font-size: 13px; font-weight: 700;">Họ và tên:</label>
-              <input type="text" id="drwProfName" class="form-control" value="${profile.fullName}">
+              <label class="form-label" style="font-size: 13px; font-weight: 700;">Họ và tên (*):</label>
+              <input type="text" id="drwProfName" class="form-control" value="${profile.fullName || ''}" ${isCooldownActive ? 'disabled' : ''}>
             </div>
 
-            <!-- MSSV -->
-            <div class="form-group" style="margin: 0;">
-              <label class="form-label" style="font-size: 13px; font-weight: 700;">Mã số sinh viên (MSSV):</label>
-              <input type="text" id="drwProfId" class="form-control" value="${profile.studentId || ''}">
+            <!-- MSSV & Lớp -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="font-size: 13px; font-weight: 700;">Mã số sinh viên:</label>
+                <input type="text" id="drwProfId" class="form-control" value="${profile.studentId || ''}" ${isCooldownActive ? 'disabled' : ''}>
+              </div>
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="font-size: 13px; font-weight: 700;">Lớp học:</label>
+                <input type="text" id="drwProfClass" class="form-control" placeholder="VD: ĐHCNSH24A" value="${profile.className || ''}" ${isCooldownActive ? 'disabled' : ''}>
+              </div>
             </div>
 
             <!-- Khoa / Ngành -->
             <div class="form-group" style="margin: 0;">
               <label class="form-label" style="font-size: 13px; font-weight: 700;">Khoa / Chuyên ngành:</label>
-              <input type="text" id="drwProfDept" class="form-control" value="${profile.department || ''}">
+              <input type="text" id="drwProfDept" class="form-control" value="${profile.department || ''}" ${isCooldownActive ? 'disabled' : ''}>
             </div>
 
-            <button class="btn btn-primary" style="width: 100%; margin-top: 4px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;" onclick="App.saveProfileFromDrawer()">
-              ${Icons.get('check', 16)} <span>Lưu Thông Tin Cá Nhân</span>
+            <!-- Email & Số điện thoại -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="font-size: 13px; font-weight: 700;">Email:</label>
+                <input type="email" id="drwProfEmail" class="form-control" value="${profile.email || ''}" ${isCooldownActive ? 'disabled' : ''}>
+              </div>
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="font-size: 13px; font-weight: 700;">Số điện thoại:</label>
+                <input type="tel" id="drwProfPhone" class="form-control" value="${profile.phone || ''}" ${isCooldownActive ? 'disabled' : ''}>
+              </div>
+            </div>
+
+            <button class="btn btn-primary" style="width: 100%; margin-top: 6px; padding: 11px; font-size: 13.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 6px;" onclick="App.saveProfileFromDrawer()" ${isCooldownActive ? 'disabled' : ''}>
+              ${Icons.get('check', 16)} <span>Lưu & Đồng Bộ Lên Cloud</span>
             </button>
           </div>
         `;
@@ -799,7 +847,7 @@ Object.assign(App, {
           <div class="drawer-slide-content" style="text-align: center; padding: 12px 0;">
             <div style="color: var(--brand-primary); margin-bottom: 8px; display: flex; justify-content: center;">${Icons.get('logo', 48)}</div>
             <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0;">Shinora QuizMaster</h3>
-            <div style="font-size: 13px; color: var(--brand-text); font-weight: 700; margin-top: 2px;">Phiên bản v3.1.4 (Bản chuẩn phát hành)</div>
+            <div style="font-size: 13px; color: var(--brand-text); font-weight: 700; margin-top: 2px;">Phiên bản v4.2.0 (Pure Cloudflare D1 Edition)</div>
 
             <div style="text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; margin-top: 16px; font-size: 13px; line-height: 1.6; color: var(--text-secondary);">
               <div style="display: flex; align-items: center; gap: 6px;">${Icons.get('book', 14)} <strong>Dự án:</strong> Shinora QuizMaster (Học tập & Nghiên cứu)</div>
@@ -890,18 +938,25 @@ Object.assign(App, {
     this.renderDrawerLevel("settings-shortcuts");
   },
 
-  selectAvatarDrawer(avatar) {
+  async selectAvatarDrawer(avatarId) {
     const profile = StorageService.getUserProfile();
-    profile.avatar = avatar;
+    if (!profile) return;
+    profile.avatar = avatarId;
     StorageService.saveUserProfile(profile);
+    if (profile.id) {
+      await StorageService.updateUser(profile.id, { avatar: avatarId });
+    }
     this.renderHeader();
     this.renderDrawerLevel("settings-profile");
   },
 
-  saveProfileFromDrawer() {
+  async saveProfileFromDrawer() {
     const name = document.getElementById("drwProfName")?.value.trim();
     const id = document.getElementById("drwProfId")?.value.trim();
-    const dept = document.getElementById("drwProfDept")?.value.trim();
+    const className = document.getElementById("drwProfClass")?.value.trim() || "";
+    const dept = document.getElementById("drwProfDept")?.value.trim() || "";
+    const email = document.getElementById("drwProfEmail")?.value.trim() || "";
+    const phone = document.getElementById("drwProfPhone")?.value.trim() || "";
 
     if (!name) {
       this.showToast("⚠️ Họ và tên không được để trống!", "warning");
@@ -909,14 +964,232 @@ Object.assign(App, {
     }
 
     const profile = StorageService.getUserProfile();
-    profile.fullName = name;
-    profile.studentId = id;
-    profile.department = dept || profile.department;
+    if (!profile) return;
 
+    // Kiểm tra xem có thay đổi thông tin nào ngoài Avatar không
+    const isInfoChanged = (
+      name !== (profile.fullName || "") ||
+      (id && id !== (profile.studentId || "")) ||
+      className !== (profile.className || "") ||
+      dept !== (profile.department || "") ||
+      email !== (profile.email || "") ||
+      phone !== (profile.phone || "")
+    );
+
+    if (!isInfoChanged) {
+      this.showToast("ℹ️ Thông tin cá nhân không có thay đổi nào.", "info", 2000);
+      return;
+    }
+
+    // Kiểm tra giới hạn 14 ngày (ngoại trừ Admin)
+    const lastUpdateStr = profile.profileUpdatedAt;
+    let lastUpdateDate = lastUpdateStr ? new Date(lastUpdateStr) : null;
+    let daysSinceUpdate = lastUpdateDate ? ((Date.now() - lastUpdateDate.getTime()) / (1000 * 60 * 60 * 24)) : 999;
+    const isCooldownActive = (profile.role !== "admin") && (daysSinceUpdate < 14);
+    const daysLeft = isCooldownActive ? Math.ceil(14 - daysSinceUpdate) : 0;
+
+    if (isCooldownActive) {
+      this.showToast(`⚠️ Bạn chỉ có thể cập nhật lại thông tin sau ${daysLeft} ngày nữa (Quy định 14 ngày/lần)!`, "warning", 4500);
+      return;
+    }
+
+    // Tự động đóng Drawer để Modal xác thực hiển thị trên cùng rõ ràng, không bị che khuất
+    this.closeUserDrawer();
+
+    const updates = {
+      fullName: name,
+      studentId: id || profile.studentId,
+      className: className,
+      department: dept || profile.department,
+      email: email || profile.email,
+      phone: phone || profile.phone,
+      avatar: profile.avatar || "avatar-student"
+    };
+
+    const targetEmail = profile.email || email;
+    if (!targetEmail) {
+      this.showToast("⚠️ Tài khoản chưa có email để nhận mã OTP!", "warning");
+      return;
+    }
+
+    try {
+      this.showToast("⏳ Đang tạo và gửi mã OTP về email của bạn...", "info", 2500);
+      const otpRes = StorageService.generateEmailOtp(profile.studentId, targetEmail);
+      const emailResult = await EmailService.sendOtp(profile.studentId, targetEmail, profile.fullName, otpRes.otp);
+
+      this.openProfileEmailOtpModal(updates, targetEmail, emailResult, otpRes);
+    } catch (err) {
+      this.showToast("❌ " + (err.message || "Không thể gửi mã OTP"), "danger", 4500);
+    }
+  },
+
+  openProfileEmailOtpModal(updates, targetEmail, emailResult, otpRes) {
+    const profile = StorageService.getUserProfile();
+    if (!profile) return;
+
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.textContent = "🔐 Xác Thực OTP Cập Nhật Hồ Sơ";
+
+    // Che mờ email bảo mật (Ví dụ: vk***@gmail.com)
+    const parts = targetEmail.split("@");
+    const maskedUser = parts[0].length > 3 ? (parts[0].substring(0, 2) + "***" + parts[0].slice(-1)) : (parts[0] + "***");
+    const maskedEmail = maskedUser + "@" + (parts[1] || "");
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 12px 14px; font-size: 13px; color: #15803d; line-height: 1.5;">
+          ${emailResult && emailResult.isRealEmail 
+            ? `📨 Đã gửi mã OTP 6 chữ số đến hộp thư: <strong>${maskedEmail}</strong>. Vui lòng kiểm tra Email (và hòm thư Rác/Spam nếu có).` 
+            : `📨 Đã tạo mã OTP cho tài khoản <strong>${profile.fullName}</strong>. (Mã thử nghiệm: <strong style="font-size:15px; color:#b45309;">${otpRes.otp}</strong>)`
+          }
+        </div>
+
+        <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 12.5px;">
+          <div style="font-weight: 700; color: var(--text-secondary); margin-bottom: 4px;">Thông tin dự kiến cập nhật:</div>
+          <div>👤 Họ tên: <strong>${updates.fullName}</strong></div>
+          <div>🆔 MSSV: <strong>${updates.studentId}</strong> · Lớp: <strong>${updates.className || 'N/A'}</strong></div>
+          <div>📧 Email: <strong>${updates.email || 'N/A'}</strong> · SĐT: <strong>${updates.phone || 'N/A'}</strong></div>
+          ${profile.role !== "admin" ? `<div style="color: #b45309; margin-top: 4px; font-weight: 600;">⏳ Sau khi cập nhật, bạn sẽ phải đợi 14 ngày cho lần sửa tiếp theo.</div>` : ''}
+        </div>
+
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-weight: 700;">Nhập Mã OTP 6 Chữ Số (*):</label>
+          <input type="text" id="profileEmailOtpInput" class="form-control" placeholder="Ví dụ: 849201" maxlength="6" inputmode="numeric" style="font-size: 20px; letter-spacing: 4px; font-weight: 800; text-align: center;" autofocus>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12.5px;">
+          <div id="profileOtpTimerText" style="color: #d97706; font-weight: 700;">
+            ⏳ Mã hết hạn sau: <span id="profileOtpCountdown">05:00</span>
+          </div>
+          <button type="button" id="btnResendProfileOtp" class="btn btn-sm" style="font-size: 12px; display: inline-flex; align-items: center; gap: 4px;" disabled onclick="App.resendProfileOtpEmail()">
+            ${Icons.get('refresh', 12)} <span>Gửi lại mã (<span id="resendCooldown">30</span>s)</span>
+          </button>
+        </div>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal(); App.clearProfileOtpTimer();">Hủy</button>
+      <button class="btn btn-primary" id="btnConfirmProfileOtp" onclick="App.confirmProfileOtpVerification()">Xác Nhận & Cập Nhật Hồ Sơ</button>
+    `;
+
+    this.pendingProfileUpdates = updates;
+    this.pendingProfileTargetEmail = targetEmail;
+    this.openModal();
+
+    this.startProfileOtpTimer(300, 30);
+  },
+
+  startProfileOtpTimer(totalSeconds = 300, resendCooldown = 30) {
+    this.clearProfileOtpTimer();
+    let remaining = totalSeconds;
+    let resendLeft = resendCooldown;
+
+    const timerElem = document.getElementById("profileOtpCountdown");
+    const resendBtn = document.getElementById("btnResendProfileOtp");
+    const resendSpan = document.getElementById("resendCooldown");
+    const confirmBtn = document.getElementById("btnConfirmProfileOtp");
+
+    this.profileOtpInterval = setInterval(() => {
+      remaining--;
+      if (resendLeft > 0) {
+        resendLeft--;
+        if (resendSpan) resendSpan.textContent = resendLeft;
+        if (resendLeft === 0 && resendBtn) {
+          resendBtn.disabled = false;
+          resendBtn.innerHTML = `${Icons.get('refresh', 12)} <span>Gửi lại mã</span>`;
+        }
+      }
+
+      if (remaining <= 0) {
+        this.clearProfileOtpTimer();
+        if (timerElem) timerElem.textContent = "00:00 (Hết hạn)";
+        if (confirmBtn) confirmBtn.disabled = true;
+        this.showToast("⚠️ Mã OTP đã hết hạn. Vui lòng bấm 'Gửi lại mã' để nhận mã mới!", "warning", 3500);
+      } else {
+        const mins = Math.floor(remaining / 60).toString().padStart(2, '0');
+        const secs = (remaining % 60).toString().padStart(2, '0');
+        if (timerElem) timerElem.textContent = `${mins}:${secs}`;
+      }
+    }, 1000);
+  },
+
+  clearProfileOtpTimer() {
+    if (this.profileOtpInterval) {
+      clearInterval(this.profileOtpInterval);
+      this.profileOtpInterval = null;
+    }
+  },
+
+  async resendProfileOtpEmail() {
+    const profile = StorageService.getUserProfile();
+    const targetEmail = this.pendingProfileTargetEmail || profile?.email;
+    if (!profile || !targetEmail) return;
+
+    try {
+      this.showToast("⏳ Đang gửi lại mã OTP mới...", "info", 2000);
+      const otpRes = StorageService.generateEmailOtp(profile.studentId, targetEmail);
+      const emailResult = await EmailService.sendOtp(profile.studentId, targetEmail, profile.fullName, otpRes.otp);
+
+      const confirmBtn = document.getElementById("btnConfirmProfileOtp");
+      if (confirmBtn) confirmBtn.disabled = false;
+
+      const otpInput = document.getElementById("profileEmailOtpInput");
+      if (otpInput) {
+        otpInput.value = "";
+        otpInput.focus();
+      }
+
+      this.startProfileOtpTimer(300, 30);
+
+      if (emailResult && emailResult.isRealEmail) {
+        this.showToast(`🎉 Đã gửi mã OTP mới đến ${targetEmail}!`, "success", 3500);
+      } else {
+        this.showToast(`📨 [Mô phỏng Email Shinora] Mã OTP mới: ${otpRes.otp}`, "info", 6000);
+      }
+    } catch (err) {
+      this.showToast("❌ " + (err.message || "Lỗi gửi lại OTP"), "danger", 3500);
+    }
+  },
+
+  async confirmProfileOtpVerification() {
+    const otp = document.getElementById("profileEmailOtpInput")?.value.trim();
+    if (!otp) {
+      this.showToast("⚠️ Vui lòng nhập mã OTP 6 chữ số!", "warning");
+      return;
+    }
+
+    const profile = StorageService.getUserProfile();
+    if (!profile) return;
+
+    // Xác thực mã OTP thông qua StorageService
+    const verifyResult = StorageService.verifyEmailOtp(profile.studentId, otp);
+    if (!verifyResult.success) {
+      this.showToast("❌ " + verifyResult.message, "danger", 4000);
+      return;
+    }
+
+    const updates = this.pendingProfileUpdates;
+    if (!updates) return;
+
+    // Ghi nhận thời gian cập nhật hồ sơ (áp dụng quy định 14 ngày)
+    updates.profileUpdatedAt = new Date().toISOString();
+
+    Object.assign(profile, updates);
     StorageService.saveUserProfile(profile);
+
+    if (profile.id) {
+      await StorageService.updateUser(profile.id, updates);
+    }
+
+    this.clearProfileOtpTimer();
+    this.closeModal();
     this.renderHeader();
-    this.showToast("✅ Đã lưu thông tin cá nhân thành công!", "success", 2500);
-    this.renderDrawerLevel("main");
+    this.showToast("🎉 Đã xác thực OTP thành công và cập nhật hồ sơ lên Cloud!", "success", 4000);
   },
 
   downloadFullBackup() {

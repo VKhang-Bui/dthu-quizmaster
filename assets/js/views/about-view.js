@@ -47,8 +47,8 @@ Object.assign(App, {
             ">Shinora QuizMaster</h1>
 
             <div style="display: inline-flex; align-items: center; gap: 8px; margin: 8px 0 20px; flex-wrap: wrap; justify-content: center;">
-              <span class="badge badge-blue" style="font-size: 12px; font-weight: 700;">v3.1.4</span>
-              <span class="badge badge-green" style="font-size: 12px; font-weight: 700;">Bản phát hành ổn định</span>
+              <span class="badge badge-blue" style="font-size: 12px; font-weight: 700;">v4.2.0</span>
+              <span class="badge badge-green" style="font-size: 12px; font-weight: 700;">Pure Cloudflare D1 Edition</span>
               <span class="badge" style="font-size: 12px; font-weight: 700; background: var(--surface-subtle, var(--surface)); border: 1px solid var(--border);">Học tập độc lập</span>
             </div>
 
@@ -221,13 +221,14 @@ Object.assign(App, {
           ">
             ${this._aboutTechBadge('HTML5', '#e34f26')}
             ${this._aboutTechBadge('CSS3', '#1572b6')}
-            ${this._aboutTechBadge('Vanilla JavaScript', '#f7df1e', '#000')}
-            ${this._aboutTechBadge('Supabase (PostgreSQL)', '#3ecf8e')}
-            ${this._aboutTechBadge('Web Audio API', '#8b5cf6')}
+            ${this._aboutTechBadge('Vanilla JavaScript (ES6+)', '#f7df1e', '#000')}
+            ${this._aboutTechBadge('Cloudflare D1 (Serverless SQL)', '#f38020')}
+            ${this._aboutTechBadge('Cloudflare Workers (Edge API)', '#faad3f', '#000')}
+            ${this._aboutTechBadge('Google Apps Script (Gmail OTP)', '#0f9d58')}
+            ${this._aboutTechBadge('Web Audio API (Spatial FX)', '#8b5cf6')}
             ${this._aboutTechBadge('YouTube IFrame API', '#ff0000')}
+            ${this._aboutTechBadge('WebCrypto API (SHA-256)', '#0284c7')}
             ${this._aboutTechBadge('PWA (Service Worker)', '#5a0fc8')}
-            ${this._aboutTechBadge('GitHub Pages', '#24292e', '#fff')}
-            ${this._aboutTechBadge('EmailJS', '#06b6d4')}
             ${this._aboutTechBadge('Google Fonts (Inter)', '#4285f4')}
           </div>
         </section>

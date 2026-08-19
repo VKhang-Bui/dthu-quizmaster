@@ -47,9 +47,9 @@ const DataLoader = {
       id: "VI_SINH",
       code: "BIO201",
       name: "Vi sinh vật học đại cương",
-      department: "Khoa học Tự nhiên",
+      department: "Khoa Sư phạm Khoa học Tự nhiên",
       author: "Shina Sanora",
-      description: "Bộ câu hỏi ôn thi môn Vi sinh vật học đại cương tham khảo dành cho sinh viên ngành Sinh học.",
+      description: "Bộ câu hỏi ôn thi môn Vi sinh vật học đại cương dành cho sinh viên ngành Sinh học.",
       icon: "🔬",
       status: "official",
       chapters: [
@@ -58,6 +58,40 @@ const DataLoader = {
         { id: "c3", name: "Chương 3: Sinh trưởng và phát triển của vi sinh vật" }
       ],
       questions: (typeof DEFAULT_SUBJECTS !== "undefined" && DEFAULT_SUBJECTS[2]) ? DEFAULT_SUBJECTS[2].questions : []
+    },
+    {
+      id: "SUB_1786975462944",
+      code: "BT4026",
+      name: "Tin Sinh Hoc",
+      department: "Khoa Công Nghệ - Kỹ Thuật",
+      author: "Bùi Văn Khang",
+      description: "Ngân hàng trắc nghiệm Tin sinh học thực tế gồm 106 câu hỏi chuẩn PRO TEST 1 & 2.",
+      icon: "🧬",
+      status: "official",
+      chapters: [
+        { id: "c1", name: "PRO TEST 1", description: "" },
+        { id: "c2", name: "PRO TEST 2", description: "" }
+      ],
+      questions: (typeof DEFAULT_SUBJECTS !== "undefined" && DEFAULT_SUBJECTS[3]) ? DEFAULT_SUBJECTS[3].questions : []
+    },
+    {
+      id: "SUB_1787130055148",
+      code: "GE405",
+      name: "Tư Tưởng Hồ Chí Minh",
+      department: "Khoa Công Nghệ - Kỹ Thuật",
+      author: "Bùi Văn Khang",
+      description: "Bộ câu hỏi trắc nghiệm Tư Tưởng Hồ Chí Minh gồm 223 câu hỏi đầy đủ 6 chương.",
+      icon: "🏛️",
+      status: "official",
+      chapters: [
+        { id: "c1", name: "Chương 1", description: "" },
+        { id: "c2", name: "Chương 2", description: "" },
+        { id: "c3", name: "Chương 3:", description: "" },
+        { id: "c4", name: "Chương 4", description: "" },
+        { id: "c5", name: "Chương 5", description: "" },
+        { id: "c6", name: "Chương 6", description: "" }
+      ],
+      questions: (typeof DEFAULT_SUBJECTS !== "undefined" && DEFAULT_SUBJECTS[4]) ? DEFAULT_SUBJECTS[4].questions : []
     }
   ],
 
@@ -534,60 +568,42 @@ const DataLoader = {
     }
   ],
 
-  // Khởi tạo và nạp dữ liệu ban đầu
+  // Khởi tạo và nạp dữ liệu ban đầu (Chỉ nạp 1 lần duy nhất cho người dùng mới)
   async init() {
-    // 1. Kiểm tra xem LocalStorage đã có dữ liệu chưa
-    const existingSubjects = StorageService.getSubjects();
-    if (!existingSubjects || existingSubjects.length === 0) {
-      StorageService.saveSubjects(this.FALLBACK_OFFICIAL);
-    }
+    const initializedKey = "shinora_data_initialized_v420";
+    const isInitialized = localStorage.getItem(initializedKey);
 
-    const existingDrafts = StorageService.getDraftSubjects();
-    if (!existingDrafts || existingDrafts.length === 0) {
-      StorageService.saveDraftSubjects(this.FALLBACK_DRAFTS);
-    }
-
-    const existingFolders = StorageService.getFolders();
-    if (!existingFolders || existingFolders.length === 0) {
-      StorageService.saveFolders(this.FALLBACK_FOLDERS);
-    }
-
-    const existingMaterials = StorageService.getMaterials();
-    if (!existingMaterials || existingMaterials.length === 0) {
-      StorageService.saveMaterials(this.FALLBACK_MATERIALS);
-    }
-
-    // 2. Thử fetch bất đồng bộ từ thư mục data/ nếu chạy qua HTTP/HTTPS server
-    if (window.location.protocol.startsWith("http")) {
-      try {
-        await this.syncFromHttp();
-      } catch (e) {
-        console.log("Running in offline/local storage mode");
+    // Chỉ nạp dữ liệu mặc định vào LocalStorage một lần duy nhất khi người dùng mới tinh
+    if (!isInitialized) {
+      const existingSubjects = StorageService.getSubjects();
+      if (!existingSubjects || existingSubjects.length === 0) {
+        StorageService.saveSubjects(this.FALLBACK_OFFICIAL);
       }
+
+      const existingDrafts = StorageService.getDraftSubjects();
+      if (!existingDrafts || existingDrafts.length === 0) {
+        StorageService.saveDraftSubjects(this.FALLBACK_DRAFTS);
+      }
+
+      const existingFolders = StorageService.getFolders();
+      if (!existingFolders || existingFolders.length === 0) {
+        StorageService.saveFolders(this.FALLBACK_FOLDERS);
+      }
+
+      const existingMaterials = StorageService.getMaterials();
+      if (!existingMaterials || existingMaterials.length === 0) {
+        StorageService.saveMaterials(this.FALLBACK_MATERIALS);
+      }
+
+      localStorage.setItem(initializedKey, "true");
     }
   },
 
   async syncFromHttp() {
-    try {
-      const res = await fetch("data/official/subjects-index.json");
-      if (res.ok) {
-        const indexList = await res.json();
-        const loadedSubjects = [];
-        for (const item of indexList) {
-          if (item.file) {
-            const subRes = await fetch(`data/official/${item.file}`);
-            if (subRes.ok) {
-              const subData = await subRes.json();
-              loadedSubjects.push(subData);
-            }
-          }
-        }
-        if (loadedSubjects.length > 0) {
-          StorageService.saveSubjects(loadedSubjects);
-        }
-      }
-    } catch (err) {
-      console.warn("HTTP Data fetch bypassed:", err);
-    }
+    // Đã vô hiệu hóa ghi đè tự động để bảo toàn các môn học người dùng đã xóa hoặc chỉnh sửa
   }
 };
+
+if (typeof window !== "undefined") window.DataLoader = DataLoader;
+if (typeof global !== "undefined") global.DataLoader = DataLoader;
+

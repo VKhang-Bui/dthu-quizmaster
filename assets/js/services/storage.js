@@ -93,9 +93,7 @@ const StorageService = {
     this.saveSubjects(subjects);
 
     // Đồng bộ lên Supabase Cloud
-    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
-      SupabaseClient.saveSubject(subject).catch(e => console.warn("Supabase saveSubject:", e));
-    }
+    // Local-first official subjects storage
   },
 
   deleteSubject(id) {
@@ -104,9 +102,7 @@ const StorageService = {
     this.saveSubjects(subjects);
 
     // Đồng bộ lên Supabase Cloud
-    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
-      SupabaseClient.deleteSubject(id).catch(e => console.warn("Supabase deleteSubject:", e));
-    }
+    // Local-first official subjects deletion
   },
 
   // ── 2. Quản lý Bộ Đề Draft do Sinh Viên Đóng Góp ────────────
@@ -143,9 +139,7 @@ const StorageService = {
     this.saveDraftSubjects(drafts);
 
     // Đồng bộ lên Supabase Cloud
-    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
-      SupabaseClient.updateDraftSubject(draft.id, draft).catch(e => console.warn("Supabase updateDraftSubject error:", e));
-    }
+    // Local draft updated
     return draft;
   },
 
@@ -172,9 +166,9 @@ const StorageService = {
     drafts.unshift(newDraft);
     this.saveDraftSubjects(drafts);
 
-    // Đồng bộ lên Supabase Cloud
-    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
-      SupabaseClient.createDraftSubject(newDraft).catch(e => console.warn("Supabase createDraftSubject error:", e));
+    // Đồng bộ lên Cloudflare D1 Database
+    if (typeof CloudflareClient !== "undefined") {
+      CloudflareClient.createDraft(newDraft).catch(e => console.warn("Cloudflare D1 createDraft error:", e));
     }
 
     return newDraft;
@@ -261,8 +255,9 @@ const StorageService = {
     drafts.splice(idx, 1);
     this.saveDraftSubjects(drafts);
 
-    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
-      SupabaseClient.deleteDraftSubject(draftId).catch(e => console.warn("Supabase deleteDraftSubject error:", e));
+    // Đồng bộ xóa draft đã duyệt khỏi Cloudflare D1 Database
+    if (typeof CloudflareClient !== "undefined") {
+      CloudflareClient.deleteDraft(draftId).catch(e => console.warn("Cloudflare D1 deleteDraft error:", e));
     }
 
     const qCount = (draft.questions || []).length;
@@ -291,8 +286,9 @@ const StorageService = {
     drafts = drafts.filter(d => d.id !== draftId);
     this.saveDraftSubjects(drafts);
 
-    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
-      SupabaseClient.deleteDraftSubject(draftId).catch(e => console.warn("Supabase deleteDraftSubject error:", e));
+    // Đồng bộ xóa vĩnh viễn đề thi đóng góp khỏi Cloudflare D1
+    if (typeof CloudflareClient !== "undefined") {
+      CloudflareClient.deleteDraft(draftId).catch(e => console.warn("Cloudflare D1 deleteDraft error:", e));
     }
 
     return true;
@@ -302,33 +298,30 @@ const StorageService = {
   DEFAULT_USERS: [
     {
       id: "USR-01",
-      fullName: "Shina Sanora",
-      studentId: "admin",
-      className: "ADMIN",
+      fullName: "Bùi Văn Khang (Shina Sanora)",
+      studentId: "0024418475",
+      className: "ĐHCNSH24A",
       email: "vkhg.bui@gmail.com",
-      phone: "",
+      phone: "0354616301",
       department: "Khoa Kỹ thuật - Công nghệ",
       role: "admin",
-      avatar: "👨‍🎓",
-      pinCode: "000000",
+      avatar: "avatar-crown",
+      pinCode: "012319",
       permissions: {
         canApproveDrafts: true,
         canEditSubjects: true,
         canManageMaterials: true,
-        canManageUsers: true,
-        seasonExp: 1000,
-        contributionPoints: 150,
-        seasonCp: 150
+        canManageUsers: true
       },
-      seasonExp: 1000,
-      totalExp: 1000,
-      seasonCp: 150,
-      contributionPoints: 150,
-      cumulativeQuestions: 150,
-      cumulativeChars: 12000,
-      cumulativeReviewed: 80,
-      streakDays: 14,
-      quizzesCompleted: 35,
+      seasonExp: 50,
+      totalExp: 50,
+      seasonCp: 0,
+      contributionPoints: 0,
+      cumulativeQuestions: 0,
+      cumulativeChars: 0,
+      cumulativeReviewed: 0,
+      streakDays: 1,
+      quizzesCompleted: 1,
       status: "active",
       createdAt: "2026-01-01T08:00:00.000Z"
     }
@@ -340,8 +333,7 @@ const StorageService = {
       if (data) {
         let list = JSON.parse(data);
         if (Array.isArray(list)) {
-          // Lọc bỏ triệt để các tài khoản đã bị xóa (status === 'rejected')
-          let validList = list.filter(u => u && u.status !== "rejected");
+          let validList = list.filter(u => u && u.id);
 
           // Tự động chuẩn hóa seasonExp và seasonCp nếu chưa có
           validList.forEach(u => {
@@ -349,12 +341,9 @@ const StorageService = {
             if (typeof u.seasonCp !== "number") u.seasonCp = u.contributionPoints || 0;
           });
 
-          // Tự động đồng bộ hồ sơ Admin USR-01 nếu phát hiện thông tin cũ
-          const adminIdx = validList.findIndex(u => u.id === "USR-01" || u.role === "admin");
-          if (adminIdx !== -1 && validList[adminIdx].studentId !== "admin") {
-            validList[adminIdx] = Object.assign({}, validList[adminIdx], this.DEFAULT_USERS[0]);
-            this.saveAllUsers(validList);
-          } else if (adminIdx === -1 && this.DEFAULT_USERS.length > 0) {
+          // Tự động bảo toàn hồ sơ Admin nếu danh sách hoàn toàn chưa có
+          const hasAdmin = validList.some(u => u.id === "USR-01" || u.role === "admin" || u.studentId === "0024418475");
+          if (!hasAdmin && this.DEFAULT_USERS.length > 0) {
             validList.unshift(this.DEFAULT_USERS[0]);
             this.saveAllUsers(validList);
           }
@@ -369,7 +358,7 @@ const StorageService = {
   },
 
   saveAllUsers(users) {
-    const valid = Array.isArray(users) ? users.filter(u => u && u.status !== "rejected") : [];
+    const valid = Array.isArray(users) ? users.filter(u => u && u.id) : [];
     localStorage.setItem(this.KEYS.USERS_LIST, JSON.stringify(valid));
   },
 
@@ -399,114 +388,75 @@ const StorageService = {
   },
 
   async syncWithCloud() {
-    if (typeof SupabaseClient === "undefined" || !API_CONFIG.isCloudEnabled()) return false;
+    if (typeof CloudflareClient === "undefined") return true;
+
+    const profile = this.getUserProfile();
+    const isLogged = this.isLoggedIn();
+    const isAdmin = isLogged && profile && profile.role === "admin";
+    const isEditor = isLogged && profile && (profile.role === "editor" || this.hasPermission("canApproveDrafts"));
+
     try {
-      // 1. Đồng bộ người dùng từ Supabase Cloud (Nguồn dữ liệu chân lý duy nhất - SSOT)
-      const cloudUsers = await SupabaseClient.getAllUsers();
-      if (Array.isArray(cloudUsers) && cloudUsers.length > 0) {
-        const mappedUsers = cloudUsers
-          .filter(u => u && u.status !== "rejected")
-          .map(u => {
-            const perms = (u.permissions && typeof u.permissions === "object") ? u.permissions : {};
-            const exp = typeof u.total_exp === "number" ? u.total_exp : 0;
-            const seasonExp = typeof perms.seasonExp === "number" ? perms.seasonExp : exp;
-            const cp = typeof perms.contributionPoints === "number" ? perms.contributionPoints : 0;
-            const seasonCp = typeof perms.seasonCp === "number" ? perms.seasonCp : cp;
-
-            return {
-              id: u.id,
-              studentId: u.student_id || "",
-              className: u.class_name || "",
-              fullName: u.full_name || "",
-              email: u.email || "",
-              phone: u.phone || "",
-              department: u.department || "Khoa Kỹ thuật - Công nghệ",
-              role: u.role || "student",
-              pinCode: u.pin_code || "123456",
-              avatar: u.avatar || "👨‍🎓",
-              totalExp: exp,
-              seasonExp: seasonExp,
-              contributionPoints: cp,
-              seasonCp: seasonCp,
-              cumulativeQuestions: perms.cumulativeQuestions || 0,
-              cumulativeChars: perms.cumulativeChars || 0,
-              cumulativeReviewed: perms.cumulativeReviewed || 0,
-              streakDays: typeof u.streak_days === "number" ? u.streak_days : 1,
-              quizzesCompleted: typeof u.quizzes_completed === "number" ? u.quizzes_completed : 0,
-              status: u.status || "active",
-              permissions: perms,
-              approvedBy: u.approved_by || "",
-              approvedAt: u.approved_at || null,
-              createdAt: u.created_at || new Date().toISOString()
-            };
+      // 1. Đồng bộ Users (Chỉ Admin mới có quyền kéo toàn bộ danh sách)
+      if (isAdmin) {
+        const remoteUsers = await CloudflareClient.getAllUsers();
+        if (Array.isArray(remoteUsers) && remoteUsers.length > 0) {
+          const localUsers = this.getAllUsers();
+          const merged = [...localUsers];
+          remoteUsers.forEach(ru => {
+            const idx = merged.findIndex(lu => lu.id === ru.id || (lu.studentId && lu.studentId === ru.studentId));
+            if (idx !== -1) {
+              merged[idx] = Object.assign({}, merged[idx], ru);
+            } else {
+              merged.push(ru);
+            }
           });
+          this.saveAllUsers(merged);
+        }
+      }
 
-        this.saveAllUsers(mappedUsers);
-
-        // Đồng bộ lại hồ sơ đang đăng nhập nếu có cập nhật
-        const currentProfile = this.getUserProfile();
-        if (currentProfile && currentProfile.id && currentProfile.role !== "guest") {
-          const fresh = mappedUsers.find(u => u.id === currentProfile.id || (u.studentId && u.studentId === currentProfile.studentId));
-          if (fresh) {
-            this.saveUserProfile(fresh);
-            if (typeof App !== "undefined" && typeof App.renderHeader === "function") {
-              App.renderHeader();
-            }
+      // 2. Đồng bộ Profile cá nhân của người dùng hiện tại
+      if (isLogged && profile && profile.role !== "guest") {
+        const freshMe = await CloudflareClient.getMyProfile();
+        if (freshMe) {
+          this.saveUserProfile(Object.assign({}, profile, freshMe));
+          if (typeof App !== "undefined" && typeof App.renderHeader === "function") {
+            App.renderHeader();
           }
         }
       }
 
-      // 2. Đồng bộ đề thi đóng góp (Drafts)
-      const cloudDrafts = await SupabaseClient.getAllDraftSubjects();
-      if (Array.isArray(cloudDrafts)) {
-        this.saveDraftSubjects(cloudDrafts);
-      }
-
-      // 2b. Đồng bộ môn học chính thức (Official Subjects) từ Cloud
-      const cloudSubjects = await SupabaseClient.getAllSubjects();
-      if (Array.isArray(cloudSubjects) && cloudSubjects.length > 0) {
-        // Cloud có dữ liệu → ghi đè localStorage
-        this.saveSubjects(cloudSubjects);
-      } else {
-        // Cloud rỗng → đẩy dữ liệu local lên cloud (seed lần đầu)
-        const localSubjects = this.getSubjects();
-        if (localSubjects.length > 0) {
-          for (const sub of localSubjects) {
-            try {
-              await SupabaseClient.saveSubject(sub);
-            } catch (e) {
-              console.warn("Seed subject to cloud:", e);
-            }
-          }
+      // 3. Đồng bộ Drafts từ Cloudflare D1 (Chỉ Admin và Editor)
+      if (isAdmin || isEditor) {
+        const remoteDrafts = await CloudflareClient.getDrafts();
+        if (Array.isArray(remoteDrafts)) {
+          const pendingRemote = remoteDrafts.filter(rd => rd.status === "pending");
+          this.saveDraftSubjects(pendingRemote);
         }
       }
 
-      // 3. Đồng bộ phiếu hỗ trợ CSKH
-      const cloudTickets = await SupabaseClient.getAllSupportTickets();
-      if (Array.isArray(cloudTickets) && cloudTickets.length > 0) {
-        const mappedTickets = cloudTickets.map(t => ({
-          id: t.id,
-          ticketId: t.ticket_id,
-          userId: t.user_id,
-          fullName: t.full_name,
-          studentId: t.student_id,
-          contact: t.contact,
-          email: t.email,
-          phone: t.phone,
-          issueType: t.issue_type,
-          title: t.title,
-          content: t.content,
-          status: t.status,
-          createdAt: t.created_at
-        }));
-        this.saveResetRequests(mappedTickets);
+      // 4. Đồng bộ Support Tickets từ Cloudflare D1 (Chỉ Admin)
+      if (isAdmin) {
+        const remoteTickets = await CloudflareClient.getSupportTickets();
+        if (Array.isArray(remoteTickets) && remoteTickets.length > 0) {
+          const localTickets = this.getResetRequests();
+          const mergedTickets = [...localTickets];
+          remoteTickets.forEach(rt => {
+            const idx = mergedTickets.findIndex(lt => lt.id === rt.id || (lt.ticketId && lt.ticketId === rt.ticketId));
+            if (idx !== -1) {
+              mergedTickets[idx] = Object.assign({}, mergedTickets[idx], rt);
+            } else {
+              mergedTickets.unshift(rt);
+            }
+          });
+          this.saveResetRequests(mergedTickets);
+        }
       }
 
       return true;
-    } catch (err) {
-      console.warn("[Cloud Sync Error]:", err);
-      return false;
+    } catch (e) {
+      console.warn("[Cloudflare D1 Sync]:", e);
     }
+    return true;
   },
 
   createUser(userData) {
@@ -548,9 +498,9 @@ const StorageService = {
     list.push(newUser);
     this.saveAllUsers(list);
 
-    // Đồng bộ lên Supabase Cloud
-    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
-      SupabaseClient.createUser(newUser).catch(e => console.warn("Supabase createUser error:", e));
+    // Đồng bộ lên Cloudflare D1
+    if (typeof CloudflareClient !== "undefined") {
+      CloudflareClient.registerUser(newUser).catch(e => console.warn("Cloudflare D1 createUser error:", e));
     }
 
     return newUser;
@@ -561,20 +511,42 @@ const StorageService = {
     if (!userData.studentId) throw new Error("Mã số sinh viên không được để trống!");
     if (!userData.fullName) throw new Error("Họ và tên không được để trống!");
 
-    // Kiểm tra trùng lặp trên Supabase Cloud trực tiếp
-    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
-      try {
-        const cloudExisting = await SupabaseClient.getUserByStudentId(userData.studentId);
-        if (cloudExisting && cloudExisting.status !== "rejected") {
-          throw new Error(`Mã số sinh viên ${userData.studentId} đã tồn tại trong hệ thống!`);
-        }
-      } catch (e) {
-        if (e.message && e.message.includes("tồn tại")) throw e;
-      }
-    }
-
     const existingId = this.getUserByStudentId(userData.studentId);
     if (existingId) {
+      if (existingId.status === "rejected") {
+        // Cho phép đăng ký lại nếu hồ sơ trước đó đã bị từ chối
+        const updated = Object.assign({}, existingId, {
+          fullName: userData.fullName.trim(),
+          email: userData.email ? userData.email.trim().toLowerCase() : existingId.email,
+          department: userData.department ? userData.department.trim() : existingId.department,
+          pinCode: userData.pinCode || existingId.pinCode,
+          avatar: userData.avatar || existingId.avatar,
+          appealLetter: userData.appealLetter ? userData.appealLetter.trim() : "",
+          status: "pending_approval",
+          rejectReason: null,
+          registeredAt: new Date().toISOString(),
+          reRegisteredAt: new Date().toISOString()
+        });
+        const idx = list.findIndex(u => u.id === existingId.id);
+        if (idx !== -1) list[idx] = updated;
+        this.saveAllUsers(list);
+
+        // Tự động gửi thông báo đến các tài khoản Admin & Quản trị viên
+        const allAdmins = list.filter(u => u && (u.role === "admin" || (u.permissions && u.permissions.canManageUsers)));
+        allAdmins.forEach(adm => {
+          this.addNotification(adm.id, {
+            type: "pending_approval",
+            title: "📜 Hồ Sơ Đăng Ký Lại Kèm Thư Nguyện Vọng",
+            message: `Sinh viên ${updated.fullName} (MSSV: ${updated.studentId}) đã gửi lại hồ sơ kèm bức thư giải trình nguyện vọng. Vui lòng vào trang Quản Trị để thẩm định!`,
+            icon: "📜"
+          });
+        });
+
+        if (typeof CloudflareClient !== "undefined") {
+          CloudflareClient.registerUser(updated).catch(e => console.warn("Cloudflare D1 re-registerUser error:", e));
+        }
+        return updated;
+      }
       throw new Error(`Mã số sinh viên ${userData.studentId} đã tồn tại trong hệ thống!`);
     }
 
@@ -589,20 +561,23 @@ const StorageService = {
       role: "student",
       avatar: userData.avatar || "👨‍🎓",
       pinCode: userData.pinCode || "123456",
+      appealLetter: userData.appealLetter ? userData.appealLetter.trim() : "",
       permissions: {
         canApproveDrafts: false,
         canEditSubjects: false,
         canManageMaterials: false,
         canManageUsers: false
       },
-      totalExp: 50, // Thưởng 50 EXP chào mừng tân sinh viên
+      totalExp: 50,
+      seasonExp: 50,
       contributionPoints: 0,
+      seasonCp: 0,
       cumulativeQuestions: 0,
       cumulativeChars: 0,
       cumulativeReviewed: 0,
       streakDays: 1,
       quizzesCompleted: 0,
-      status: "pending_approval", // ⏳ Chờ Admin hoặc người quản lý duyệt
+      status: "pending_approval",
       termsAccepted: true,
       termsAcceptedAt: new Date().toISOString(),
       termsVersion: "2026-08-18",
@@ -613,12 +588,22 @@ const StorageService = {
     list.push(newUser);
     this.saveAllUsers(list);
 
-    // Bắn dữ liệu lên Supabase Cloud và chờ xác nhận
-    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+    // Tự động gửi thông báo đến các tài khoản Admin & Quản trị viên
+    const allAdmins = list.filter(u => u && (u.role === "admin" || (u.permissions && u.permissions.canManageUsers)));
+    allAdmins.forEach(adm => {
+      this.addNotification(adm.id, {
+        type: "pending_approval",
+        title: "🔔 Có Hồ Sơ Thành Viên Mới Chờ Duyệt",
+        message: `Sinh viên ${newUser.fullName} (MSSV: ${newUser.studentId} - ${newUser.department}) vừa đăng ký tài khoản. Vui lòng phê duyệt để cấp quyền truy cập!`,
+        icon: "👤"
+      });
+    });
+
+    if (typeof CloudflareClient !== "undefined") {
       try {
-        await SupabaseClient.createUser(newUser);
+        await CloudflareClient.registerUser(newUser);
       } catch (e) {
-        console.warn("Supabase createUser error:", e);
+        console.warn("Cloudflare D1 registerUser error:", e);
       }
     }
 
@@ -627,7 +612,7 @@ const StorageService = {
 
   getPendingUsers() {
     const list = this.getAllUsers();
-    return list.filter(u => u.status === "pending_approval");
+    return list.filter(u => u.status === "pending_approval" || u.status === "pending");
   },
 
   getActiveUsers() {
@@ -638,15 +623,35 @@ const StorageService = {
   async approveUserRegistration(userId, adminName = "Shina Sanora") {
     const user = this.getUserById(userId);
     if (!user) return null;
-    return await this.updateUser(userId, {
+    const res = await this.updateUser(userId, {
       status: "active",
       approvedAt: new Date().toISOString(),
       approvedBy: adminName
     });
+    this.addNotification(userId, {
+      type: "system",
+      title: "🎉 Hồ Sơ Đã Được Phê Duyệt!",
+      message: `Chúc mừng bạn! Tài khoản của bạn đã được Quản trị viên (${adminName}) phê duyệt thành công. Bạn đã có thể làm bài và sử dụng toàn bộ tính năng của Shinora QuizMaster.`,
+      icon: "🎉"
+    });
+    return res;
   },
 
-  async rejectUserRegistration(userId) {
-    return await this.deleteUser(userId);
+  async rejectUserRegistration(userId, reason = "Hồ sơ thông tin không khớp với danh sách sinh viên hoặc chưa hợp lệ.") {
+    const user = this.getUserById(userId);
+    if (!user) return null;
+    const res = await this.updateUser(userId, {
+      status: "rejected",
+      rejectedAt: new Date().toISOString(),
+      rejectReason: reason
+    });
+    this.addNotification(userId, {
+      type: "admin_adjust",
+      title: "❌ Hồ Sơ Đăng Ký Đã Bị Từ Chối",
+      message: `Ban Quản Trị đã từ chối hồ sơ đăng ký của bạn. Lý do: ${reason}. Bạn có thể viết lại form kèm bức thư giải trình để được xem xét lại.`,
+      icon: "❌"
+    });
+    return res;
   },
 
   // ── 3.1. Quản lý Yêu Cầu Khôi Phục Mã PIN & CSKH ────────────
@@ -684,8 +689,8 @@ const StorageService = {
     this.saveResetRequests(requests);
 
     // Đồng bộ lên Supabase Cloud
-    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
-      SupabaseClient.createSupportTicket(newReq).catch(e => console.warn("Supabase createSupportTicket error:", e));
+    if (typeof CloudflareClient !== "undefined") {
+      CloudflareClient.submitTicket(newReq).catch(e => console.warn("Cloudflare D1 submitTicket error:", e));
     }
 
     return newReq;
@@ -713,16 +718,16 @@ const StorageService = {
       }
     }
 
-    // Đồng bộ trạng thái phiếu trên Supabase Cloud
-    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
-      SupabaseClient.updateSupportTicket(req.ticketId, { status: "resolved", resolved_by: "Admin Shina", resolved_at: new Date().toISOString() }).catch(e => console.warn("Supabase updateSupportTicket error:", e));
+    // Đồng bộ trạng thái giải quyết phiếu & cập nhật PIN lên Cloudflare D1
+    if (typeof CloudflareClient !== "undefined") {
+      CloudflareClient.resolveSupportTicket(req.ticketId || req.id, newPin, req.studentId).catch(e => console.warn("Cloudflare D1 resolveSupportTicket error:", e));
     }
 
     return req;
   },
 
   // ── 3.2. Quản lý Mã OTP Xác Thực Qua Email (Hạn 300 giây) ────────────
-  generateEmailOtp(studentId, email) {
+  generateEmailOtp(studentId, email, force = false) {
     if (!studentId || !email) {
       throw new Error("Vui lòng nhập đầy đủ cả Mã số sinh viên (MSSV) và Email đăng ký!");
     }
@@ -744,6 +749,19 @@ const StorageService = {
       throw new Error("Tài khoản của bạn đang chờ Admin phê duyệt, chưa thể thực hiện khôi phục mã PIN!");
     }
 
+    // Kiểm tra chống SPAM: Trong phạm vi 300s, nếu mới gửi chưa quá 30s (tức còn > 270s) thì không gửi mã mới
+    const active = this.getActiveEmailOtp(cleanId);
+    if (active && !force) {
+      const remainingSeconds = Math.ceil((active.expiresAt - Date.now()) / 1000);
+      const elapsedSeconds = (active.expirySeconds || 300) - remainingSeconds;
+      const cooldownThreshold = 30; // Chống spam 30 giây (mốc 270s)
+      
+      if (elapsedSeconds < cooldownThreshold && remainingSeconds > 270) {
+        const waitMore = cooldownThreshold - elapsedSeconds;
+        throw new Error(`⏳ Mã OTP vừa được gửi. Vui lòng đợi ${waitMore} giây nữa (sau mốc 270s) trước khi yêu cầu mã mới để chống spam!`);
+      }
+    }
+
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     const expirySeconds = 300; // 300 giây = 5 phút
     const expiryTimestamp = Date.now() + expirySeconds * 1000;
@@ -753,6 +771,7 @@ const StorageService = {
       studentId: user.studentId,
       email: userEmail,
       otp: otpCode,
+      createdAt: Date.now(),
       expiresAt: expiryTimestamp,
       expirySeconds: expirySeconds
     };
@@ -802,6 +821,53 @@ const StorageService = {
     return user;
   },
 
+  getActiveEmailOtp(studentId) {
+    try {
+      const raw = localStorage.getItem(this.KEYS.EMAIL_OTPS);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (studentId && data.studentId !== studentId) return null;
+      if (Date.now() > data.expiresAt) return null;
+      return data;
+    } catch (e) {
+      return null;
+    }
+  },
+
+  verifyEmailOtp(studentId, otp) {
+    const cleanId = (studentId || "").trim();
+    const cleanOtp = (otp || "").trim();
+
+    if (!cleanOtp) {
+      return { success: false, message: "Vui lòng nhập mã OTP 6 chữ số!" };
+    }
+
+    let storedOtp = null;
+    try {
+      const raw = localStorage.getItem(this.KEYS.EMAIL_OTPS);
+      if (raw) storedOtp = JSON.parse(raw);
+    } catch (e) {}
+
+    if (!storedOtp) {
+      return { success: false, message: "Không tìm thấy phiên xác thực OTP. Vui lòng bấm 'Gửi lại mã'!" };
+    }
+
+    if (cleanId && storedOtp.studentId && storedOtp.studentId !== cleanId) {
+      return { success: false, message: "Mã OTP không thuộc về tài khoản này!" };
+    }
+
+    if (Date.now() > storedOtp.expiresAt) {
+      return { success: false, message: "⏱️ Mã OTP đã hết hạn hiệu lực (quá 300 giây). Vui lòng gửi lại mã mới!" };
+    }
+
+    if (storedOtp.otp !== cleanOtp) {
+      return { success: false, message: "Mã OTP không chính xác! Vui lòng kiểm tra lại trong hòm thư Email." };
+    }
+
+    localStorage.removeItem(this.KEYS.EMAIL_OTPS);
+    return { success: true, message: "Xác thực OTP thành công." };
+  },
+
   async updateUser(id, updates) {
     const list = this.getAllUsers();
     const idx = list.findIndex(u => u.id === id);
@@ -819,12 +885,12 @@ const StorageService = {
       }
     }
 
-    // Đồng bộ lên Supabase Cloud và chờ xác nhận
-    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+    // Đồng bộ lên Cloudflare D1 Database tức thì
+    if (typeof CloudflareClient !== "undefined") {
       try {
-        await SupabaseClient.updateUser(id, updates);
+        await CloudflareClient.updateUser(Object.assign({ id }, updates));
       } catch (e) {
-        console.warn("Supabase updateUser error:", e);
+        console.warn("Cloudflare D1 updateUser error:", e);
       }
     }
 
@@ -841,15 +907,12 @@ const StorageService = {
     const filtered = list.filter(u => u.id !== id);
     this.saveAllUsers(filtered);
 
-    // Đồng bộ xóa triệt để trên Supabase Cloud
-    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+    // Đồng bộ xóa/vô hiệu hóa tài khoản trên Cloudflare D1
+    if (typeof CloudflareClient !== "undefined") {
       try {
-        await SupabaseClient.updateUser(id, { status: "rejected" });
-      } catch (e) {}
-      try {
-        await SupabaseClient.deleteUser(id);
+        await CloudflareClient.updateUser({ id, status: "rejected" });
       } catch (e) {
-        console.warn("Supabase deleteUser error:", e);
+        console.warn("Cloudflare D1 deleteUser error:", e);
       }
     }
 
@@ -866,16 +929,13 @@ const StorageService = {
     list = list.filter(u => !safeIds.includes(u.id));
     this.saveAllUsers(list);
 
-    // Đồng bộ xóa triệt để trên Supabase Cloud
-    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
+    // Đồng bộ xóa/vô hiệu hóa tài khoản trên Cloudflare D1
+    if (typeof CloudflareClient !== "undefined") {
       for (const id of safeIds) {
         try {
-          await SupabaseClient.updateUser(id, { status: "rejected" });
-        } catch (e) {}
-        try {
-          await SupabaseClient.deleteUser(id);
+          await CloudflareClient.updateUser({ id, status: "rejected" });
         } catch (e) {
-          console.warn("Supabase deleteUser error:", e);
+          console.warn("Cloudflare D1 deleteUsers error:", e);
         }
       }
     }
@@ -975,6 +1035,9 @@ const StorageService = {
     if (user.status === "pending_approval") {
       throw new Error("⏳ Tài khoản của bạn đang chờ Quản trị viên (Admin) phê duyệt trước khi có thể đăng nhập. Vui lòng quay lại sau hoặc liên hệ CSKH!");
     }
+    if (user.status === "rejected") {
+      throw new Error("❌ Tài khoản này đã bị Ban Quản Trị từ chối phê duyệt. Vui lòng gửi lại hồ sơ kèm thư nguyện vọng!");
+    }
     if (user.status === "suspended") {
       throw new Error("Tài khoản này hiện đang bị tạm khóa. Vui lòng liên hệ Admin!");
     }
@@ -1028,9 +1091,9 @@ const StorageService = {
       });
     }
 
-    // Đồng bộ EXP lên Supabase Cloud
-    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
-      SupabaseClient.updateUser(profile.id, { totalExp: profile.totalExp, seasonExp: profile.seasonExp }).catch(() => {});
+    // Đồng bộ EXP lên Cloudflare D1 Database
+    if (typeof CloudflareClient !== "undefined") {
+      CloudflareClient.updateUser({ id: profile.id, totalExp: profile.totalExp, seasonExp: profile.seasonExp }).catch(() => {});
     }
 
     if (typeof App !== "undefined" && typeof App.renderHeader === "function") {
@@ -1065,8 +1128,8 @@ const StorageService = {
       });
     }
 
-    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
-      SupabaseClient.updateUser(profile.id, { contributionPoints: profile.contributionPoints, seasonCp: profile.seasonCp }).catch(() => {});
+    if (typeof CloudflareClient !== "undefined") {
+      CloudflareClient.updateUser({ id: profile.id, contributionPoints: profile.contributionPoints, seasonCp: profile.seasonCp }).catch(() => {});
     }
 
     if (typeof App !== "undefined" && typeof App.renderHeader === "function") {
@@ -1391,7 +1454,27 @@ const StorageService = {
     try {
       const data = localStorage.getItem(this.KEYS.NOTIFICATIONS);
       const allNotifs = data ? JSON.parse(data) : {};
-      return Array.isArray(allNotifs[userId]) ? allNotifs[userId] : [];
+      let list = Array.isArray(allNotifs[userId]) ? allNotifs[userId] : [];
+
+      // Tự động phát hành thông báo bản cập nhật v4.2.0
+      const updateNotifId = "NTF_SYSTEM_UPDATE_V420";
+      if (!list.some(n => n.id === updateNotifId)) {
+        list.unshift({
+          id: updateNotifId,
+          userId: userId,
+          type: "system",
+          title: "🎉 Bản Cập Nhật v4.2.0: 12 Avatar, OTP Gmail Thật & Bảo Mật 14 Ngày",
+          message: "Chào mừng bạn đến với Shinora QuizMaster v4.2.0! Bản cập nhật mang đến: Bộ 12 Avatar SVG Gradient độc quyền, Xác thực OTP 6 số qua Gmail thật, Quy tắc bảo mật hồ sơ 14 ngày/lần, Tinh gọn menu Trung tâm người dùng và Tối ưu hóa 100% CSDL Cloudflare D1.",
+          pointsDelta: null,
+          pointType: null,
+          read: false,
+          createdAt: new Date().toISOString()
+        });
+        allNotifs[userId] = list;
+        localStorage.setItem(this.KEYS.NOTIFICATIONS, JSON.stringify(allNotifs));
+      }
+
+      return list;
     } catch (e) {
       return [];
     }
@@ -1612,6 +1695,36 @@ const StorageService = {
     return allHistory.find(h => h.id === attemptId) || null;
   },
 
+  safeSetHistory(allHistory) {
+    try {
+      localStorage.setItem(this.KEYS.HISTORY, JSON.stringify(allHistory));
+    } catch (e) {
+      console.warn("[StorageService] LocalStorage QuotaExceeded, trimming old history...", e);
+      try {
+        // Tự động dọn bớt nếu bộ nhớ trình duyệt bị đầy
+        const trimmed = (allHistory || []).slice(0, 5);
+        localStorage.setItem(this.KEYS.HISTORY, JSON.stringify(trimmed));
+      } catch (e2) {
+        console.error("[StorageService] Critical LocalStorage error:", e2);
+      }
+    }
+  },
+
+  getUnsyncedAttempts() {
+    const all = this.getHistory();
+    return all.filter(h => h.isSynced === false && h.mode === "exam");
+  },
+
+  markAttemptSynced(attemptId) {
+    if (!attemptId) return;
+    const all = this.getHistory();
+    const target = all.find(h => h.id === attemptId);
+    if (target) {
+      target.isSynced = true;
+      this.safeSetHistory(all);
+    }
+  },
+
   saveAttempt(attempt) {
     if (!attempt || attempt.mode !== "exam") {
       // TUYỆT ĐỐI KHÔNG LƯU LỊCH SỬ KHI ÔN TẬP (chỉ lưu khi thi thử)
@@ -1620,44 +1733,51 @@ const StorageService = {
 
     const profile = this.getUserProfile();
     const currentUserId = profile ? (profile.id || profile.mssv || 'guest') : 'guest';
-    attempt.userId = currentUserId;
-    if (!attempt.completedAt) {
-      attempt.completedAt = new Date().toISOString();
-    }
+    
+    // Tạo bản ghi rút gọn (Lightweight Record) tiết kiệm 90% bộ nhớ LocalStorage
+    const cleanAttempt = {
+      id: attempt.id || ("ATTEMPT-" + Date.now()),
+      userId: currentUserId,
+      studentId: (profile && profile.studentId) || attempt.studentId || "",
+      userName: (profile && profile.fullName) || attempt.userName || "",
+      subjectId: attempt.subjectId || "",
+      subjectName: attempt.subjectName || "Môn học",
+      mode: "exam",
+      score10: (typeof attempt.score10 === "number") ? attempt.score10 : (Number(attempt.score) || 0),
+      percentage: typeof attempt.percentage === "number" ? attempt.percentage : 0,
+      correctCount: attempt.correctCount || 0,
+      wrongCount: attempt.wrongCount || 0,
+      unattemptedCount: attempt.unattemptedCount || 0,
+      totalQuestions: attempt.totalQuestions || 0,
+      timeTakenSeconds: attempt.timeTakenSeconds || attempt.durationSeconds || attempt.timeSpent || 0,
+      gradeTitle: attempt.gradeTitle || "",
+      isPassed: attempt.isPassed !== undefined ? attempt.isPassed : ((attempt.score10 || 0) >= 5.0),
+      completedAt: attempt.completedAt || new Date().toISOString(),
+      isSynced: false // Gắn cờ chờ đồng bộ ngầm
+    };
 
     let allHistory = this.getHistory();
-    // Tách lịch sử của user hiện tại và các user khác
     let userAttempts = allHistory.filter(h => (h.userId === currentUserId || (!h.userId && currentUserId === 'guest')) && h.mode === 'exam');
     let otherAttempts = allHistory.filter(h => h.userId && h.userId !== currentUserId);
 
     // Đưa lần thi mới nhất lên đầu và chỉ giữ đúng tối đa 10 lần gần nhất
-    userAttempts.unshift(attempt);
+    userAttempts.unshift(cleanAttempt);
     const maxItems = this.MAX_HISTORY_ITEMS || 10;
     if (userAttempts.length > maxItems) {
       userAttempts = userAttempts.slice(0, maxItems);
     }
 
     allHistory = [...userAttempts, ...otherAttempts];
-    // Dọn dẹp hết hạn trước khi lưu
     allHistory = this.cleanExpiredHistory(allHistory);
-    localStorage.setItem(this.KEYS.HISTORY, JSON.stringify(allHistory));
+    this.safeSetHistory(allHistory);
 
-    // Cập nhật số bài thi hoàn thành của tài khoản
-    if (profile && profile.role !== "guest") {
-      profile.quizzesCompleted = (profile.quizzesCompleted || 0) + 1;
-      this.saveUserProfile(profile);
-      if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
-        SupabaseClient.updateUser(profile.id, { quizzesCompleted: profile.quizzesCompleted }).catch(() => {});
-      }
-    }
-
-    // Thưởng EXP cho bài thi thử (Tính chặt chẽ & Công bằng theo số câu và điểm số)
-    const totalQ = attempt.totalQuestions || 0;
-    const score = (typeof attempt.score10 === "number") ? attempt.score10 : 0;
-    const subName = attempt.subjectName || "Môn học";
+    let expGained = 0;
+    const totalQ = cleanAttempt.totalQuestions || 0;
+    const score = cleanAttempt.score10;
+    const subName = cleanAttempt.subjectName;
 
     if (totalQ >= 5) {
-      let expGained = 1;
+      expGained = 1;
       let expLabel = `Rèn luyện thi thử môn ${subName} (${score}/10)`;
 
       if (score >= 9.0) {
@@ -1677,9 +1797,29 @@ const StorageService = {
       this.addExp(expGained, expLabel, "quiz");
     }
 
-    // Đồng bộ lên Supabase Cloud
-    if (typeof SupabaseClient !== "undefined" && API_CONFIG.isCloudEnabled()) {
-      SupabaseClient.saveQuizHistory(attempt).catch(e => console.warn("Supabase saveQuizHistory error:", e));
+    if (profile && profile.role !== "guest") {
+      profile.quizzesCompleted = (profile.quizzesCompleted || 0) + 1;
+      this.saveUserProfile(profile);
+    }
+
+    // Đồng bộ kết quả thi lên Cloudflare D1 Database
+    if (typeof CloudflareClient !== "undefined" && profile && profile.role !== "guest") {
+      CloudflareClient.submitQuiz({
+        userId: cleanAttempt.userId,
+        studentId: cleanAttempt.studentId,
+        fullName: cleanAttempt.userName,
+        subjectId: cleanAttempt.subjectId,
+        subjectName: cleanAttempt.subjectName,
+        score: cleanAttempt.score10,
+        correctCount: cleanAttempt.correctCount,
+        totalQuestions: cleanAttempt.totalQuestions,
+        timeSpentSeconds: cleanAttempt.timeTakenSeconds,
+        earnedExp: expGained
+      }).then(success => {
+        if (success) {
+          this.markAttemptSynced(cleanAttempt.id);
+        }
+      }).catch(e => console.warn("Cloudflare D1 submitQuiz error:", e));
     }
   },
 
@@ -1825,6 +1965,12 @@ const StorageService = {
           active.seasonCp = 0;
           this.saveUserProfile(active);
         }
+
+        // Đồng bộ reset điểm mùa giải lên Cloudflare D1
+        if (typeof CloudflareClient !== "undefined") {
+          CloudflareClient.resetSeasonPoints().catch(e => console.warn("Cloudflare D1 resetSeasonPoints error:", e));
+        }
+
         resetLog = ` (Đã reset điểm Mùa Này về 0 cho ${allUsers.length} thành viên)`;
       }
 
@@ -2629,3 +2775,6 @@ const StorageService = {
     }
   }
 };
+
+window.StorageService = StorageService;
+
