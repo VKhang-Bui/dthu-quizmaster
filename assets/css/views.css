@@ -743,9 +743,74 @@ body.is-resizing-quiz {
 }
 
 .parser-main-layout {
-  display: grid;
-  grid-template-columns: 1.15fr 1fr;
-  gap: 24px;
+  display: flex;
+  align-items: stretch;
+  position: relative;
+  width: 100%;
+  gap: 0;
+}
+
+.parser-left-panel {
+  width: var(--parser-left-width, 52%);
+  min-width: 300px;
+  max-width: calc(100% - 300px);
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+/* Draggable Parser Resizer */
+.parser-resizer {
+  width: 18px;
+  margin: 0 -4px;
+  cursor: col-resize;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  touch-action: none;
+  flex-shrink: 0;
+  z-index: 10;
+  position: relative;
+  transition: background 150ms ease;
+}
+
+.parser-resizer:hover,
+.parser-resizer.is-dragging {
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.parser-resizer::after {
+  content: '';
+  width: 3px;
+  height: 48px;
+  border-radius: 4px;
+  background: var(--border-hover, #cbd5e1);
+  transition: all 150ms ease;
+}
+
+.parser-resizer:hover::after,
+.parser-resizer.is-dragging::after {
+  background: var(--brand-primary);
+  height: 84px;
+  width: 4px;
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.45);
+}
+
+.parser-right-panel {
+  flex: 1;
+  min-width: 300px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+body.is-resizing-parser {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+body.is-resizing-parser * {
+  user-select: none !important;
 }
 
 .btn-upload-doc {
@@ -3679,7 +3744,10 @@ body.is-resizing-quiz {
 @media (max-width: 900px) {
   .view-quiz { flex-direction: column; }
   .quiz-resizer { display: none !important; }
-  .parser-main-layout { grid-template-columns: 1fr; }
+  .parser-main-layout { flex-direction: column; gap: 20px; }
+  .parser-left-panel { width: 100% !important; min-width: 100% !important; max-width: 100% !important; }
+  .parser-resizer { display: none !important; }
+  .parser-right-panel { width: 100% !important; min-width: 100% !important; }
   .detail-sections-grid { grid-template-columns: 1fr; }
   .materials-layout { grid-template-columns: 1fr; }
   .podium-container { grid-template-columns: 1fr; gap: 12px; }

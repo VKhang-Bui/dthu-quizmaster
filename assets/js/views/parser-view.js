@@ -46,9 +46,9 @@ Object.assign(App, {
           </div>
         </div>
 
-        <div class="parser-main-layout">
+        <div class="parser-main-layout" id="parserMainLayout">
           <!-- Left Panel: Raw Input & File Upload Area -->
-          <div class="parser-panel" id="parserDropzone" ondragover="App.handleParserDragOver(event)" ondragleave="App.handleParserDragLeave(event)" ondrop="App.handleParserFileDrop(event)">
+          <div class="parser-panel parser-left-panel" id="parserLeftPanel" ondragover="App.handleParserDragOver(event)" ondragleave="App.handleParserDragLeave(event)" ondrop="App.handleParserFileDrop(event)">
             <div class="parser-panel-header">
               <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                 <h3 style="display:flex; align-items:center; gap:6px;">${Icons.get('upload', 16)} <span>1. Nhập hoặc Tải Tệp Đề</span></h3>
@@ -80,7 +80,7 @@ Object.assign(App, {
             </div>
 
             <!-- Drag & Drop Hint Dropzone Bar -->
-            <div class="parser-drop-hint" onclick="document.getElementById('parserFileInput').click()" style="display:flex; align-items:center; gap:6px;">
+            <div class="parser-drop-hint" id="parserDropzone" onclick="document.getElementById('parserFileInput').click()" style="display:flex; align-items:center; gap:6px;">
               <span>${Icons.get('upload', 14)} Kéo thả tệp tin hoặc bấm vào đây để nạp: <strong>.docx (Word)</strong>, <strong>.pdf (Text)</strong>, <strong>.txt</strong>, <strong>.md</strong></span>
             </div>
 
@@ -113,8 +113,11 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
             </button>
           </div>
 
+          <!-- Draggable Splitter Resizer Handle -->
+          <div class="parser-resizer" id="parserResizer" title="Kéo chuột để điều chỉnh độ rộng 2 khung (Nháy đúp để cân bằng 50/50)"></div>
+
           <!-- Right Panel: Live Parsed Preview & Actions -->
-          <div class="parser-panel">
+          <div class="parser-panel parser-right-panel" id="parserRightPanel">
             <div class="parser-panel-header">
               <h3 style="display:flex; align-items:center; gap:6px;">${Icons.get('target', 16)} <span>2. Xem trước kết quả bóc tách</span></h3>
               <span class="badge badge-green" id="parserCounterBadge">0 câu hỏi hợp lệ</span>
@@ -141,6 +144,9 @@ Câu 2: Theo nghĩa rộng, **CNXHKH** được hiểu là gì?
         </div>
       </div>
     `;
+
+    // Khởi tạo thanh kéo điều chỉnh kích thước 2 cột
+    this.initParserResizer();
 
     // Cập nhật danh sách chương theo môn được chọn
     this.onParserSubjectChange();
@@ -702,5 +708,87 @@ D. Thuyết chọn lọc tự nhiên của Darwin`;
       input.value = "";
       input.focus();
     }
+  },
+
+  /**
+   * Khởi tạo thanh kéo điều chỉnh độ rộng linh hoạt giữa Khung Nhập Đề và Khung Xem Trước
+   */
+  initParserResizer() {
+    const layout = document.getElementById("parserMainLayout");
+    const resizer = document.getElementById("parserResizer");
+    const leftPanel = document.getElementById("parserLeftPanel");
+    const rightPanel = document.getElementById("parserRightPanel");
+    if (!layout || !resizer || !leftPanel || !rightPanel) return;
+
+    // Khôi phục tỷ lệ đã lưu hoặc mặc định 52%
+    let savedRatio = parseFloat(localStorage.getItem("shinora_parser_split_ratio"));
+    if (isNaN(savedRatio) || savedRatio < 20 || savedRatio > 80) {
+      savedRatio = 52;
+    }
+
+    const applyRatio = (ratio) => {
+      if (window.innerWidth > 900) {
+        layout.style.setProperty("--parser-left-width", `${ratio}%`);
+      } else {
+        layout.style.removeProperty("--parser-left-width");
+      }
+    };
+
+    applyRatio(savedRatio);
+
+    let isDragging = false;
+
+    const onStart = (e) => {
+      if (window.innerWidth <= 900) return;
+      isDragging = true;
+      resizer.classList.add("is-dragging");
+      document.body.classList.add("is-resizing-parser");
+      e.preventDefault();
+    };
+
+    const onMove = (e) => {
+      if (!isDragging) return;
+      const rect = layout.getBoundingClientRect();
+      if (rect.width <= 0) return;
+
+      const clientX = (e.type && e.type.includes("touch") && e.touches && e.touches[0]) 
+        ? e.touches[0].clientX 
+        : e.clientX;
+      const offsetLeft = clientX - rect.left;
+
+      // Giới hạn tối thiểu 300px cho cả 2 bên
+      const minPixels = 300;
+      const minPercent = Math.max(22, (minPixels / rect.width) * 100);
+      const maxPercent = Math.min(78, ((rect.width - minPixels) / rect.width) * 100);
+
+      let ratio = (offsetLeft / rect.width) * 100;
+      if (ratio < minPercent) ratio = minPercent;
+      if (ratio > maxPercent) ratio = maxPercent;
+
+      applyRatio(ratio);
+      localStorage.setItem("shinora_parser_split_ratio", ratio.toFixed(1));
+    };
+
+    const onEnd = () => {
+      if (!isDragging) return;
+      isDragging = false;
+      resizer.classList.remove("is-dragging");
+      document.body.classList.remove("is-resizing-parser");
+    };
+
+    const onDoubleClick = () => {
+      applyRatio(50);
+      localStorage.setItem("shinora_parser_split_ratio", "50");
+    };
+
+    resizer.addEventListener("mousedown", onStart);
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onEnd);
+
+    resizer.addEventListener("touchstart", onStart, { passive: false });
+    document.addEventListener("touchmove", onMove, { passive: false });
+    document.addEventListener("touchend", onEnd);
+
+    resizer.addEventListener("dblclick", onDoubleClick);
   }
 });

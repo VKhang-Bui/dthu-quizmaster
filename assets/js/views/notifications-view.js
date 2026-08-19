@@ -187,6 +187,10 @@ Object.assign(App, {
                   <strong>🎯 Kiểm Thử Thực Tế Hoàn Hảo Trên 2 Bộ Dữ Liệu Chuyên Ngành</strong>:
                   Đã kiểm tra trực tiếp trên tệp PDF 500+ câu và DOCX 100+ câu trắc nghiệm Tin sinh học thực tế, đạt độ chính xác 100% đáp án hợp lệ.
                 </li>
+                <li>
+                  <strong>🎛️ Thanh Kéo Tùy Chỉnh Độ Rộng 2 Khung (Split-Pane Resizer)</strong>:
+                  Tích hợp thanh phân cách kéo thả mượt mà giữa Khung Nhập Đề và Khung Xem Trước, hỗ trợ chuột và cảm ứng, có giới hạn kích thước an toàn (tối thiểu 300px), nháy đúp chuột để cân bằng 50/50 và tự động ghi nhớ kích thước tùy chỉnh.
+                </li>
               </ul>
               <div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--border); display: flex; gap: 10px; flex-wrap: wrap;">
                 <button class="btn btn-sm btn-primary" onclick="App.navigateTo('parser')" style="font-weight: 700; background: #2563eb; border-color: #2563eb; display:inline-flex; align-items:center; gap:5px;">
