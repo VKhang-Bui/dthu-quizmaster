@@ -23,10 +23,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
   <!-- CSS Design System -->
-  <link rel="stylesheet" href="assets/css/variables.css">
-  <link rel="stylesheet" href="assets/css/base.css">
-  <link rel="stylesheet" href="assets/css/components.css">
-  <link rel="stylesheet" href="assets/css/views.css">
+  <link rel="stylesheet" href="assets/css/variables.css?v=4.2.3">
+  <link rel="stylesheet" href="assets/css/base.css?v=4.2.3">
+  <link rel="stylesheet" href="assets/css/components.css?v=4.2.3">
+  <link rel="stylesheet" href="assets/css/views.css?v=4.2.3">
 </head>
 <body>
 
@@ -190,7 +190,7 @@
           </div>
         </div>
         <div class="footer-bottom-right">
-          <span class="footer-meta-pill">v4.2.0 (Pure Cloudflare D1 Edition)</span>
+          <span class="footer-meta-pill">v4.2.2-fix (Pure Cloudflare D1 Edition)</span>
           <button class="footer-back-to-top" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })" title="Cuộn lên đầu trang">
             <span>Về Đầu Trang</span>
             <span class="arrow-up">↑</span>
@@ -201,44 +201,47 @@
   </footer>
 
   <!-- Core JavaScript Modules (Tuần tự để hỗ trợ chạy file:// offline) -->
-  <script src="assets/js/services/icons.js"></script>
-  <script src="assets/js/services/api-config.js"></script>
-  <script src="assets/js/services/cloudflare-client.js"></script>
-  <script src="assets/js/services/supabase-client.js"></script>
-  <script src="assets/js/data/default-banks.js"></script>
-  <script src="assets/js/services/data-loader.js"></script>
-  <script src="assets/js/services/storage.js"></script>
-  <script src="assets/js/services/sync-manager.js"></script>
-  <script src="assets/js/services/email.js"></script>
-  <script src="assets/js/services/quiz-engine.js"></script>
-  <script src="assets/js/services/import-export.js"></script>
-  <script src="assets/js/services/pdf-extractor.js?v=3.1.4"></script>
-  <script src="assets/js/services/parser-engine.js?v=3.1.4"></script>
-  <script src="assets/js/services/parser.js?v=3.1.4"></script>
-  <script src="assets/js/services/audio-fx.js"></script>
-  <script src="assets/js/services/dynamic-island.js"></script>
+  <script src="assets/js/services/icons.js?v=4.2.3"></script>
+  <script src="assets/js/services/api-config.js?v=4.2.3"></script>
+  <script src="assets/js/services/cloudflare-client.js?v=4.2.3"></script>
+  <script src="assets/js/data/default-banks.js?v=4.2.3"></script>
+  <script src="assets/js/services/data-loader.js?v=4.2.3"></script>
+  <script src="assets/js/services/storage.js?v=4.2.3"></script>
+  <script src="assets/js/services/sync-manager.js?v=4.2.3"></script>
+  <script src="assets/js/services/email.js?v=4.2.3"></script>
+  <script src="assets/js/services/quiz-engine.js?v=4.2.3"></script>
+  <script src="assets/js/services/import-export.js?v=4.2.3"></script>
+  <!-- Google Gemini AI Multimodal Parser & Quota Monitor -->
+  <script src="assets/js/services/ai-quota-tracker.js?v=4.2.3"></script>
+  <script src="assets/js/services/gemini-parser.js?v=4.2.3"></script>
+  <script src="assets/js/services/strict-parser.js?v=4.2.3"></script>
+  <script src="assets/js/services/diagnostics-engine.js?v=4.2.3"></script>
+  <script src="assets/js/services/source-sync.js?v=4.2.3"></script>
+  <script src="assets/js/services/audio-fx.js?v=4.2.3"></script>
+  <script src="assets/js/services/dynamic-island.js?v=4.2.3"></script>
 
   <!-- App Core (State, Router, Init, Global Events) -->
-  <script src="assets/js/app.js"></script>
+  <script src="assets/js/app.js?v=4.2.3"></script>
 
   <!-- View Modules (Gán methods vào App qua Object.assign) -->
-  <script src="assets/js/views/ui-helpers.js"></script>
-  <script src="assets/js/views/header-drawer.js"></script>
-  <script src="assets/js/views/home-view.js"></script>
-  <script src="assets/js/views/subject-detail-view.js"></script>
-  <script src="assets/js/views/parser-view.js"></script>
-  <script src="assets/js/views/quiz-views.js"></script>
-  <script src="assets/js/views/result-history-view.js"></script>
-  <script src="assets/js/views/leaderboard-view.js"></script>
-  <script src="assets/js/views/materials-view.js"></script>
-  <script src="assets/js/views/notifications-view.js"></script>
-  <script src="assets/js/views/users-management-view.js"></script>
-  <script src="assets/js/views/auth-view.js"></script>
-  <script src="assets/js/views/register-terms-view.js"></script>
-  <script src="assets/js/views/manage-view.js"></script>
-  <script src="assets/js/views/guide-view.js"></script>
-  <script src="assets/js/views/about-view.js"></script>
-  <script src="assets/js/views/study-dock.js"></script>
+  <script src="assets/js/views/ui-helpers.js?v=4.2.3"></script>
+  <script src="assets/js/views/header-drawer.js?v=4.2.3"></script>
+  <script src="assets/js/views/home-view.js?v=4.2.3"></script>
+  <script src="assets/js/views/subject-detail-view.js?v=4.2.3"></script>
+  <script src="assets/js/views/question-bank-view.js?v=4.2.3"></script>
+  <script src="assets/js/views/parser-view.js?v=4.2.3"></script>
+  <script src="assets/js/views/quiz-views.js?v=4.2.3"></script>
+  <script src="assets/js/views/result-history-view.js?v=4.2.3"></script>
+  <script src="assets/js/views/leaderboard-view.js?v=4.2.3"></script>
+  <script src="assets/js/views/materials-view.js?v=4.2.3"></script>
+  <script src="assets/js/views/notifications-view.js?v=4.2.3"></script>
+  <script src="assets/js/views/users-management-view.js?v=4.2.3"></script>
+  <script src="assets/js/views/auth-view.js?v=4.2.3"></script>
+  <script src="assets/js/views/register-terms-view.js?v=4.2.3"></script>
+  <script src="assets/js/views/manage-view.js?v=4.2.3"></script>
+  <script src="assets/js/views/guide-view.js?v=4.2.3"></script>
+  <script src="assets/js/views/about-view.js?v=4.2.3"></script>
+  <script src="assets/js/views/study-dock.js?v=4.2.3"></script>
 
   <!-- Khởi chạy ứng dụng sau khi toàn bộ Services, App Core và View Modules đã nạp đủ -->
   <script>

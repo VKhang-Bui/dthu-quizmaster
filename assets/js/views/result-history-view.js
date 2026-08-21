@@ -13,6 +13,7 @@ Object.assign(App, {
 
     const { result, details } = this.latestResultDetails;
     const wrongDetails = details.filter(d => !d.isCorrect && d.userAnswer !== undefined);
+    const isLogged = StorageService.isLoggedIn();
 
     container.innerHTML = `
       <div class="view-result">
@@ -41,7 +42,7 @@ Object.assign(App, {
             </div>
           </div>
 
-          ${result.mode === 'exam' ? `
+          ${isLogged ? `
             <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); padding: 14px 18px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
               <div style="text-align: left;">
                 <strong style="color: #1e40af; font-size: 14px; display:inline-flex; align-items:center; gap:5px;">${Icons.get('history', 15)} <span>Bài thi thử đã được lưu vào Lịch Sử Thi (10 lần gần nhất / lưu 30 ngày):</span></strong>
@@ -51,12 +52,22 @@ Object.assign(App, {
                 ${Icons.get('history', 14)} <span>Xem Lịch Sử Thi</span> ${Icons.get('arrowRight', 12)}
               </button>
             </div>
-          ` : ''}
+          ` : `
+            <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-sm); padding: 14px 18px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+              <div style="text-align: left;">
+                <strong style="color: #92400e; font-size: 14px; display:inline-flex; align-items:center; gap:5px;">${Icons.get('lock', 15)} <span>Tài khoản Khách: Kết quả thi không được lưu vào hệ thống</span></strong>
+                <div style="font-size: 12.5px; color: #b45309; margin-top: 2px;">Đăng nhập tài khoản sinh viên DThu để lưu Lịch Sử Thi (10 lần gần nhất), tích lũy điểm EXP và đua top BXH.</div>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="App.openLoginModal()" style="display:inline-flex; align-items:center; gap:6px;">
+                ${Icons.get('shieldCheck', 14)} <span>Đăng Nhập Ngay</span>
+              </button>
+            </div>
+          `}
 
           <div style="margin-top: 24px; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
             <button class="btn btn-primary" onclick="App.openQuizConfigModal('${result.subjectId}')" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('refresh', 14)} <span>Thi lại môn này</span></button>
-            ${result.mode === 'exam' ? `<button class="btn" onclick="App.navigateTo('history')" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('history', 14)} <span>Lịch Sử Thi (${StorageService.getUserExamHistory().length}/10)</span></button>` : ''}
-            <button class="btn" onclick="App.openUserDrawer()" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('user', 14)} <span>Menu Cá nhân & BXH</span></button>
+            ${isLogged ? `<button class="btn" onclick="App.navigateTo('history')" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('history', 14)} <span>Lịch Sử Thi (${StorageService.getUserExamHistory().length}/10)</span></button>` : `<button class="btn" onclick="App.openLoginModal()" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('shieldCheck', 14)} <span>Đăng nhập lưu kết quả</span></button>`}
+            ${isLogged ? `<button class="btn" onclick="App.openUserDrawer()" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('user', 14)} <span>Menu Cá nhân & BXH</span></button>` : ''}
             <button class="btn" onclick="App.navigateTo('home')" style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('home', 14)} <span>Về trang chủ</span></button>
           </div>
         </div>

@@ -60,10 +60,20 @@ const StorageService = {
   getSubjects() {
     try {
       const data = localStorage.getItem(this.KEYS.SUBJECTS);
+      let list = [];
       if (!data) {
-        return (typeof DataLoader !== "undefined" && DataLoader.FALLBACK_OFFICIAL) ? DataLoader.FALLBACK_OFFICIAL : [];
+        list = (typeof DataLoader !== "undefined" && DataLoader.FALLBACK_OFFICIAL) ? DataLoader.FALLBACK_OFFICIAL : [];
+      } else {
+        list = JSON.parse(data);
       }
-      return JSON.parse(data);
+      return list.map(s => ({
+        ...s,
+        isGuestAllowed: s.isGuestAllowed !== false,
+        chapters: (s.chapters || []).map(c => ({
+          ...c,
+          isGuestAllowed: c.isGuestAllowed !== false
+        }))
+      }));
     } catch (e) {
       console.error("Error reading subjects from localStorage", e);
       return [];
@@ -92,8 +102,10 @@ const StorageService = {
     }
     this.saveSubjects(subjects);
 
-    // Đồng bộ lên Supabase Cloud
-    // Local-first official subjects storage
+    // Đồng bộ tức thì lên Cloudflare D1
+    if (typeof CloudflareClient !== "undefined") {
+      CloudflareClient.upsertOfficialSubject(subject).catch(e => console.warn("[Cloudflare D1] saveSubject error:", e));
+    }
   },
 
   deleteSubject(id) {
@@ -101,8 +113,10 @@ const StorageService = {
     subjects = subjects.filter(s => s.id !== id);
     this.saveSubjects(subjects);
 
-    // Đồng bộ lên Supabase Cloud
-    // Local-first official subjects deletion
+    // Xóa tức thì khỏi Cloudflare D1
+    if (typeof CloudflareClient !== "undefined") {
+      CloudflareClient.deleteOfficialSubject(id).catch(e => console.warn("[Cloudflare D1] deleteSubject error:", e));
+    }
   },
 
   // ── 2. Quản lý Bộ Đề Draft do Sinh Viên Đóng Góp ────────────
@@ -138,8 +152,10 @@ const StorageService = {
     }
     this.saveDraftSubjects(drafts);
 
-    // Đồng bộ lên Supabase Cloud
-    // Local draft updated
+    // Đồng bộ tức thì lên Cloudflare D1 Database
+    if (typeof CloudflareClient !== "undefined") {
+      CloudflareClient.upsertDraft(draft).catch(e => console.warn("[Cloudflare D1] saveDraftSubject error:", e));
+    }
     return draft;
   },
 
@@ -168,7 +184,7 @@ const StorageService = {
 
     // Đồng bộ lên Cloudflare D1 Database
     if (typeof CloudflareClient !== "undefined") {
-      CloudflareClient.createDraft(newDraft).catch(e => console.warn("Cloudflare D1 createDraft error:", e));
+      CloudflareClient.upsertDraft(newDraft).catch(e => console.warn("Cloudflare D1 addDraftSubject error:", e));
     }
 
     return newDraft;
@@ -196,6 +212,44 @@ const StorageService = {
     }
 
     let finalSubject = null;
+    const qCount = (draft.questions || []).length;
+
+    // Tổng hợp danh sách người đóng góp (Contributors)
+    const collectContributors = (currentSub) => {
+      const list = currentSub.contributors ? [...currentSub.contributors] : [];
+      if (draft.contributors && Array.isArray(draft.contributors) && draft.contributors.length > 0) {
+        draft.contributors.forEach(dc => {
+          const match = list.find(c => (dc.studentId && c.studentId === dc.studentId) || (dc.email && c.email === dc.email) || c.name === dc.fullName);
+          if (match) {
+            match.count = (match.count || 0) + (dc.contributedQuestions || dc.count || 0);
+          } else {
+            list.push({
+              name: dc.fullName || dc.name,
+              studentId: dc.studentId || "",
+              email: dc.email || "",
+              count: dc.contributedQuestions || dc.count || 0,
+              date: dc.submissionDate || new Date().toLocaleDateString("vi-VN")
+            });
+          }
+        });
+      } else if (draft.author) {
+        const studentIdMatch = draft.author.match(/(\d{8,10})/);
+        const studentId = studentIdMatch ? studentIdMatch[1] : "";
+        const match = list.find(c => (studentId && c.studentId === studentId) || (draft.authorEmail && c.email === draft.authorEmail) || c.name === draft.author);
+        if (match) {
+          match.count = (match.count || 0) + qCount;
+        } else {
+          list.push({
+            name: draft.author,
+            studentId: studentId,
+            email: draft.authorEmail || "",
+            count: qCount,
+            date: draft.submissionDate || new Date().toLocaleDateString("vi-VN")
+          });
+        }
+      }
+      return list;
+    };
 
     if (targetSub) {
       // 🟢 TRƯỜNG HỢP 1: MÔN HỌC ĐÃ TỒN TẠI → GỘP CÂU HỎI VÀO MÔN ĐÓ
@@ -206,7 +260,9 @@ const StorageService = {
         chapterId: q.chapterId || draft.targetChapterId || "c1",
         question: q.question,
         options: q.options,
-        answerIndex: (typeof q.answerIndex === "number") ? q.answerIndex : 0
+        answerIndex: (typeof q.answerIndex === "number") ? q.answerIndex : 0,
+        warning: q.warning || null,
+        type: q.type || "single"
       }));
 
       targetSub.questions.push(...newQuestions);
@@ -220,6 +276,9 @@ const StorageService = {
           }
         });
       }
+
+      targetSub.contributors = collectContributors(targetSub);
+      targetSub.updatedAt = new Date().toISOString();
 
       this.saveSubject(targetSub);
       finalSubject = targetSub;
@@ -243,8 +302,13 @@ const StorageService = {
           chapterId: q.chapterId || draft.targetChapterId || "c1",
           question: q.question,
           options: q.options,
-          answerIndex: (typeof q.answerIndex === "number") ? q.answerIndex : 0
-        }))
+          answerIndex: (typeof q.answerIndex === "number") ? q.answerIndex : 0,
+          warning: q.warning || null,
+          type: q.type || "single"
+        })),
+        contributors: collectContributors({ contributors: [] }),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
 
       this.saveSubject(newOfficial);
@@ -259,8 +323,6 @@ const StorageService = {
     if (typeof CloudflareClient !== "undefined") {
       CloudflareClient.deleteDraft(draftId).catch(e => console.warn("Cloudflare D1 deleteDraft error:", e));
     }
-
-    const qCount = (draft.questions || []).length;
 
     // 1. Ghi nhận cống hiến số lượng câu hỏi thực tế cho Tác giả
     let authorUser = null;
@@ -292,6 +354,113 @@ const StorageService = {
     }
 
     return true;
+  },
+
+  mergeDrafts(draftIds, options = {}) {
+    if (!Array.isArray(draftIds) || draftIds.length < 2) return null;
+    const allDrafts = this.getDraftSubjects();
+    const selectedDrafts = allDrafts.filter(d => draftIds.includes(d.id));
+    if (selectedDrafts.length < 2) return null;
+
+    const baseDraft = selectedDrafts[0];
+    const targetSubjectId = options.targetSubjectId || baseDraft.targetSubjectId || baseDraft.subjectId || "NEW";
+    const name = options.name || baseDraft.name;
+    const code = options.code || baseDraft.code;
+    const department = options.department || baseDraft.department;
+    const removeDuplicates = options.removeDuplicates !== false;
+
+    // 1. Tổng hợp tất cả câu hỏi
+    let combinedQuestions = [];
+    const seenTexts = new Set();
+    const combinedChapters = [];
+    const seenChapterIds = new Set();
+
+    selectedDrafts.forEach(d => {
+      // Gộp chapters
+      (d.chapters || []).forEach(c => {
+        if (!seenChapterIds.has(c.id)) {
+          seenChapterIds.add(c.id);
+          combinedChapters.push({ ...c });
+        }
+      });
+
+      // Gộp questions
+      (d.questions || []).forEach(q => {
+        const normalizedText = (q.question || "").toLowerCase().trim();
+        if (removeDuplicates && seenTexts.has(normalizedText)) {
+          return; // Bỏ qua câu hỏi trùng lặp
+        }
+        if (removeDuplicates && normalizedText) {
+          seenTexts.add(normalizedText);
+        }
+        combinedQuestions.push({
+          ...q,
+          id: `q-${Date.now()}-${Math.floor(Math.random() * 100000)}`
+        });
+      });
+    });
+
+    if (combinedChapters.length === 0) {
+      combinedChapters.push({ id: "c1", name: "Chương 1: Mở đầu & Tổng hợp", isGuestAllowed: true });
+    }
+
+    // 2. Tổng hợp danh sách tất cả Contributors
+    const contributorsMap = new Map();
+    selectedDrafts.forEach(d => {
+      const studentId = d.studentId || d.authorId || d.author || "Ẩn danh";
+      const fullName = d.author || d.fullName || "Sinh viên đóng góp";
+      const avatar = d.avatar || "👨‍🎓";
+      const qCount = (d.questions || []).length;
+
+      if (contributorsMap.has(studentId)) {
+        const existing = contributorsMap.get(studentId);
+        existing.contributedQuestions += qCount;
+      } else {
+        contributorsMap.set(studentId, {
+          studentId: studentId,
+          fullName: fullName,
+          avatar: avatar,
+          contributedQuestions: qCount,
+          draftId: d.id,
+          submissionDate: d.submissionDate || new Date().toISOString()
+        });
+      }
+    });
+
+    const mergedContributors = Array.from(contributorsMap.values());
+
+    // 3. Tạo bản draft hợp nhất
+    const mergedDraft = {
+      id: "DRAFT-MERGED-" + Date.now(),
+      name: name,
+      code: code,
+      department: department,
+      description: options.description || `Bộ đề gộp từ ${selectedDrafts.length} bản đóng góp: ${selectedDrafts.map(d => d.name).join(', ')}.`,
+      author: mergedContributors.map(c => c.fullName).join(', '),
+      studentId: mergedContributors.map(c => c.studentId).filter(Boolean).join(', '),
+      contributors: mergedContributors,
+      targetSubjectId: targetSubjectId,
+      chapters: combinedChapters,
+      questions: combinedQuestions,
+      submissionDate: new Date().toISOString(),
+      isDraft: true,
+      status: "pending"
+    };
+
+    // 4. Xóa các draft cũ đã gộp và thêm draft mới
+    const remainingDrafts = allDrafts.filter(d => !draftIds.includes(d.id));
+    remainingDrafts.unshift(mergedDraft);
+    this.saveDraftSubjects(remainingDrafts);
+
+    // Đồng bộ xóa các draft cũ trên Cloudflare D1
+    if (typeof CloudflareClient !== "undefined") {
+      draftIds.forEach(id => {
+        CloudflareClient.deleteDraft(id).catch(e => console.warn("Cloudflare D1 deleteDraft error:", e));
+      });
+      CloudflareClient.createDraft(mergedDraft).catch(e => console.warn("Cloudflare D1 createDraft error:", e));
+    }
+
+    return mergedDraft;
   },
 
   // ── 3. Quản lý Danh Sách Người Dùng & Phân Quyền (User & Roles) ──
@@ -1025,6 +1194,11 @@ const StorageService = {
       list[idx] = Object.assign({}, list[idx], profile);
       this.saveAllUsers(list);
     }
+
+    // Đẩy thay đổi thông tin người dùng lên Cloudflare D1
+    if (typeof CloudflareClient !== "undefined" && profile.studentId) {
+      CloudflareClient.updateUser(profile).catch(e => console.warn("[Cloudflare D1] updateUser sync error:", e));
+    }
   },
 
   authenticateUser(studentId, pinCode) {
@@ -1468,11 +1642,28 @@ const StorageService = {
           pointsDelta: null,
           pointType: null,
           read: false,
+          createdAt: "2026-08-20T00:00:00.000Z"
+        });
+      }
+
+      // Tự động phát hành thông báo hệ thống bản vá v4.2.2-fix (Mới nhất)
+      const fixNotifId = "NTF_SYSTEM_FIX_V422_PATCH";
+      if (!list.some(n => n.id === fixNotifId)) {
+        list.unshift({
+          id: fixNotifId,
+          userId: userId,
+          type: "system",
+          title: "🛠️ Thông Báo Hệ Thống: Bản Vá Kỹ Thuật v4.2.2-fix",
+          message: "Hệ thống đã cập nhật bản vá v4.2.2-fix: Nâng cấp ô chọn lọc Dropdown Menu tinh gọn trong khung Xem Trước Đề (#parser), tối ưu cơ chế bóc tách câu hỏi và hiển thị kiểm định lỗi trực tiếp trên từng thẻ câu hỏi.",
+          pointsDelta: null,
+          pointType: null,
+          read: false,
           createdAt: new Date().toISOString()
         });
-        allNotifs[userId] = list;
-        localStorage.setItem(this.KEYS.NOTIFICATIONS, JSON.stringify(allNotifs));
       }
+
+      allNotifs[userId] = list;
+      localStorage.setItem(this.KEYS.NOTIFICATIONS, JSON.stringify(allNotifs));
 
       return list;
     } catch (e) {
@@ -1728,6 +1919,11 @@ const StorageService = {
   saveAttempt(attempt) {
     if (!attempt || attempt.mode !== "exam") {
       // TUYỆT ĐỐI KHÔNG LƯU LỊCH SỬ KHI ÔN TẬP (chỉ lưu khi thi thử)
+      return;
+    }
+
+    if (!this.isLoggedIn()) {
+      // TUYỆT ĐỐI KHÔNG LƯU LỊCH SỬ THI HOẶC EXP CHO KHÁCH
       return;
     }
 
@@ -2586,7 +2782,13 @@ const StorageService = {
       toastDuration: 3500, // 3.5 giây
       soundEnabled: true,
       autoScrollToError: true,
-      warnOnLeaveQuiz: true // Cảnh báo khi đóng tab / rời phòng thi dở dang
+      warnOnLeaveQuiz: true, // Cảnh báo khi đóng tab / rời phòng thi dở dang
+      parser: {
+        scrollMode: "adaptive",       // "adaptive" | "smooth" | "instant"
+        triggerMoment: "afterScroll",  // "afterScroll" | "immediate"
+        highlightDuration: 1.8,        // Giây (0 = tắt)
+        pageSize: 20
+      }
     };
   },
 
@@ -2773,6 +2975,199 @@ const StorageService = {
         totalQuestionsFormatted: "0"
       };
     }
+  },
+
+  // ── 15. HỆ THỐNG ĐỊNH DANH THIẾT BỊ & BẢO VỆ LƯỢT THI MÁY KHÁCH (100% OFFLINE ZERO-CLOUD) ──
+  GUEST_GUARD: {
+    STORAGE_KEY: "shinora_guest_guard_v4",
+    COOKIE_NAME: "shinora_guest_sec_v4",
+    SECRET_SALT: "shinora_sec_salt_dthu_2026_v421",
+    MAX_ATTEMPTS_PER_DAY: 5,
+
+    // 1. Sinh chuỗi ngày theo giờ Việt Nam (UTC+7)
+    getVietnamDateString() {
+      const now = new Date();
+      const vnTime = new Date(now.getTime() + (7 * 60 + now.getTimezoneOffset()) * 60000);
+      const yyyy = vnTime.getFullYear();
+      const mm = String(vnTime.getMonth() + 1).padStart(2, "0");
+      const dd = String(vnTime.getDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
+    },
+
+    // 2. Dấu vân tay thiết bị (Hardware & Canvas Fingerprint)
+    getDeviceFingerprint() {
+      try {
+        let cached = localStorage.getItem("shinora_dev_fp_v4");
+        if (cached) return cached;
+
+        const screenDetails = `${screen.width}x${screen.height}x${screen.colorDepth}`;
+        const cores = navigator.hardwareConcurrency || 4;
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Ho_Chi_Minh";
+        const lang = navigator.language || "vi-VN";
+
+        // Canvas vi mô
+        let canvasHash = 0;
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = 200;
+          canvas.height = 40;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.textBaseline = "top";
+            ctx.font = "14px 'Arial'";
+            ctx.fillStyle = "#f60";
+            ctx.fillRect(125, 1, 62, 20);
+            ctx.fillStyle = "#069";
+            ctx.fillText("Shinora DThu Guard v4.2.2-fix", 2, 15);
+            ctx.fillStyle = "rgba(102, 204, 0, 0.7)";
+            ctx.fillText("Shinora DThu Guard v4.2.2-fix", 4, 17);
+            const dataUrl = canvas.toDataURL();
+            for (let i = 0; i < dataUrl.length; i++) {
+              canvasHash = ((canvasHash << 5) - canvasHash) + dataUrl.charCodeAt(i);
+              canvasHash |= 0;
+            }
+          }
+        } catch (e) {}
+
+        const rawString = `${screenDetails}_${cores}_${tz}_${lang}_${canvasHash}_${this.SECRET_SALT}`;
+        let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+        for (let i = 0; i < rawString.length; i++) {
+          const ch = rawString.charCodeAt(i);
+          h1 = Math.imul(h1 ^ ch, 2654435761);
+          h2 = Math.imul(h2 ^ ch, 1597334677);
+        }
+        h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+        h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+        const fp = "DEV_" + (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36).toUpperCase();
+
+        try {
+          localStorage.setItem("shinora_dev_fp_v4", fp);
+        } catch (e) {}
+        return fp;
+      } catch (e) {
+        return "DEV_STANDARD_CLIENT";
+      }
+    },
+
+    // 3. Chữ ký điện tử băm chống can thiệp (Tamper-Proof Checksum)
+    computeSignature(devId, dateStr, usedCount) {
+      const raw = `${devId}#${dateStr}#${usedCount}#${this.SECRET_SALT}`;
+      let hash = 0;
+      for (let i = 0; i < raw.length; i++) {
+        const char = raw.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+      }
+      return "SIG_" + Math.abs(hash).toString(36) + "_" + (usedCount * 7 + 13);
+    },
+
+    getCookie(name) {
+      try {
+        const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+        return v ? decodeURIComponent(v[2]) : null;
+      } catch (e) {
+        return null;
+      }
+    },
+
+    setCookie(name, value, days = 30) {
+      try {
+        const d = new Date();
+        d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+        document.cookie = `${name}=${encodeURIComponent(value)};path=/;expires=${d.toUTCString()};SameSite=Lax`;
+      } catch (e) {}
+    },
+
+    getQuotaInfo() {
+      const devId = this.getDeviceFingerprint();
+      const today = this.getVietnamDateString();
+
+      let localRecord = null;
+      try {
+        const raw = localStorage.getItem(this.STORAGE_KEY);
+        if (raw) localRecord = JSON.parse(raw);
+      } catch (e) {}
+
+      let cookieRecord = null;
+      try {
+        const rawCookie = this.getCookie(this.COOKIE_NAME);
+        if (rawCookie) cookieRecord = JSON.parse(rawCookie);
+      } catch (e) {}
+
+      let record = localRecord || cookieRecord;
+
+      if (!record || record.date !== today) {
+        record = {
+          devId: devId,
+          date: today,
+          used: 0,
+          max: this.MAX_ATTEMPTS_PER_DAY,
+          sig: this.computeSignature(devId, today, 0)
+        };
+        this.saveRecord(record);
+        return {
+          devId,
+          date: today,
+          used: 0,
+          max: this.MAX_ATTEMPTS_PER_DAY,
+          remaining: this.MAX_ATTEMPTS_PER_DAY,
+          isLimitReached: false,
+          isTampered: false
+        };
+      }
+
+      const expectedSig = this.computeSignature(devId, today, record.used);
+      const isTampered = (record.sig !== expectedSig);
+
+      const used = isTampered ? this.MAX_ATTEMPTS_PER_DAY : Math.min(Math.max(Number(record.used) || 0, 0), this.MAX_ATTEMPTS_PER_DAY);
+      const remaining = Math.max(0, this.MAX_ATTEMPTS_PER_DAY - used);
+      const isLimitReached = (remaining <= 0) || isTampered;
+
+      this.saveRecord(record);
+
+      return {
+        devId,
+        date: today,
+        used,
+        max: this.MAX_ATTEMPTS_PER_DAY,
+        remaining,
+        isLimitReached,
+        isTampered
+      };
+    },
+
+    consumeAttempt() {
+      const info = this.getQuotaInfo();
+      if (info.isLimitReached) return false;
+
+      const newUsed = info.used + 1;
+      const record = {
+        devId: info.devId,
+        date: info.date,
+        used: newUsed,
+        max: this.MAX_ATTEMPTS_PER_DAY,
+        sig: this.computeSignature(info.devId, info.date, newUsed)
+      };
+
+      this.saveRecord(record);
+      return true;
+    },
+
+    saveRecord(record) {
+      try {
+        const str = JSON.stringify(record);
+        localStorage.setItem(this.STORAGE_KEY, str);
+        this.setCookie(this.COOKIE_NAME, str, 30);
+      } catch (e) {}
+    }
+  },
+
+  getGuestQuotaInfo() {
+    return this.GUEST_GUARD.getQuotaInfo();
+  },
+
+  consumeGuestAttempt() {
+    return this.GUEST_GUARD.consumeAttempt();
   }
 };
 

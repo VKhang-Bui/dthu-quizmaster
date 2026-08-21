@@ -228,6 +228,23 @@ const CloudflareClient = {
     return [];
   },
 
+  async getDraftById(id) {
+    try {
+      const res = await fetch(`${this.getApiBase()}/drafts?id=${encodeURIComponent(id)}`, {
+        headers: this.getAuthHeaders()
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          return json.data[0];
+        }
+      }
+    } catch (e) {
+      console.warn("[Cloudflare D1] getDraftById error:", e);
+    }
+    return null;
+  },
+
   async createDraft(draftData) {
     try {
       const res = await fetch(`${this.getApiBase()}/drafts/create`, {
@@ -239,6 +256,21 @@ const CloudflareClient = {
       return Boolean(json.success);
     } catch (e) {
       console.warn("[Cloudflare D1] createDraft error:", e);
+      return false;
+    }
+  },
+
+  async upsertDraft(draftData) {
+    try {
+      const res = await fetch(`${this.getApiBase()}/drafts/upsert`, {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(draftData)
+      });
+      const json = await res.json();
+      return Boolean(json.success);
+    } catch (e) {
+      console.warn("[Cloudflare D1] upsertDraft error:", e);
       return false;
     }
   },
@@ -319,6 +351,69 @@ const CloudflareClient = {
       return res.ok;
     } catch (e) {
       // Bỏ qua lỗi ngầm nếu offline
+      return false;
+    }
+  },
+
+  // ── OFFICIAL SUBJECTS API (D1 CLOUD SYNC) ──
+  async getOfficialSubjects() {
+    try {
+      const res = await fetch(`${this.getApiBase()}/subjects`, {
+        headers: this.getAuthHeaders()
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          return json.data;
+        }
+      }
+    } catch (e) {
+      console.warn("[Cloudflare D1] getOfficialSubjects error:", e);
+    }
+    return null;
+  },
+
+  async upsertOfficialSubject(subject) {
+    try {
+      const res = await fetch(`${this.getApiBase()}/subjects/upsert`, {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(subject)
+      });
+      const json = await res.json();
+      return Boolean(json.success);
+    } catch (e) {
+      console.warn("[Cloudflare D1] upsertOfficialSubject error:", e);
+      return false;
+    }
+  },
+
+  async deleteOfficialSubject(id) {
+    try {
+      const res = await fetch(`${this.getApiBase()}/subjects/delete`, {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ id })
+      });
+      const json = await res.json();
+      return Boolean(json.success);
+    } catch (e) {
+      console.warn("[Cloudflare D1] deleteOfficialSubject error:", e);
+      return false;
+    }
+  },
+
+  async syncAllOfficialSubjects(subjectsList) {
+    try {
+      const res = await fetch(`${this.getApiBase()}/subjects/sync-all`, {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(subjectsList)
+      });
+      const json = await res.json();
+      return Boolean(json.success);
+    } catch (e) {
+      console.warn("[Cloudflare D1] syncAllOfficialSubjects error:", e);
       return false;
     }
   }

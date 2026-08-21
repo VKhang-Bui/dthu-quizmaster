@@ -145,14 +145,17 @@ const DynamicIsland = {
   },
 
   init() {
+    if (typeof StorageService !== "undefined" && !StorageService.isLoggedIn()) {
+      const existing = document.getElementById("shinoraDynamicIslandContainer");
+      if (existing) existing.style.display = "none";
+      return;
+    }
     this.loadSettings();
     this.renderContainer();
     this.bindEvents();
     this.initYouTubeApi();
     this.startTimeUpdater();
     this.restartStealthTimer();
-
-    // Khởi tạo hoạt động mặc định nếu có
     this.updateDisplay();
   },
 
@@ -193,6 +196,37 @@ const DynamicIsland = {
 
   isUserAllowed() {
     return Boolean(typeof StorageService !== "undefined" && typeof StorageService.isLoggedIn === "function" && StorageService.isLoggedIn());
+  },
+
+  /**
+   * Hiển thị thông báo trạng thái hoặc thông điệp trên đảo động
+   */
+  show(options = {}) {
+    if (!this.settings || !this.settings.enabled) return;
+    const title = options.title || "Shinora QuizMaster";
+    const subtitle = options.subtitle || "";
+    const icon = options.icon || "sparkles";
+    const autoHide = options.autoHide || 4000;
+
+    const notifId = "di_notif_" + Date.now();
+    const act = {
+      id: notifId,
+      type: "notification",
+      title: title,
+      subtitle: subtitle,
+      icon: icon
+    };
+
+    this.activities = [act];
+    this.currentState = "expanded";
+    if (typeof this.updateDisplay === "function") this.updateDisplay();
+
+    if (autoHide > 0) {
+      setTimeout(() => {
+        this.activities = this.activities.filter(a => a.id !== notifId);
+        if (typeof this.collapseToCompact === "function") this.collapseToCompact();
+      }, autoHide);
+    }
   },
 
   // ── 1. KHỞI TẠO DOM CONTAINER ──────────────────────────────

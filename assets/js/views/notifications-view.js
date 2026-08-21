@@ -71,7 +71,7 @@ Object.assign(App, {
             ${Icons.get('bell', 14)} <span>Thông Báo Cá Nhân</span> <span class="badge-tab-count">${allNotifs.length}</span>
           </button>
           <button class="hub-tab-btn ${activeTab === 'changelog' ? 'active' : ''}" onclick="App.notifTab = 'changelog'; App.renderNotificationsView(document.getElementById('mainContent'));" style="display:inline-flex; align-items:center; gap:6px;">
-            ${Icons.get('sparkles', 14)} <span>Bản Tin Cập Nhật Hệ Thống</span> <span class="badge-tab-count">v4.2.0</span>
+            ${Icons.get('sparkles', 14)} <span>Bản Tin Cập Nhật Hệ Thống</span> <span class="badge-tab-count">v4.2.2</span>
           </button>
         </div>
 
@@ -157,11 +157,93 @@ Object.assign(App, {
         ` : `
           <!-- Tab Bản Tin Cập Nhật Hệ Thống (Release Notes & Changelog) -->
           <div style="display: flex; flex-direction: column; gap: 18px;">
-            <!-- Phiên bản 4.2.0 (Mới Nhất) -->
+            <!-- Phiên bản 4.2.2 (Mới Nhất) -->
             <div class="changelog-card" style="border-left: 4px solid #7c3aed; background: linear-gradient(135deg, var(--surface) 0%, #faf5ff 100%);">
               <div class="changelog-card-header">
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                  <span class="changelog-tag" style="background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%); color: #ffffff; font-weight: 800;">Phiên bản v4.2.0 · Mới nhất</span>
+                  <span class="changelog-tag" style="background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%); color: #ffffff; font-weight: 800;">Phiên bản v4.2.2 · Mới nhất</span>
+                  <strong style="font-size: 16.5px; color: var(--text-primary);">Bóc Tách Đa Tệp Google Gemini 3.5, Phân Đợt Tuần Tự Chống Tràn Token, Tách Header 2 Khối &amp; Bảo Mật Khóa Cloudflare Secret</strong>
+                </div>
+                <span style="font-size: 12.5px; color: var(--text-tertiary);">21/08/2026</span>
+              </div>
+              <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.75;">
+                <li>
+                  <strong>📐 Cấu Trúc Header 2 Tầng Cố Định (2-Tier Header Layout)</strong>:
+                  Tách biệt hoàn toàn Tiêu đề &amp; Trạng thái mô hình (Hàng trên) với Thanh công cụ Môn/Chương và nút tác vụ (Hàng dưới), triệt tiêu hoàn toàn hiện tượng nút bấm bị nhảy rớt dòng khi thu phóng màn hình.
+                </li>
+                <li>
+                  <strong>🛡️ Bảo Mật Tuyệt Đối API Key Qua Cloudflare Worker Secret</strong>:
+                  Loại bỏ 100% việc lưu Key trên trình duyệt. Khóa Google AI Studio được lưu trữ an toàn trong biến môi trường bí mật <code>env.GEMINI_API_KEY</code> trên Cloudflare Edge, Client gọi qua <code>/api/ai/parse</code> được bảo vệ bởi Rate Limiter.
+                </li>
+                <li>
+                  <strong>🔄 Chế Độ Tự Động Chia Đợt Tuần Tự (Sequential Multi-Batch Pipeline)</strong>:
+                  Giải quyết triệt để giới hạn cứng 8,192 Token Output của Google Gemini đối với các bộ đề thi dài (100 - 500 câu). Hệ thống tự động phân chia tối ưu (50 câu/đợt) và streaming nối tiếp liên tục vào khung soạn thảo.
+                </li>
+                <li>
+                  <strong>📁 Hỗ Trợ Tải Nhiều Tệp &amp; Quản Lý Danh Sách Trong Modal</strong>:
+                  Cho phép nạp đồng thời nhiều file Word (.docx), PDF, Ảnh chụp đề thi, Text. Người dùng có thể thêm/xóa/chọn lại từng file trực tiếp trong Hộp Thoại Tiền Kiểm Soát mà không cần đóng modal.
+                </li>
+                <li>
+                  <strong>⚙️ 2 Thiết Lập Phương Thức Bóc Tách (Tự Động &amp; Thủ Công)</strong>:
+                  Hỗ trợ 2 chế độ: 1) Tự động tính toán số đợt tối ưu; 2) Tùy chỉnh thủ công dải câu (Từ câu X đến Y) và số câu/đợt kèm bảng kế hoạch sinh ra theo thời gian thực.
+                </li>
+                <li>
+                  <strong>🔌 Đo Lường Token Đầu Vào Chính Xác 100% Qua Google Tokenizer</strong>:
+                  Tích hợp trực tiếp API <code>:countTokens</code> chính thức của Google Gemini, loại bỏ hoàn toàn các công thức nhân mò giả định.
+                </li>
+                <li>
+                  <strong>🧹 Đồng Bộ Danh Mục Model Google Gemini Khả Dụng</strong>:
+                  Loại bỏ các mô hình 2.5 đã bị Google khai tử, chuẩn hóa 100% các model hoạt động mượt mà (<code>Gemini 3.5 Flash Lite</code>, <code>Gemini 3.6 Flash</code>, <code>Gemini 3.5 Flash</code>, <code>Gemini 3.1 Flash Lite</code>, <code>Gemini 3.1 Pro</code>).
+                </li>
+                <li>
+                  <strong>📄 Đồng Nhất 1 Nút Đề Mẫu Duy Nhất (3 Câu Hỏi Khuôn Mẫu)</strong>:
+                  Thay thế các nút mẫu cũ bằng 1 nút duy nhất nạp bộ 3 câu hỏi khuôn mẫu chuẩn minh họa đầy đủ dạng 4 đáp án, 3 đáp án và 2 đáp án (Đúng/Sai) kèm cú pháp <code>&gt;đúng</code>, <code>&gt;sai</code> và giải thích.
+                </li>
+              </ul>
+            </div>
+
+            <!-- Phiên bản 4.2.1 -->
+            <div class="changelog-card" style="border-left: 4px solid #0284c7; background: var(--surface);">
+              <div class="changelog-card-header">
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                  <span class="changelog-tag" style="background: #e0f2fe; color: #0284c7; font-weight: 800;">Phiên bản v4.2.1</span>
+                  <strong style="font-size: 16.5px; color: var(--text-primary);">Phân Quyền Máy Khách (Guest Gating), Hợp Nhất Control Hub &amp; Ngân Hàng Câu Hỏi, Gộp Đề Bulk Merge &amp; Tinh Gọn Cụm Chương</strong>
+                </div>
+                <span style="font-size: 12.5px; color: var(--text-tertiary);">20/08/2026</span>
+              </div>
+              <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.75;">
+                <li>
+                  <strong>🛡️ Giới Hạn 5 Lượt Thi/Ngày &amp; Định Danh Thiết Bị 100% Client-Side</strong>:
+                  Mỗi máy khách chỉ được làm tối đa 5 lượt thi thử trong 1 ngày, tự động reset lúc 00:00 (Giờ VN). Sử dụng chữ ký điện tử Checksum SHA-256 chống can thiệp và cơ chế định danh thiết bị phần cứng hoàn toàn không tiêu tốn tài nguyên Cloud.
+                </li>
+                <li>
+                  <strong>🔒 Bộ 50 Câu Hỏi Mẫu CỐ ĐỊNH (Deterministic Pool)</strong>:
+                  Khóa máy khách ở 2 mức 25 câu (25 phút) hoặc 50 câu (45 phút) được trích xuất cố định, không ngẫu nhiên nhằm bảo vệ 100% phần còn lại của ngân hàng câu hỏi học phần.
+                </li>
+                <li>
+                  <strong>🔒 Phân Quyền Máy Khách &amp; Khóa Môn Học/Chương (Guest Gating)</strong>:
+                  Chuẩn hóa giao diện khóa tinh gọn với icon ổ khóa ở góc phải, chặn truy cập trực tiếp môn nội bộ DThu, chỉ mở các chương không khóa và tắt hoàn toàn Đảo động thông minh / Tiện ích nổi với máy khách.
+                </li>
+                <li>
+                  <strong>📚 Hợp Nhất Xem &amp; Sửa Đề Chờ Duyệt Về Control Hub &amp; Ngân Hàng Câu Hỏi</strong>:
+                  Trang duyệt đề tích hợp trực tiếp vào Control Hub môn học và Ngân hàng câu hỏi riêng biệt với đầy đủ 3 chế độ (Thẻ, Hàng loạt, Sửa text thô).
+                </li>
+                <li>
+                  <strong>⚡ Tính Năng Gộp Đề Thi Hàng Loạt (Bulk Merge Drafts)</strong>:
+                  Cho phép chọn nhiều bản đề đóng góp cùng môn để gộp thành một bản đề duy nhất, tự động lọc trùng và bảo toàn toàn bộ danh sách sinh viên đóng góp để ghi nhận EXP.
+                </li>
+                <li>
+                  <strong>📂 Tinh Gọn Cụm Quản Lý Chương &amp; Sửa Triệt Để Mất Focus Tìm Kiếm</strong>:
+                  Hợp nhất toàn bộ thao tác Chọn/Chuyển/Thêm chương vào 1 cụm duy nhất, tối ưu DOM rendering cho ô tìm kiếm thời gian thực.
+                </li>
+              </ul>
+            </div>
+
+            <!-- Phiên bản 4.2.0 -->
+            <div class="changelog-card" style="border-left: 4px solid #7c3aed; background: var(--surface);">
+              <div class="changelog-card-header">
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                  <span class="changelog-tag" style="background: #ede9fe; color: #6d28d9; font-weight: 800;">Phiên bản v4.2.0</span>
                   <strong style="font-size: 16.5px; color: var(--text-primary);">Đại Tu Toàn Diện: 12 Biểu Tượng SVG Gradient, OTP Gmail Thật, Bảo Mật Hồ Sơ 14 Ngày &amp; Thuần Khiết Hóa Cloudflare D1</strong>
                 </div>
                 <span style="font-size: 12.5px; color: var(--text-tertiary);">20/08/2026</span>

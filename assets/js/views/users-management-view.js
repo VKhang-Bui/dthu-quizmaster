@@ -59,7 +59,7 @@ Object.assign(App, {
               <h2 style="font-size: 22px; font-weight: 800; color: var(--text-primary); margin: 0; display:flex; align-items:center; gap:8px;">
                 ${Icons.get('users', 22)} <span>Quản Trị Người Dùng & Phân Quyền</span>
               </h2>
-              <span class="badge" style="background:#e0f2fe; color:#0284c7; font-weight:800; font-size:11px;">v4.2.0</span>
+              <span class="badge" style="background:#e0f2fe; color:#0284c7; font-weight:800; font-size:11px;">v4.2.2-fix</span>
             </div>
             <p style="color: var(--text-secondary); margin: 4px 0 0 0; font-size: 13.5px;">
               Quản lý danh sách sinh viên, cấp quyền biên tập viên, kiểm toán hoạt động và hỗ trợ tài khoản.

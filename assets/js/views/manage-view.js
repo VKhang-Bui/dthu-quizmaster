@@ -11,10 +11,34 @@ Object.assign(App, {
     const profile = StorageService.getUserProfile();
     const canApprove = profile.role === "admin" || StorageService.hasPermission("canApproveDrafts");
     const activeTab = this.adminSubjectTab || "official";
+    const keyword = (this.manageSearchKeyword || "").toLowerCase().trim();
+
+    // Lọc môn học theo từ khóa tìm kiếm
+    let filteredSubjects = subjects;
+    if (keyword) {
+      filteredSubjects = subjects.filter(sub => {
+        const nameMatch = (sub.name || "").toLowerCase().includes(keyword);
+        const codeMatch = (sub.code || sub.id || "").toLowerCase().includes(keyword);
+        const deptMatch = (sub.department || "").toLowerCase().includes(keyword);
+        const authorMatch = (sub.author || "").toLowerCase().includes(keyword);
+        return nameMatch || codeMatch || deptMatch || authorMatch;
+      });
+    }
+
+    let filteredDrafts = drafts;
+    if (keyword) {
+      filteredDrafts = drafts.filter(d => {
+        const nameMatch = (d.name || "").toLowerCase().includes(keyword);
+        const codeMatch = (d.code || d.id || "").toLowerCase().includes(keyword);
+        const deptMatch = (d.department || "").toLowerCase().includes(keyword);
+        const authorMatch = (d.author || "").toLowerCase().includes(keyword);
+        return nameMatch || codeMatch || deptMatch || authorMatch;
+      });
+    }
 
     container.innerHTML = `
-      <div style="padding: 32px 28px; max-width: 1000px; margin: 0 auto; width: 100%;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+      <div style="padding: 32px 28px; max-width: 1050px; margin: 0 auto; width: 100%;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 14px;">
           <div>
             <h2 style="font-size: 22px; font-weight: 800; display:flex; align-items:center; gap:8px;">${Icons.get('manage', 22)} <span>Quản Lý Bộ Đề</span></h2>
             <p style="color: var(--text-secondary); margin-top: 4px;">Quản lý toàn bộ ngân hàng đề thi chính thức và duyệt đề đóng góp từ cộng đồng.</p>
@@ -27,18 +51,120 @@ Object.assign(App, {
           </div>
         </div>
 
-        <div class="hub-tabs" style="margin-bottom: 20px;">
-          <button class="hub-tab-btn ${activeTab === 'official' ? 'active' : ''}" onclick="App.switchManageTab('official')" style="display:inline-flex; align-items:center; gap:6px;">
-            <span style="color:#10b981; display:flex; align-items:center;">${Icons.get('shieldCheck', 14)}</span> <span>Bộ Đề Chính Thức</span> <span class="badge-tab-count">${subjects.length}</span>
-          </button>
-          ${canApprove ? `<button class="hub-tab-btn ${activeTab === 'drafts' ? 'active' : ''}" onclick="App.switchManageTab('drafts')" style="display:inline-flex; align-items:center; gap:6px;"><span style="color:#f59e0b; display:flex; align-items:center;">${Icons.get('clock', 14)}</span> <span>Chờ Phê Duyệt</span> <span class="badge-tab-count">${drafts.length}</span></button>` : ''}
+        <!-- Thanh Tìm Kiếm Góc Trên Bên Trái & Tabs -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+          <!-- Ô Tìm Kiếm Nằm Ở Góc Trên Bên Trái Của Khu Vực Quản Lý -->
+          <div style="position: relative; min-width: 280px; max-width: 380px; flex: 1;">
+            <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-tertiary); display: flex; align-items: center; pointer-events: none;">
+              ${Icons.get('search', 15)}
+            </span>
+            <input 
+              id="manageSearchInput"
+              type="text" 
+              class="form-control" 
+              style="padding-left: 36px; padding-right: 32px; height: 38px; border-radius: var(--radius-sm); font-size: 13.5px;" 
+              placeholder="Tìm môn học, mã môn, tác giả..." 
+              value="${this.manageSearchKeyword || ''}" 
+              oninput="App.handleManageSearch(this.value)">
+            <button 
+              id="manageSearchClearBtn"
+              onclick="App.clearManageSearch()" 
+              style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-tertiary); font-size: 14px; padding: 2px; display: ${keyword ? 'block' : 'none'};">
+              ✕
+            </button>
+          </div>
+
+          <!-- Tabs Bộ đề chính thức vs Chờ duyệt -->
+          <div class="hub-tabs" style="margin-bottom: 0;">
+            <button class="hub-tab-btn ${activeTab === 'official' ? 'active' : ''}" onclick="App.switchManageTab('official')" style="display:inline-flex; align-items:center; gap:6px;">
+              <span style="color:#10b981; display:flex; align-items:center;">${Icons.get('shieldCheck', 14)}</span> <span>Bộ Đề Chính Thức</span> <span id="manageOfficialCountBadge" class="badge-tab-count">${filteredSubjects.length}</span>
+            </button>
+            ${canApprove ? `<button class="hub-tab-btn ${activeTab === 'drafts' ? 'active' : ''}" onclick="App.switchManageTab('drafts')" style="display:inline-flex; align-items:center; gap:6px;"><span style="color:#f59e0b; display:flex; align-items:center;">${Icons.get('clock', 14)}</span> <span>Chờ Phê Duyệt</span> <span id="manageDraftsCountBadge" class="badge-tab-count">${filteredDrafts.length}</span></button>` : ''}
+          </div>
+        </div>
+
+        <div id="manageSearchInfoText" style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; display: ${keyword ? 'flex' : 'none'}; align-items: center; gap: 6px;">
+          <span>Kết quả tìm kiếm cho: <strong>"${keyword}"</strong> (<span id="manageSearchMatchCount">${activeTab === 'official' ? filteredSubjects.length : filteredDrafts.length}</span> kết quả)</span>
         </div>
 
         <div id="manageTabContent">
-          ${activeTab === 'official' ? this.renderManageOfficialTab(subjects) : this.renderManageDraftsTab(drafts)}
+          ${activeTab === 'official' ? this.renderManageOfficialTab(filteredSubjects) : this.renderManageDraftsTab(filteredDrafts)}
         </div>
       </div>
     `;
+  },
+
+  handleManageSearch(keyword) {
+    this.manageSearchKeyword = keyword;
+    const subjects = StorageService.getSubjects();
+    const drafts = StorageService.getDraftSubjects();
+    const activeTab = this.adminSubjectTab || "official";
+    const kw = (keyword || "").toLowerCase().trim();
+
+    // Lọc môn học
+    let filteredSubjects = subjects;
+    if (kw) {
+      filteredSubjects = subjects.filter(sub => {
+        const nameMatch = (sub.name || "").toLowerCase().includes(kw);
+        const codeMatch = (sub.code || sub.id || "").toLowerCase().includes(kw);
+        const deptMatch = (sub.department || "").toLowerCase().includes(kw);
+        const authorMatch = (sub.author || "").toLowerCase().includes(kw);
+        return nameMatch || codeMatch || deptMatch || authorMatch;
+      });
+    }
+
+    let filteredDrafts = drafts;
+    if (kw) {
+      filteredDrafts = drafts.filter(d => {
+        const nameMatch = (d.name || "").toLowerCase().includes(kw);
+        const codeMatch = (d.code || d.id || "").toLowerCase().includes(kw);
+        const deptMatch = (d.department || "").toLowerCase().includes(kw);
+        const authorMatch = (d.author || "").toLowerCase().includes(kw);
+        return nameMatch || codeMatch || deptMatch || authorMatch;
+      });
+    }
+
+    const tabContent = document.getElementById("manageTabContent");
+    if (tabContent) {
+      // Cập nhật nội dung danh sách mà không hủy input tìm kiếm
+      tabContent.innerHTML = (activeTab === 'official')
+        ? this.renderManageOfficialTab(filteredSubjects)
+        : this.renderManageDraftsTab(filteredDrafts);
+
+      // Cập nhật số lượng trên tab
+      const officialBadge = document.getElementById("manageOfficialCountBadge");
+      if (officialBadge) officialBadge.textContent = filteredSubjects.length;
+      const draftsBadge = document.getElementById("manageDraftsCountBadge");
+      if (draftsBadge) draftsBadge.textContent = filteredDrafts.length;
+
+      // Cập nhật nút xóa nhanh
+      const clearBtn = document.getElementById("manageSearchClearBtn");
+      if (clearBtn) clearBtn.style.display = kw ? "block" : "none";
+
+      // Cập nhật thông báo số lượng tìm thấy
+      const infoBox = document.getElementById("manageSearchInfoText");
+      const matchSpan = document.getElementById("manageSearchMatchCount");
+      if (infoBox) {
+        if (kw) {
+          infoBox.style.display = "flex";
+          if (matchSpan) matchSpan.textContent = activeTab === 'official' ? filteredSubjects.length : filteredDrafts.length;
+        } else {
+          infoBox.style.display = "none";
+        }
+      }
+    } else {
+      this.renderManageView(document.getElementById("mainContent"));
+    }
+  },
+
+  clearManageSearch() {
+    this.manageSearchKeyword = "";
+    const input = document.getElementById("manageSearchInput");
+    if (input) {
+      input.value = "";
+      input.focus();
+    }
+    this.handleManageSearch("");
   },
 
   switchManageTab(tab) {
@@ -48,7 +174,7 @@ Object.assign(App, {
 
   renderManageOfficialTab(subjects) {
     if (subjects.length === 0) {
-      return `<div style="text-align: center; padding: 48px; color: var(--text-tertiary); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);"><div style="color: var(--text-tertiary); margin-bottom: 10px; display:flex; justify-content:center;">${Icons.get('fileText', 40)}</div><h3>Chưa có môn học chính thức nào.</h3><p style="margin-top: 6px;">Bấm "Thêm môn học" hoặc nhập đề qua Parser.</p></div>`;
+      return `<div style="text-align: center; padding: 48px; color: var(--text-tertiary); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);"><div style="color: var(--text-tertiary); margin-bottom: 10px; display:flex; justify-content:center;">${Icons.get('fileText', 40)}</div><h3>Không tìm thấy môn học nào phù hợp.</h3><p style="margin-top: 6px;">Hãy thử đổi từ khóa tìm kiếm hoặc bấm "Thêm môn học" mới.</p></div>`;
     }
     return '<div style="display: flex; flex-direction: column; gap: 14px;">' +
       subjects.map(sub => '<div style="background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-md); padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; box-shadow: 0 2px 6px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseenter="this.style.borderColor=\'var(--brand-primary)\'; this.style.boxShadow=\'0 6px 18px rgba(37,99,235,0.08)\';" onmouseleave="this.style.borderColor=\'var(--border)\'; this.style.boxShadow=\'0 2px 6px rgba(0,0,0,0.03)\';">' +
@@ -74,26 +200,206 @@ Object.assign(App, {
     if (drafts.length === 0) {
       return `<div style="text-align: center; padding: 48px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);"><div style="color: #10b981; margin-bottom: 10px; display:flex; justify-content:center;">${Icons.get('checkCircle', 40)}</div><h3>Không có đề thi nào đang chờ duyệt!</h3><p style="margin-top: 6px; color: var(--text-secondary);">Mọi đóng góp từ cộng đồng đã được xử lý.</p></div>`;
     }
-    return '<div class="moderation-list">' +
-      drafts.map(d => '<div class="moderation-card">' +
-        '<div class="moderation-card-header">' +
-          '<div class="moderation-title-group">' +
-            '<h3><span style="color:#f59e0b; display:inline-flex; align-items:center; margin-right:4px;">' + Icons.get('sparkles', 16) + '</span> ' + d.name + ' <span class="badge" style="background:#fef3c7; color:#b45309;">' + (d.code || d.id) + '</span></h3>' +
-            '<div class="moderation-meta">' +
-              '<span style="display:inline-flex; align-items:center; gap:4px;">' + Icons.get('home', 12) + ' ' + (d.department || 'ĐH Đồng Tháp') + '</span>' +
-              '<span style="display:inline-flex; align-items:center; gap:4px;">' + Icons.get('user', 12) + ' Người gửi: <strong>' + (d.author || 'Ẩn danh') + '</strong></span>' +
-              '<span style="display:inline-flex; align-items:center; gap:4px;">' + Icons.get('clock', 12) + ' Ngày gửi: <strong>' + (d.submissionDate || 'Gần đây') + '</strong></span>' +
-              '<span style="display:inline-flex; align-items:center; gap:4px;">' + Icons.get('fileText', 12) + ' Số câu hỏi: <strong>' + (d.questions ? d.questions.length : 0) + ' câu</strong></span>' +
-            '</div>' +
-          '</div>' +
-          '<div class="moderation-actions">' +
-            '<button class="btn btn-sm" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-weight:700; display:inline-flex; align-items:center; gap:4px;" onclick="App.navigateTo(\'draft-review\', { draftId: \'' + d.id + '\' })">' + Icons.get('edit', 13) + ' <span>Xem & Sửa Đề</span></button>' +
-            '<button class="btn btn-primary" style="display:inline-flex; align-items:center; gap:4px;" onclick="App.approveDraft(\'' + d.id + '\')">' + Icons.get('checkCircle', 13) + ' <span>Duyệt Chính Thức</span></button>' +
-            '<button class="btn btn-danger btn-sm" style="display:inline-flex; align-items:center; gap:4px;" onclick="App.rejectDraftConfirm(\'' + d.id + '\')">' + Icons.get('close', 13) + ' <span>Từ chối</span></button>' +
-          '</div>' +
-        '</div>' +
-        '<div style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px;">' + (d.description || 'Không có mô tả chi tiết.') + '</div>' +
-      '</div>').join('') + '</div>';
+
+    return `
+      <!-- Thanh công cụ Thao tác hàng loạt cho Đề chờ duyệt -->
+      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 18px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.02);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; font-weight: 700;">
+            <input type="checkbox" id="manageSelectAllDraftsCheckbox" onchange="App.toggleSelectAllDrafts(this.checked)" style="width: 16px; height: 16px; cursor: pointer;">
+            <span>Chọn tất cả (${drafts.length} đề chờ)</span>
+          </label>
+          <span id="manageSelectedDraftsBadge" class="badge" style="background:#fef3c7; color:#92400e; font-weight:700; font-size: 12px; display: none;">Đã chọn: 0 đề</span>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+          <button id="manageMergeDraftsBtn" class="btn btn-sm btn-primary" onclick="App.openMergeDraftsModal()" style="display:none; align-items:center; gap:5px; font-weight:700;">
+            ${Icons.get('sparkles', 13)} <span>Gộp Các Đề Đã Chọn</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="moderation-list">
+        ${drafts.map(d => `
+          <div class="moderation-card" style="display: flex; gap: 14px; align-items: flex-start;">
+            <input 
+              type="checkbox" 
+              class="manage-draft-checkbox" 
+              value="${d.id}" 
+              onchange="App.onDraftCheckChange()" 
+              style="width: 18px; height: 18px; cursor: pointer; margin-top: 4px;">
+
+            <div style="flex: 1;">
+              <div class="moderation-card-header">
+                <div class="moderation-title-group">
+                  <h3>
+                    <span style="color:#f59e0b; display:inline-flex; align-items:center; margin-right:4px;">${Icons.get('sparkles', 16)}</span> 
+                    ${d.name} 
+                    <span class="badge" style="background:#fef3c7; color:#b45309; font-family:var(--font-mono); font-weight:800;">${d.code || d.id}</span>
+                  </h3>
+                  <div class="moderation-meta" style="margin-top: 6px;">
+                    <span style="display:inline-flex; align-items:center; gap:4px;">${Icons.get('home', 12)} ${d.department || 'ĐH Đồng Tháp'}</span>
+                    <span style="display:inline-flex; align-items:center; gap:4px;">${Icons.get('user', 12)} Người gửi: <strong>${d.author || 'Ẩn danh'}</strong></span>
+                    <span style="display:inline-flex; align-items:center; gap:4px;">${Icons.get('clock', 12)} Ngày gửi: <strong>${d.submissionDate ? new Date(d.submissionDate).toLocaleDateString('vi-VN') : 'Gần đây'}</strong></span>
+                    <span style="display:inline-flex; align-items:center; gap:4px; font-weight:700; color:#15803d;">${Icons.get('fileText', 12)} ${d.questions ? d.questions.length : 0} câu hỏi</span>
+                  </div>
+                </div>
+
+                <div class="moderation-actions">
+                  <button class="btn btn-sm" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-weight:700; display:inline-flex; align-items:center; gap:4px;" onclick="App.navigateTo('subject-detail', { draftId: '${d.id}', isDraft: true })">
+                    ${Icons.get('manage', 13)} <span>Xem & Sửa Đề</span>
+                  </button>
+                  <button class="btn btn-primary btn-sm" style="display:inline-flex; align-items:center; gap:4px; font-weight:700;" onclick="App.approveDraft('${d.id}')">
+                    ${Icons.get('checkCircle', 13)} <span>Duyệt Chính Thức</span>
+                  </button>
+                  <button class="btn btn-danger btn-sm" style="display:inline-flex; align-items:center; gap:4px;" onclick="App.rejectDraftConfirm('${d.id}')">
+                    ${Icons.get('close', 13)} <span>Từ chối</span>
+                  </button>
+                </div>
+              </div>
+
+              <div style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-top: 8px;">
+                ${d.description || 'Không có mô tả chi tiết.'}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  },
+
+  toggleSelectAllDrafts(checked) {
+    const checkboxes = document.querySelectorAll(".manage-draft-checkbox");
+    checkboxes.forEach(cb => cb.checked = checked);
+    this.onDraftCheckChange();
+  },
+
+  onDraftCheckChange() {
+    const checkboxes = document.querySelectorAll(".manage-draft-checkbox:checked");
+    const count = checkboxes.length;
+    const badge = document.getElementById("manageSelectedDraftsBadge");
+    const mergeBtn = document.getElementById("manageMergeDraftsBtn");
+
+    if (badge) {
+      badge.style.display = count > 0 ? "inline-block" : "none";
+      badge.textContent = `Đã chọn: ${count} đề`;
+    }
+    if (mergeBtn) {
+      mergeBtn.style.display = count >= 2 ? "inline-flex" : "none";
+      const span = mergeBtn.querySelector("span");
+      if (span) span.textContent = `Gộp ${count} Đề Đã Chọn (Merge Drafts)`;
+    }
+  },
+
+  openMergeDraftsModal(preselectedDraftIds) {
+    let draftIds = preselectedDraftIds;
+    if (!draftIds) {
+      const checkboxes = document.querySelectorAll(".manage-draft-checkbox:checked");
+      draftIds = Array.from(checkboxes).map(cb => cb.value);
+    }
+
+    if (!draftIds || draftIds.length < 2) {
+      this.showToast("⚠️ Vui lòng chọn ít nhất 2 bản đề thi chờ duyệt để gộp!", "warning");
+      return;
+    }
+
+    const allDrafts = StorageService.getDraftSubjects();
+    const selectedDrafts = allDrafts.filter(d => draftIds.includes(d.id));
+    const allSubjects = StorageService.getSubjects();
+
+    const totalRawQuestions = selectedDrafts.reduce((sum, d) => sum + (d.questions ? d.questions.length : 0), 0);
+    const defaultName = selectedDrafts[0].name || "Bộ đề gộp";
+    const defaultCode = selectedDrafts[0].code || "MERGED101";
+
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.innerHTML = `<span style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('sparkles', 16)} <span>Gộp ${selectedDrafts.length} Đề Thi Chờ Duyệt (Merge Drafts)</span></span>`;
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-sm); padding: 12px 14px; font-size: 13px; color: #92400e;">
+          💡 <strong>Tính năng Gôm Đề:</strong> Toàn bộ câu hỏi và danh sách tác giả/sinh viên đóng góp từ các bản đề được chọn sẽ được tổng hợp lại thành 1 bản đề duy nhất. Điểm EXP sẽ được ghi nhận đầy đủ cho tất cả người đóng góp sau khi duyệt.
+        </div>
+
+        <div>
+          <label class="form-label" style="font-weight: 700; font-size: 13px; margin-bottom: 6px; display: block;">Danh sách ${selectedDrafts.length} bản đề sẽ gộp (${totalRawQuestions} câu hỏi tổng cộng):</label>
+          <div style="max-height: 160px; overflow-y: auto; background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px;">
+            ${selectedDrafts.map(d => `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #e2e8f0; font-size: 12.5px;">
+                <div>
+                  <strong style="color: var(--text-primary);">${d.name}</strong>
+                  <span class="badge" style="background:#e2e8f0; color:#475569; font-size:11px; margin-left:4px;">${d.code || d.id}</span>
+                  <div style="font-size: 11.5px; color: var(--text-tertiary);">Người gửi: ${d.author || 'Ẩn danh'} ${d.studentId ? `(MSSV: ${d.studentId})` : ''}</div>
+                </div>
+                <span class="badge badge-blue" style="font-weight: 700;">${d.questions ? d.questions.length : 0} câu</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" style="font-weight: 700; font-size: 13px;">Tên môn học hợp nhất:</label>
+          <input type="text" id="mergeDraftNameInput" class="form-control" value="${defaultName.replace(/"/g, '&quot;')}" style="font-size: 13px; height: 36px;">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" style="font-weight: 700; font-size: 12.5px;">Mã môn hợp nhất:</label>
+            <input type="text" id="mergeDraftCodeInput" class="form-control" value="${defaultCode.replace(/"/g, '&quot;')}" style="font-size: 13px; height: 36px; text-transform: uppercase;">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" style="font-weight: 700; font-size: 12.5px;">Môn học đích gán vào:</label>
+            <select id="mergeDraftTargetSelect" class="form-control" style="font-size: 12.5px; height: 36px;">
+              <option value="NEW">➕ Tạo thành môn học mới</option>
+              ${allSubjects.map(s => `<option value="${s.id}">${s.name} (${s.code || s.id})</option>`).join('')}
+            </select>
+          </div>
+        </div>
+
+        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12.5px; margin-top: 4px;">
+          <input type="checkbox" id="mergeDraftRemoveDupes" checked style="width: 16px; height: 16px; cursor: pointer;">
+          <span>Tự động loại bỏ các câu hỏi có nội dung trùng lặp hoàn toàn</span>
+        </label>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Hủy</button>
+      <button class="btn btn-primary" onclick="App.executeMergeDrafts(${JSON.stringify(draftIds)})" style="display:inline-flex; align-items:center; gap:5px; font-weight:700;">
+        ${Icons.get('sparkles', 13)} <span>Xác Nhận Gộp Đề</span>
+      </button>
+    `;
+
+    modal.classList.add("active");
+  },
+
+  executeMergeDrafts(draftIds) {
+    const name = document.getElementById("mergeDraftNameInput")?.value.trim();
+    const code = document.getElementById("mergeDraftCodeInput")?.value.trim().toUpperCase();
+    const targetSubjectId = document.getElementById("mergeDraftTargetSelect")?.value;
+    const removeDupes = document.getElementById("mergeDraftRemoveDupes")?.checked;
+
+    if (!name || !code) {
+      this.showToast("⚠️ Vui lòng nhập đầy đủ Tên và Mã môn hợp nhất!", "warning");
+      return;
+    }
+
+    const mergedDraft = StorageService.mergeDrafts(draftIds, {
+      name: name,
+      code: code,
+      targetSubjectId: targetSubjectId,
+      removeDuplicates: removeDupes
+    });
+
+    if (mergedDraft) {
+      this.closeModal();
+      this.showToast(`🎉 Đã gộp thành công ${draftIds.length} đề thi thành 1 bản đề với ${mergedDraft.questions.length} câu hỏi!`, "success", 4000);
+      this.renderHeader();
+      this.renderManageView(document.getElementById("mainContent"));
+    }
   },
 
   async refreshCloudSubjects() {

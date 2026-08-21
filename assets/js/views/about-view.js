@@ -47,7 +47,7 @@ Object.assign(App, {
             ">Shinora QuizMaster</h1>
 
             <div style="display: inline-flex; align-items: center; gap: 8px; margin: 8px 0 20px; flex-wrap: wrap; justify-content: center;">
-              <span class="badge badge-blue" style="font-size: 12px; font-weight: 700;">v4.2.0</span>
+              <span class="badge badge-blue" style="font-size: 12px; font-weight: 700;">v4.2.2-fix</span>
               <span class="badge badge-green" style="font-size: 12px; font-weight: 700;">Pure Cloudflare D1 Edition</span>
               <span class="badge" style="font-size: 12px; font-weight: 700; background: var(--surface-subtle, var(--surface)); border: 1px solid var(--border);">Học tập độc lập</span>
             </div>

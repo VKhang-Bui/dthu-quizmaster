@@ -568,12 +568,32 @@ const DataLoader = {
     }
   ],
 
-  // Khởi tạo và nạp dữ liệu ban đầu (Chỉ nạp 1 lần duy nhất cho người dùng mới)
+  // ── HELPER TÍNH MÃ BĂM CHECKSUM CỦA DANH SÁCH MÔN HỌC ──
+  computeSubjectsChecksum(subjects) {
+    if (!Array.isArray(subjects) || subjects.length === 0) return "EMPTY_0";
+    let sig = subjects.map(s => {
+      const qLen = s.questions ? s.questions.length : 0;
+      const cLen = s.chapters ? s.chapters.length : 0;
+      const upd = s.updatedAt || s.createdAt || "";
+      const qFirstId = (s.questions && s.questions[0]) ? (s.questions[0].id || "") : "";
+      const qLastId = (s.questions && s.questions[qLen - 1]) ? (s.questions[qLen - 1].id || "") : "";
+      return `${s.id}:${s.code}:${cLen}:${qLen}:${qFirstId}:${qLastId}:${upd}`;
+    }).join("|");
+
+    let hash = 0;
+    for (let i = 0; i < sig.length; i++) {
+      hash = ((hash << 5) - hash) + sig.charCodeAt(i);
+      hash |= 0;
+    }
+    return `SUB_SIG_${subjects.length}_${Math.abs(hash)}`;
+  },
+
+  // ── KHỞI TẠO DỮ LIỆU CỰC NHANH (0ms Render) & ĐỒNG BỘ NGẦM THÔNG MINH ──
   async init() {
-    const initializedKey = "shinora_data_initialized_v420";
+    // 1. TẦNG 1: Khởi tạo LocalStorage ngay lập tức (Không chờ mạng) nếu là máy mới tinh
+    const initializedKey = "shinora_data_initialized_v421";
     const isInitialized = localStorage.getItem(initializedKey);
 
-    // Chỉ nạp dữ liệu mặc định vào LocalStorage một lần duy nhất khi người dùng mới tinh
     if (!isInitialized) {
       const existingSubjects = StorageService.getSubjects();
       if (!existingSubjects || existingSubjects.length === 0) {
@@ -597,10 +617,101 @@ const DataLoader = {
 
       localStorage.setItem(initializedKey, "true");
     }
+
+    // 2. Kích hoạt đồng bộ ngầm Stale-While-Revalidate với Cloudflare D1
+    // Chạy ngầm sau 800ms để không chiếm luồng vẽ giao diện First Contentful Paint
+    setTimeout(() => {
+      this.syncFromCloudAsync();
+    }, 800);
+  },
+
+  // ── ĐỒNG BỘ NGẦM TỪ CLOUDFLARE D1 (CHỐNG SPAM F5 & ZERO-WRITE LOCALSTORAGE) ──
+  async syncFromCloudAsync(force = false) {
+    if (typeof CloudflareClient === "undefined") return;
+
+    // ⏳ TẦNG 2: BỘ ĐỆM CHỐNG SPAM F5 (Throttle 60 giây)
+    const THROTTLE_WINDOW_MS = 60000; // 60 giây
+    const lastSyncKey = "shinora_last_subjects_sync_time";
+    const lastSyncTime = parseInt(localStorage.getItem(lastSyncKey) || "0", 10);
+    const now = Date.now();
+
+    if (!force && (now - lastSyncTime < THROTTLE_WINDOW_MS)) {
+      console.log(`[DataLoader] ⚡ Bỏ qua đồng bộ Cloud (Vừa sync cách đây ${Math.round((now - lastSyncTime)/1000)}s - Chống spam F5)`);
+      return;
+    }
+
+    try {
+      // 📡 TẦNG 3: FETCH DỮ LIỆU TỪ CLOUD D1
+      const cloudSubjects = await CloudflareClient.getOfficialSubjects();
+      if (cloudSubjects && Array.isArray(cloudSubjects)) {
+        if (cloudSubjects.length > 0) {
+          const currentLocalSubjects = StorageService.getSubjects() || [];
+          const cloudChecksum = this.computeSubjectsChecksum(cloudSubjects);
+          const localChecksum = this.computeSubjectsChecksum(currentLocalSubjects);
+
+          // 🔒 SO SÁNH CHECKSUM: Nếu giống hệt -> TUYỆT ĐỐI KHÔNG GHI LOCALSTORAGE
+          if (cloudChecksum === localChecksum) {
+            console.log("[DataLoader] 🔒 Dữ liệu Môn học trên Cloud giống hệt Local. Bỏ qua ghi đĩa (0 write).");
+            localStorage.setItem(lastSyncKey, String(now));
+            return;
+          }
+
+          // 📝 Có thay đổi thực sự -> Ghi cập nhật thông minh
+          console.log("[DataLoader] 🔄 Đồng bộ thông minh Môn học giữa Cloud D1 và LocalStorage...");
+          const mergedSubjects = [...cloudSubjects];
+          currentLocalSubjects.forEach(localSub => {
+            if (!localSub || !localSub.id) return;
+            const cloudIdx = mergedSubjects.findIndex(cs => cs.id === localSub.id);
+            if (cloudIdx === -1) {
+              // Môn học chỉ có ở Local -> Bảo toàn và đẩy lên Cloud D1
+              mergedSubjects.push(localSub);
+              CloudflareClient.upsertOfficialSubject(localSub).catch(() => {});
+            } else {
+              const cloudSub = mergedSubjects[cloudIdx];
+              const localQCount = (localSub.questions || []).length;
+              const cloudQCount = (cloudSub.questions || []).length;
+              if (localQCount > cloudQCount) {
+                // Local có nhiều câu hỏi hơn Cloud -> Ưu tiên bảo toàn Local và cập nhật ngược lên Cloud D1
+                mergedSubjects[cloudIdx] = localSub;
+                CloudflareClient.upsertOfficialSubject(localSub).catch(() => {});
+              }
+            }
+          });
+
+          StorageService.saveSubjects(mergedSubjects);
+          localStorage.setItem(lastSyncKey, String(now));
+
+          // Làm mới lại giao diện nếu đang ở Trang chủ hoặc Quản lý môn học
+          if (typeof App !== "undefined") {
+            const main = document.getElementById("mainContent");
+            if (App.currentView === "home" && main) {
+              App.renderHomeView(main);
+            } else if (App.currentView === "manage" && main) {
+              App.renderSubjectManagementView(main);
+            }
+          }
+        } else {
+          // Cloud D1 chưa có môn nào -> Tự động nạp hạt giống nếu local trống
+          const localSubjects = StorageService.getSubjects();
+          if (!localSubjects || localSubjects.length === 0) {
+            StorageService.saveSubjects(this.FALLBACK_OFFICIAL);
+          }
+          localStorage.setItem(lastSyncKey, String(now));
+        }
+      }
+
+      // 📡 TẦNG 4: FETCH BỘ ĐỀ CỘNG ĐỒNG (DRAFTS) TỪ CLOUDFLARE D1
+      const cloudDrafts = await CloudflareClient.getDrafts();
+      if (cloudDrafts && Array.isArray(cloudDrafts) && cloudDrafts.length > 0) {
+        StorageService.saveDraftSubjects(cloudDrafts);
+      }
+    } catch (e) {
+      console.warn("[DataLoader] Đồng bộ ngầm Cloudflare D1 bỏ qua:", e);
+    }
   },
 
   async syncFromHttp() {
-    // Đã vô hiệu hóa ghi đè tự động để bảo toàn các môn học người dùng đã xóa hoặc chỉnh sửa
+    // Đã chuyển sang quản lý hoàn toàn bằng Cloudflare D1
   }
 };
 

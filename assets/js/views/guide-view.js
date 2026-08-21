@@ -651,50 +651,209 @@ Câu 2: Nội dung câu hỏi số 2 ở đây?
     const body = document.getElementById("modalBody");
     const footer = document.getElementById("modalFooter");
 
-    title.textContent = "Thêm Môn Học Mới";
+    const profile = StorageService.getUserProfile();
+    const defaultAuthor = profile?.fullName || "Shina Sanora";
+
+    this.newSubjectChapters = [
+      { id: "c1", name: "Chương 1: Mở đầu & Đại cương" },
+      { id: "c2", name: "Chương 2: Cơ sở lý thuyết trọng tâm" },
+      { id: "c3", name: "Chương 3: Ứng dụng & Thực tiễn" }
+    ];
+
+    title.innerHTML = `<span style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('plus', 16)} <span>Thêm Môn Học Mới & Setup Chương Nhanh</span></span>`;
+
+    const renderChapterRows = () => {
+      return this.newSubjectChapters.map((c, idx) => `
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+          <span style="font-size: 12px; font-weight: 700; color: var(--text-tertiary); width: 22px; text-align: center;">${idx + 1}.</span>
+          <input 
+            type="text" 
+            class="form-control new-chapter-input" 
+            data-index="${idx}" 
+            value="${c.name.replace(/"/g, '&quot;')}" 
+            placeholder="Tên chương ${idx + 1}..." 
+            style="flex: 1; font-size: 13px; height: 34px;">
+          <button 
+            type="button" 
+            onclick="App.removeChapterFromNewSubjectRow(${idx})" 
+            class="btn btn-sm btn-danger" 
+            style="padding: 4px 8px; display:inline-flex; align-items:center;" 
+            title="Xóa chương này">
+            ${Icons.get('trash', 12)}
+          </button>
+        </div>
+      `).join('');
+    };
 
     body.innerHTML = `
-      <div class="form-group">
-        <label class="form-label">Tên môn học (*):</label>
-        <input type="text" id="newSubName" class="form-control" placeholder="Ví dụ: Tư tưởng Hồ Chí Minh, Di truyền học...">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Mã môn học (*):</label>
-        <input type="text" id="newSubCode" class="form-control" placeholder="Ví dụ: POL103, BIO301...">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Khoa / Ngành:</label>
-        <input type="text" id="newSubDept" class="form-control" placeholder="Ví dụ: Khoa Nông nghiệp - Sinh học">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Người biên soạn / Sinh viên đóng góp:</label>
-        <input type="text" id="newSubAuthor" class="form-control" placeholder="Shina Sanora">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Mô tả môn học:</label>
-        <textarea id="newSubDesc" class="form-control" rows="2" placeholder="Ghi chú thêm về đề cương môn học..."></textarea>
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <!-- KHU VỰC 1: THÔNG TIN MÔN HỌC -->
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px;">
+          <div style="font-size: 13px; font-weight: 700; color: var(--brand-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+            ${Icons.get('book', 14)} <span>1. Thông tin định danh môn học:</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 10px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" style="font-size: 12.5px; font-weight: 700;">Tên môn học (*):</label>
+              <input type="text" id="newSubName" class="form-control" placeholder="Ví dụ: Hóa Sinh Học, Di Truyền Học..." style="height: 36px; font-size: 13.5px;">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" style="font-size: 12.5px; font-weight: 700;">Mã môn (*):</label>
+              <input type="text" id="newSubCode" class="form-control" placeholder="Ví dụ: BIO302" style="height: 36px; font-size: 13.5px; text-transform: uppercase; font-family: var(--font-mono);">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" style="font-size: 12px;">Khoa / Ngành:</label>
+              <input type="text" id="newSubDept" class="form-control" placeholder="Khoa Kỹ thuật - Công nghệ" value="Khoa Kỹ thuật - Công nghệ" style="height: 34px; font-size: 13px;">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" style="font-size: 12px;">Người biên soạn:</label>
+              <input type="text" id="newSubAuthor" class="form-control" placeholder="Họ tên tác giả" value="${defaultAuthor}" style="height: 34px; font-size: 13px;">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" style="font-size: 12px;">Mô tả ngắn đề cương môn học:</label>
+            <input type="text" id="newSubDesc" class="form-control" placeholder="Mô tả tóm tắt nội dung ôn thi..." style="height: 34px; font-size: 13px;">
+          </div>
+
+          <div class="form-group" style="margin-top: 10px; margin-bottom: 0;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--text-primary);">
+              <input type="checkbox" id="newSubGuestAllowed" checked style="width: 16px; height: 16px; cursor: pointer;">
+              <span>Mở cho máy khách ôn tập (Guest Access Allowed)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- KHU VỰC 2: SETUP CHƯƠNG NHANH -->
+        <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: var(--radius-sm); padding: 14px 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 6px;">
+            <div style="font-size: 13px; font-weight: 700; color: #15803d; display: flex; align-items: center; gap: 6px;">
+              ${Icons.get('folder', 14)} <span>2. Thiết lập danh mục chương nhanh:</span>
+            </div>
+            <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+              <button type="button" onclick="App.quickAddChaptersPreset(3)" class="btn btn-sm" style="padding: 2px 8px; font-size: 11.5px; background:#fff; border:1px solid #cbd5e1;">+3 Chương</button>
+              <button type="button" onclick="App.quickAddChaptersPreset(5)" class="btn btn-sm" style="padding: 2px 8px; font-size: 11.5px; background:#fff; border:1px solid #cbd5e1;">+5 Chương</button>
+              <button type="button" onclick="App.quickAddChaptersPreset(7)" class="btn btn-sm" style="padding: 2px 8px; font-size: 11.5px; background:#fff; border:1px solid #cbd5e1;">+7 Chương</button>
+            </div>
+          </div>
+
+          <div id="newSubjectChaptersList" style="max-height: 180px; overflow-y: auto; padding-right: 4px;">
+            ${renderChapterRows()}
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; pt: 6px; border-top: 1px dashed #e2e8f0;">
+            <button type="button" onclick="App.addChapterToNewSubjectRow()" class="btn btn-sm" style="display:inline-flex; align-items:center; gap:4px; font-size: 12px; background:#fff; border:1px solid #cbd5e1;">
+              ${Icons.get('plus', 12)} <span>Thêm dòng chương</span>
+            </button>
+            <span style="font-size: 11.5px; color: var(--text-tertiary);">Có thể đổi tên và thêm bớt sau</span>
+          </div>
+        </div>
       </div>
     `;
 
     footer.innerHTML = `
-      <button class="btn" onclick="App.closeModal()">Hủy</button>
-      <button class="btn btn-primary" onclick="App.saveNewSubject()">Lưu môn học</button>
+      <button class="btn" onclick="App.closeModal()">Hủy Bỏ</button>
+      <button class="btn" onclick="App.saveNewSubject(false)" style="display:inline-flex; align-items:center; gap:5px;">
+        ${Icons.get('save', 13)} <span>Chỉ Lưu Môn</span>
+      </button>
+      <button class="btn btn-primary" onclick="App.saveNewSubject(true)" style="display:inline-flex; align-items:center; gap:5px; font-weight:700;">
+        ${Icons.get('zap', 14)} <span>Lưu & Chuyển Sang Nhập Đề (Parser)</span>
+      </button>
     `;
 
     modal.classList.add("active");
   },
 
-  saveNewSubject() {
+  quickAddChaptersPreset(count) {
+    this.syncNewSubjectChaptersState();
+    this.newSubjectChapters = [];
+    for (let i = 1; i <= count; i++) {
+      this.newSubjectChapters.push({
+        id: `c${i}`,
+        name: `Chương ${i}: Nội dung kiến thức phần ${i}`,
+        isGuestAllowed: i === 1 // Mặc định chương 1 mở cho khách
+      });
+    }
+    this.refreshNewSubjectChaptersUI();
+  },
+
+  addChapterToNewSubjectRow(name = "") {
+    this.syncNewSubjectChaptersState();
+    const nextIdx = this.newSubjectChapters.length + 1;
+    this.newSubjectChapters.push({
+      id: `c${nextIdx}`,
+      name: name || `Chương ${nextIdx}: Nội dung kiến thức mới`,
+      isGuestAllowed: false
+    });
+    this.refreshNewSubjectChaptersUI();
+  },
+
+  removeChapterFromNewSubjectRow(idx) {
+    this.syncNewSubjectChaptersState();
+    if (this.newSubjectChapters.length <= 1) {
+      this.showToast("⚠️ Môn học cần ít nhất 1 chương mặc định!", "warning");
+      return;
+    }
+    this.newSubjectChapters.splice(idx, 1);
+    this.refreshNewSubjectChaptersUI();
+  },
+
+  syncNewSubjectChaptersState() {
+    const inputs = document.querySelectorAll(".new-chapter-input");
+    inputs.forEach(inp => {
+      const idx = parseInt(inp.getAttribute("data-index"), 10);
+      if (!isNaN(idx) && this.newSubjectChapters[idx]) {
+        this.newSubjectChapters[idx].name = inp.value.trim() || `Chương ${idx + 1}`;
+      }
+    });
+  },
+
+  refreshNewSubjectChaptersUI() {
+    const listEl = document.getElementById("newSubjectChaptersList");
+    if (!listEl) return;
+    listEl.innerHTML = this.newSubjectChapters.map((c, idx) => `
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+        <span style="font-size: 12px; font-weight: 700; color: var(--text-tertiary); width: 22px; text-align: center;">${idx + 1}.</span>
+        <input 
+          type="text" 
+          class="form-control new-chapter-input" 
+          data-index="${idx}" 
+          value="${c.name.replace(/"/g, '&quot;')}" 
+          placeholder="Tên chương ${idx + 1}..." 
+          style="flex: 1; font-size: 13px; height: 34px;">
+        <button 
+          type="button" 
+          onclick="App.removeChapterFromNewSubjectRow(${idx})" 
+          class="btn btn-sm btn-danger" 
+          style="padding: 4px 8px; display:inline-flex; align-items:center;" 
+          title="Xóa chương này">
+          ${Icons.get('trash', 12)}
+        </button>
+      </div>
+    `).join('');
+  },
+
+  saveNewSubject(autoRedirectToParser = true) {
+    this.syncNewSubjectChaptersState();
     const name = document.getElementById("newSubName")?.value.trim();
     const code = document.getElementById("newSubCode")?.value.trim().toUpperCase();
     const dept = document.getElementById("newSubDept")?.value.trim() || "Đại học Đồng Tháp";
     const author = document.getElementById("newSubAuthor")?.value.trim() || "Shina Sanora";
     const desc = document.getElementById("newSubDesc")?.value.trim() || "";
+    const isGuestAllowed = document.getElementById("newSubGuestAllowed")?.checked !== false;
 
     if (!name || !code) {
       this.showToast("⚠️ Vui lòng nhập đầy đủ Tên môn học và Mã môn học!", "warning");
       return;
     }
+
+    const finalChapters = (this.newSubjectChapters && this.newSubjectChapters.length > 0)
+      ? this.newSubjectChapters.map(c => ({ ...c, isGuestAllowed: c.isGuestAllowed !== false }))
+      : [{ id: "c1", name: "Chương 1: Mở đầu", isGuestAllowed: true }];
 
     const newSub = {
       id: "SUB_" + Date.now(),
@@ -703,16 +862,23 @@ Câu 2: Nội dung câu hỏi số 2 ở đây?
       department: dept,
       author,
       description: desc,
-      chapters: [
-        { id: "c1", name: "Chương 1: Mở đầu" }
-      ],
-      questions: []
+      isGuestAllowed: Boolean(isGuestAllowed),
+      chapters: finalChapters,
+      questions: [],
+      contributors: [],
+      createdAt: new Date().toISOString()
     };
 
     StorageService.saveSubject(newSub);
     this.closeModal();
-    this.showToast(`🎉 Đã tạo môn học "${name}" thành công!`, "success", 3000);
-    this.navigateTo("subject-detail", { subjectId: newSub.id });
+
+    if (autoRedirectToParser) {
+      this.showToast(`🎉 Đã tạo môn "${name}" (${finalChapters.length} chương)! Đang mở trình nhập đề...`, "success", 3500);
+      this.navigateTo("parser", { subjectId: newSub.id });
+    } else {
+      this.showToast(`🎉 Đã tạo môn học "${name}" thành công!`, "success", 3000);
+      this.navigateTo("subject-detail", { subjectId: newSub.id });
+    }
   },
 
   triggerImportFile() {

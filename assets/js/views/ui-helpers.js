@@ -186,5 +186,48 @@ Object.assign(App, {
     };
 
     modal.classList.add("active");
+  },
+
+  showModal(config = {}) {
+    const {
+      title = "Thông báo",
+      body = "",
+      footer = `<button class="btn btn-primary" onclick="App.closeModal()">Đóng</button>`,
+      maxWidth = null
+    } = config;
+
+    const modal = document.getElementById("globalModal");
+    const card = modal ? modal.querySelector(".modal-card") : null;
+    const titleEl = document.getElementById("modalTitle");
+    const bodyEl = document.getElementById("modalBody");
+    const footerEl = document.getElementById("modalFooter");
+
+    if (!modal || !bodyEl) return;
+
+    if (titleEl) titleEl.innerHTML = title;
+    if (bodyEl) bodyEl.innerHTML = body;
+    if (footerEl) footerEl.innerHTML = footer;
+
+    if (card) {
+      if (maxWidth) {
+        card.style.maxWidth = maxWidth;
+        card.style.width = "95vw";
+      } else {
+        card.style.maxWidth = "";
+        card.style.width = "";
+      }
+    }
+
+    modal.classList.add("active");
+  },
+
+  openModal() {
+    const modal = document.getElementById("globalModal");
+    if (modal) modal.classList.add("active");
+  },
+
+  closeModal() {
+    const modal = document.getElementById("globalModal");
+    if (modal) modal.classList.remove("active");
   }
 });

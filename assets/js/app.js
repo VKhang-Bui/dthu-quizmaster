@@ -165,7 +165,9 @@ var App = {
     let hash = `#${view}`;
     const params = new URLSearchParams();
     if (data.subjectId) params.set("subjectId", data.subjectId);
+    if (data.chapterId) params.set("chapterId", data.chapterId);
     if (data.draftId) params.set("draftId", data.draftId);
+    if (data.isDraft) params.set("isDraft", "true");
     if (data.materialId) params.set("materialId", data.materialId);
     if (data.from) params.set("from", data.from);
 
@@ -213,7 +215,7 @@ var App = {
     }
 
     // 2. Nhóm trang Quản Lý & Phê Duyệt Đề (Chỉ Editor & Admin)
-    if (["manage", "moderation", "draft-review"].includes(view)) {
+    if (["manage", "moderation", "draft-review", "question-bank"].includes(view)) {
       if (!isLogged) return { allowed: false, message: "🔒 Vui lòng đăng nhập để truy cập tính năng Quản lý đề thi!" };
       if (!isEditor) return { allowed: false, message: "⛔ Tài khoản của bạn chưa được cấp quyền Quản lý hoặc Phê duyệt đề thi!" };
     }
@@ -338,13 +340,16 @@ var App = {
         this.renderManageView(mainContainer);
         break;
       case "draft-review":
-        this.renderDraftReviewView(mainContainer, data.draftId || this.activeReviewDraftId);
+        this.renderSubjectDetailView(mainContainer, { draftId: data.draftId || this.activeReviewDraftId, isDraft: true });
         break;
       case "parser":
         this.renderParserView(mainContainer, data.subjectId);
         break;
       case "subject-detail":
-        this.renderSubjectDetailView(mainContainer, data.subjectId || this.selectedSubjectDetailId);
+        this.renderSubjectDetailView(mainContainer, data || data.subjectId || this.selectedSubjectDetailId);
+        break;
+      case "question-bank":
+        this.renderQuestionBankView(mainContainer, data || {});
         break;
       case "about":
         this.renderAboutView(mainContainer);

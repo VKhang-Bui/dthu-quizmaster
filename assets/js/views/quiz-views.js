@@ -21,6 +21,28 @@ Object.assign(App, {
     this.quizSetupSubjectId = subject.id;
     const isLogged = StorageService.isLoggedIn();
 
+    // Chặn máy khách truy cập môn học bị khóa
+    if (!isLogged && subject.isGuestAllowed === false) {
+      container.innerHTML = `
+        <div class="view-quiz-setup" style="padding: 48px 20px; max-width: 600px; margin: 40px auto; text-align: center; background: var(--surface); border: 1.5px dashed #cbd5e1; border-radius: var(--radius-md); box-shadow: 0 4px 14px rgba(0,0,0,0.04);">
+          <div style="width: 56px; height: 56px; border-radius: 50%; background: #fef2f2; color: #ef4444; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
+            ${Icons.get('lock', 26)}
+          </div>
+          <h2 style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin-bottom: 8px;">Môn Học Dành Riêng Cho Sinh Viên DThu</h2>
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px;">
+            Môn học <strong>"${subject.name}"</strong> hiện đang được thiết lập giới hạn cho sinh viên và giảng viên Trường Đại học Đồng Tháp. Vui lòng đăng nhập tài khoản để vào phòng thi.
+          </p>
+          <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+            <button class="btn" onclick="App.navigateTo('home')">← Về Trang Chủ</button>
+            <button class="btn btn-primary" onclick="App.openLoginModal()" style="display:inline-flex; align-items:center; gap:5px; font-weight:700;">
+              ${Icons.get('shieldCheck', 14)} <span>Đăng Nhập Tài Khoản</span>
+            </button>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
     // Khởi tạo state cấu hình nếu chưa có hoặc khi đổi môn
     if (!this.quizSetupState || this.quizSetupState.subjectId !== subject.id) {
       this.quizSetupState = {
@@ -29,11 +51,11 @@ Object.assign(App, {
         instantFeedback: true, // Hiện đáp án ngay sau mỗi câu
         autoExpandNotes: true, // Mở giải thích chi tiết
         repeatMistakes: false, // Lặp lại câu sai đến khi đúng
-        timePreset: "auto", // 'auto', '15', '30', '45', '60', '90', 'custom'
+        timePreset: isLogged ? "auto" : "25", // 'auto', '15', '30', '45', '60', '90', 'custom'
         customTimeMinutes: "",
         warnTime: true,
         autoSubmitOnTimeout: true,
-        questionCount: "all", // 'all', '10', '20', '30', '40', '50', '100', 'custom'
+        questionCount: isLogged ? "all" : "25", // 'all', '10', '20', '30', '40', '50', '100', 'custom'
         customQuestionCount: "",
         shuffleQuestions: true,
         shuffleOptions: true,
@@ -41,27 +63,42 @@ Object.assign(App, {
       };
     }
 
-    // Nếu là tài khoản Khách, cưỡng chế chỉ được Thi thử và luôn bật đảo đáp án
+    // Nếu là tài khoản Khách, cưỡng chế chỉ được Thi thử, giới hạn 25/50 câu và 25p/45p
     if (!isLogged) {
       this.quizSetupState.mode = "exam";
       this.quizSetupState.shuffleOptions = true;
+      if (this.quizSetupState.questionCount !== "25" && this.quizSetupState.questionCount !== "50") {
+        this.quizSetupState.questionCount = "25";
+      }
+      if (this.quizSetupState.timePreset !== "25" && this.quizSetupState.timePreset !== "45") {
+        this.quizSetupState.timePreset = (this.quizSetupState.questionCount === "50") ? "45" : "25";
+      }
     }
 
     const state = this.quizSetupState;
     const allQuestions = subject.questions || [];
     const chapters = subject.chapters || [];
+    const guestQuota = !isLogged ? StorageService.getGuestQuotaInfo() : null;
 
     // Tính toán số câu hỏi khả dụng theo phạm vi chương đã chọn
     let availableQuestions = allQuestions;
+    if (!isLogged) {
+      const lockedChapterIds = chapters.filter(c => c.isGuestAllowed === false).map(c => c.id);
+      if (lockedChapterIds.length > 0) {
+        availableQuestions = availableQuestions.filter(q => !lockedChapterIds.includes(q.chapterId));
+      }
+    }
     const isAllChapters = state.selectedChapters.includes("all") || state.selectedChapters.length === 0;
     if (!isAllChapters) {
-      availableQuestions = allQuestions.filter(q => state.selectedChapters.includes(q.chapterId));
+      availableQuestions = availableQuestions.filter(q => state.selectedChapters.includes(q.chapterId));
     }
     const poolCount = availableQuestions.length;
 
     // Số câu thực tế sẽ làm
     let targetQuestionCount = poolCount;
-    if (state.questionCount === "custom") {
+    if (!isLogged) {
+      targetQuestionCount = Math.min(Number(state.questionCount) || 25, poolCount);
+    } else if (state.questionCount === "custom") {
       const parsed = parseInt(state.customQuestionCount, 10);
       targetQuestionCount = (!isNaN(parsed) && parsed > 0) ? Math.min(parsed, poolCount) : poolCount;
     } else if (state.questionCount !== "all") {
@@ -120,18 +157,18 @@ Object.assign(App, {
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
                 <!-- Tab Ôn Tập -->
                 <div 
-                  onclick="App.setQuizSetupMode('practice')" 
-                  style="border: 2px solid ${state.mode === 'practice' ? 'var(--brand-primary)' : 'var(--border)'}; background: ${state.mode === 'practice' ? '#f0fdf4' : 'var(--surface)'}; padding: 16px; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s ease; position: relative; ${!isLogged ? 'opacity: 0.65; background: #f8fafc;' : ''}">
+                  onclick="${isLogged ? "App.setQuizSetupMode('practice')" : "App.showToast('🔒 Chế độ ôn tập kèm giải thích tức thì chỉ dành cho sinh viên đã đăng nhập.', 'warning')"}" 
+                  style="border: 2px solid ${state.mode === 'practice' ? 'var(--brand-primary)' : 'var(--border)'}; background: ${state.mode === 'practice' ? '#f0fdf4' : (isLogged ? 'var(--surface)' : '#f8fafc')}; padding: 16px; border-radius: var(--radius-sm); cursor: ${isLogged ? 'pointer' : 'not-allowed'}; transition: all 0.2s ease; position: relative; ${!isLogged ? 'opacity: 0.65; border-style: dashed;' : ''}">
+                  ${!isLogged ? `<span style="position: absolute; top: 12px; right: 12px; color: var(--text-tertiary);" title="Dành riêng cho sinh viên">${Icons.get('lock', 15)}</span>` : ''}
                   <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
                     <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                       <strong style="font-size: 15px; color: ${state.mode === 'practice' ? '#15803d' : 'var(--text-primary)'}; display: inline-flex; align-items: center; gap: 5px;">
                         <span style="color:#16a34a;">${Icons.get('bookOpen', 16)}</span> <span>Chế Độ Ôn Tập</span>
                       </strong>
-                      ${!isLogged ? `<span class="badge" style="background: #fef3c7; color: #92400e; font-size: 10.5px; font-weight: 700; display:inline-flex; align-items:center; gap:3px;">${Icons.get('lock', 10)} Cần Đăng nhập</span>` : ''}
                     </div>
-                    <input type="radio" name="setupModeRadio" ${state.mode === 'practice' ? 'checked' : ''} ${!isLogged ? 'disabled' : ''} style="cursor: pointer;">
+                    <input type="radio" name="setupModeRadio" ${state.mode === 'practice' ? 'checked' : ''} ${!isLogged ? 'disabled' : ''} style="cursor: ${isLogged ? 'pointer' : 'not-allowed'};">
                   </div>
-                  <p style="font-size: 12.5px; color: var(--text-secondary); margin: 0; line-height: 1.5;">
+                  <p style="font-size: 12.5px; color: var(--text-secondary); margin: 0; line-height: 1.5; padding-right: ${!isLogged ? '18px' : '0'};">
                     ${!isLogged ? 'Tính năng xem đáp án và giải thích chi tiết từng câu chỉ dành cho sinh viên đã đăng nhập tài khoản DThu.' : 'Tự do củng cố kiến thức, học tới đâu xem đáp án & giải thích tới đó, không áp lực thời gian.'}
                   </p>
                 </div>
@@ -147,7 +184,7 @@ Object.assign(App, {
                     <input type="radio" name="setupModeRadio" ${state.mode === 'exam' ? 'checked' : ''} style="cursor: pointer;">
                   </div>
                   <p style="font-size: 12.5px; color: var(--text-secondary); margin: 0; line-height: 1.5;">
-                    Mô phỏng phòng thi thật có bấm giờ đếm ngược, nộp bài mới biết điểm, lưu Lịch Sử Thi & BXH.
+                    Mô phỏng phòng thi thật có bấm giờ đếm ngược, nộp bài mới biết điểm, đánh giá năng lực thực chất.
                   </p>
                 </div>
               </div>
@@ -203,7 +240,7 @@ Object.assign(App, {
                       Thời gian làm bài thi:
                     </label>
                     <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                      ${['auto', '15', '30', '45', '60', '90', 'custom'].map(preset => {
+                      ${(isLogged ? ['auto', '15', '30', '45', '60', '90', 'custom'] : ['25', '45']).map(preset => {
                         const isSel = (state.timePreset === preset);
                         let label = `${preset} phút`;
                         if (preset === 'auto') label = `⚡ Tự động (1p/câu)`;
@@ -221,7 +258,7 @@ Object.assign(App, {
                       }).join('')}
                     </div>
 
-                    ${state.timePreset === 'custom' ? `
+                    ${isLogged && state.timePreset === 'custom' ? `
                       <div style="margin-top: 10px; display: flex; align-items: center; gap: 8px;">
                         <input 
                           type="number" 
@@ -250,10 +287,18 @@ Object.assign(App, {
                     </label>
                   </div>
 
-                  <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #2563eb;">
-                    <span>📜</span>
-                    <span>Kết quả bài thi thử sẽ được tự động ghi nhận vào <strong>Lịch Sử Thi (10 lần gần nhất / lưu 30 ngày)</strong>.</span>
-                  </div>
+                  <!-- Thông báo lưu lịch sử thi -->
+                  ${isLogged ? `
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #2563eb;">
+                      <span>📜</span>
+                      <span>Kết quả bài thi thử sẽ được tự động ghi nhận vào <strong>Lịch Sử Thi (10 lần gần nhất / lưu 30 ngày)</strong>.</span>
+                    </div>
+                  ` : `
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #b45309; background: #fef3c7; border: 1px solid #fde68a; padding: 8px 12px; border-radius: var(--radius-sm);">
+                      <span>🔒</span>
+                      <span><strong>Tài khoản Khách:</strong> Kết quả thi thử chỉ xem ngay sau khi nộp bài, không lưu Lịch Sử Thi và không tích lũy điểm EXP. Đăng nhập để lưu tiến độ ôn luyện.</span>
+                    </div>
+                  `}
                 </div>
               `}
 
@@ -274,11 +319,12 @@ Object.assign(App, {
                   Số lượng câu hỏi trong đề:
                 </label>
                 <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                  ${['all', '10', '20', '30', '40', '50', '100', 'custom'].map(count => {
+                  ${(isLogged ? ['all', '10', '20', '30', '40', '50', '100', 'custom'] : ['25', '50']).map(count => {
                     const isSel = (state.questionCount === count);
                     let label = `${count} câu`;
                     if (count === 'all') label = `Toàn bộ (${poolCount} câu)`;
                     else if (count === 'custom') label = `✏️ Tự nhập`;
+                    else if (!isLogged && count === '50') label = `50 câu (Tối đa)`;
 
                     return `
                       <button 
@@ -292,7 +338,13 @@ Object.assign(App, {
                   }).join('')}
                 </div>
 
-                ${state.questionCount === 'custom' ? `
+                ${!isLogged ? `
+                  <div style="font-size: 12px; color: var(--text-secondary); margin-top: 6px;">
+                    🔒 Tài khoản Khách được làm tối đa 50 câu từ bộ câu hỏi mẫu cố định của môn học.
+                  </div>
+                ` : ''}
+
+                ${isLogged && state.questionCount === 'custom' ? `
                   <div style="margin-top: 10px; display: flex; align-items: center; gap: 8px;">
                     <input 
                       type="number" 
@@ -318,15 +370,15 @@ Object.assign(App, {
                   <input type="checkbox" ${state.shuffleQuestions ? 'checked' : ''} onchange="App.toggleQuizSetupShuffle('shuffleQuestions')" style="width: 18px; height: 18px; cursor: pointer;">
                 </label>
 
-                <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 13.5px; color: var(--text-primary); padding: 8px 12px; background: #f8fafc; border-radius: var(--radius-sm);">
+                <label style="display: flex; align-items: center; justify-content: space-between; font-size: 13.5px; color: var(--text-primary); padding: 8px 12px; background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm); position: relative; ${!isLogged ? 'opacity: 0.75; border-style: dashed; cursor: not-allowed;' : 'cursor: pointer;'}">
+                  ${!isLogged ? `<span style="position: absolute; top: 10px; right: 12px; color: var(--text-tertiary);" title="Luôn bật cho máy khách">${Icons.get('lock', 13)}</span>` : ''}
                   <div>
                     <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                       <strong>🔤 Xáo trộn thứ tự các đáp án A - B - C - D:</strong>
-                      ${!isLogged ? `<span class="badge" style="background: #fef3c7; color: #92400e; font-size: 10.5px; font-weight: 700;">🔒 Khóa với Khách (Luôn bật)</span>` : ''}
                     </div>
                     <div style="font-size: 12px; color: var(--text-secondary);">Tránh việc học vẹt vị trí chữ cái, rèn luyện tư duy thực chất</div>
                   </div>
-                  <input type="checkbox" ${state.shuffleOptions ? 'checked' : ''} ${!isLogged ? 'disabled' : ''} onchange="App.toggleQuizSetupShuffle('shuffleOptions')" style="width: 18px; height: 18px; cursor: pointer;">
+                  <input type="checkbox" ${state.shuffleOptions ? 'checked' : ''} ${!isLogged ? 'disabled' : ''} onchange="App.toggleQuizSetupShuffle('shuffleOptions')" style="width: 18px; height: 18px; cursor: ${isLogged ? 'pointer' : 'not-allowed'}; ${!isLogged ? 'margin-right: 22px;' : ''}">
                 </label>
               </div>
 
@@ -356,21 +408,24 @@ Object.assign(App, {
                 ` : `
                   ${chapters.map((c, cIdx) => {
                     const cQCount = allQuestions.filter(q => q.chapterId === c.id).length;
-                    const isChecked = isAllChapters || state.selectedChapters.includes(c.id);
+                    const isChapterLockedForGuest = !isLogged && (c.isGuestAllowed === false);
+                    const isChecked = !isChapterLockedForGuest && (isAllChapters || state.selectedChapters.includes(c.id));
 
                     return `
-                      <label style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1.5px solid ${isChecked ? 'var(--brand-primary)' : 'var(--border)'}; background: ${isChecked ? '#f0fdf4' : '#ffffff'}; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s ease;">
+                      <label style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1.5px solid ${isChapterLockedForGuest ? 'var(--border)' : (isChecked ? 'var(--brand-primary)' : 'var(--border)')}; background: ${isChapterLockedForGuest ? '#f8fafc' : (isChecked ? '#f0fdf4' : '#ffffff')}; border-radius: var(--radius-sm); cursor: ${isChapterLockedForGuest ? 'not-allowed' : 'pointer'}; transition: all 0.2s ease; position: relative; ${isChapterLockedForGuest ? 'opacity: 0.65; border-style: dashed;' : ''}">
+                        ${isChapterLockedForGuest ? `<span style="position: absolute; top: 12px; right: 12px; color: var(--text-tertiary);" title="Chương nội bộ - Cần đăng nhập">${Icons.get('lock', 14)}</span>` : ''}
                         <div style="display: flex; align-items: center; gap: 10px;">
                           <input 
                             type="checkbox" 
                             ${isChecked ? 'checked' : ''} 
-                            onchange="App.toggleQuizSetupChapter('${c.id}')" 
-                            style="width: 17px; height: 17px; cursor: pointer;">
-                          <span style="font-weight: ${isChecked ? '700' : '500'}; color: ${isChecked ? '#14532d' : 'var(--text-primary)'}; font-size: 13.5px;">
+                            ${isChapterLockedForGuest ? 'disabled' : ''}
+                            onchange="${isChapterLockedForGuest ? '' : `App.toggleQuizSetupChapter('${c.id}')`}" 
+                            style="width: 17px; height: 17px; cursor: ${isChapterLockedForGuest ? 'not-allowed' : 'pointer'};">
+                          <span style="font-weight: ${isChecked ? '700' : '500'}; color: ${isChapterLockedForGuest ? 'var(--text-tertiary)' : (isChecked ? '#14532d' : 'var(--text-primary)')}; font-size: 13.5px;">
                             ${c.name}
                           </span>
                         </div>
-                        <span class="badge" style="background: ${isChecked ? '#dcfce7' : '#f1f5f9'}; color: ${isChecked ? '#15803d' : '#64748b'}; font-weight: 700; font-size: 11.5px;">
+                        <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 700; ${isChapterLockedForGuest ? 'margin-right: 20px;' : ''}">
                           ${cQCount} câu
                         </span>
                       </label>
@@ -397,6 +452,22 @@ Object.assign(App, {
                   Tổng ngân hàng: <strong>${allQuestions.length} câu hỏi</strong>
                 </div>
               </div>
+
+              <!-- Hạn mức lượt thi của khách trong ngày (Guest Quota Card) -->
+              ${!isLogged && guestQuota ? `
+                <div style="background: ${guestQuota.isLimitReached ? '#fef2f2' : '#f0fdf4'}; border: 1.5px ${guestQuota.isLimitReached ? 'dashed #ef4444' : 'solid #86efac'}; border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 14px; font-size: 12.5px; color: ${guestQuota.isLimitReached ? '#b91c1c' : '#15803d'};">
+                  <div style="font-weight: 700; display: flex; align-items: center; justify-content: space-between;">
+                    <span style="display: flex; align-items: center; gap: 5px;">
+                      ${guestQuota.isLimitReached ? Icons.get('alertCircle', 14) : Icons.get('zap', 14)}
+                      <span>Lượt thi hôm nay:</span>
+                    </span>
+                    <span style="font-size: 13px; font-weight: 800;">${guestQuota.isLimitReached ? 'Hết lượt (0/5)' : `Còn ${guestQuota.remaining}/5 lượt`}</span>
+                  </div>
+                  <div style="font-size: 11.5px; margin-top: 4px; opacity: 0.85;">
+                    ${guestQuota.isTampered ? '🚨 Phát hiện can thiệp dữ liệu. Quyền thi bị tạm khóa.' : 'Tự động làm mới 5 lượt lúc 00:00 (Giờ VN)'}
+                  </div>
+                </div>
+              ` : ''}
 
               <!-- Tóm tắt cấu hình -->
               <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; font-size: 13px;">
@@ -431,12 +502,27 @@ Object.assign(App, {
               </div>
 
               <!-- Nút Bắt Đầu Lớn -->
-              <button 
-                class="btn btn-primary" 
-                style="width: 100%; padding: 14px; font-size: 15px; font-weight: 800; letter-spacing: 0.02em; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 10px rgba(37,99,235,0.25);" 
-                onclick="App.launchQuizFromSetup()">
-                🚀 BẮT ĐẦU LÀM BÀI NGAY ➔
-              </button>
+              ${!isLogged && guestQuota && guestQuota.isLimitReached ? `
+                <button 
+                  class="btn btn-primary" 
+                  style="width: 100%; padding: 14px; font-size: 14px; font-weight: 800; background: #94a3b8; border-color: #94a3b8; cursor: not-allowed; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: none;" 
+                  disabled>
+                  🔒 HẾT LƯỢT THI HÔM NAY (0/5)
+                </button>
+                <button 
+                  class="btn btn-primary" 
+                  style="width: 100%; margin-top: 10px; padding: 11px; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px;" 
+                  onclick="App.openLoginModal()">
+                  ${Icons.get('shieldCheck', 14)} <span>Đăng Nhập Để Thi Không Giới Hạn</span>
+                </button>
+              ` : `
+                <button 
+                  class="btn btn-primary" 
+                  style="width: 100%; padding: 14px; font-size: 15px; font-weight: 800; letter-spacing: 0.02em; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 10px rgba(37,99,235,0.25);" 
+                  onclick="App.launchQuizFromSetup()">
+                  🚀 BẮT ĐẦU LÀM BÀI NGAY ➔
+                </button>
+              `}
 
               <button 
                 class="btn" 
@@ -486,12 +572,19 @@ Object.assign(App, {
 
   setQuizSetupCustomTime(val) {
     if (!this.quizSetupState) return;
-    this.quizSetupState.customTimeMinutes = val;
+    this.quizSetupState.customTimeMinutes = String(val).trim();
+    this.renderQuizSetupView(document.getElementById("mainContent"), this.quizSetupSubjectId);
   },
 
   setQuizSetupQuestionCount(count) {
     if (!this.quizSetupState) return;
-    this.quizSetupState.questionCount = count;
+    const isLogged = StorageService.isLoggedIn();
+    if (!isLogged) {
+      this.quizSetupState.questionCount = (count === "50") ? "50" : "25";
+      this.quizSetupState.timePreset = (this.quizSetupState.questionCount === "50") ? "45" : "25";
+    } else {
+      this.quizSetupState.questionCount = count;
+    }
     this.renderQuizSetupView(document.getElementById("mainContent"), this.quizSetupSubjectId);
   },
 
@@ -546,10 +639,18 @@ Object.assign(App, {
       // Khách tuyệt đối chỉ được thi thử và bắt buộc xáo trộn đáp án
       selectedMode = "exam";
       shuffleOpts = true;
+
+      const guestQuota = StorageService.getGuestQuotaInfo();
+      if (guestQuota.isLimitReached || guestQuota.isTampered) {
+        this.showToast("⚠️ Bạn đã dùng hết 5/5 lượt thi thử miễn phí hôm nay (Reset 00:00 VN). Vui lòng đăng nhập!", "warning", 4000);
+        this.renderQuizSetupView(document.getElementById("mainContent"), this.quizSetupSubjectId);
+        this.openLoginModal();
+        return;
+      }
     }
 
-    const questionCount = (state.questionCount === "custom") ? (parseInt(state.customQuestionCount, 10) || "all") : state.questionCount;
-    const customTimeMinutes = (state.timePreset === "custom") ? (parseInt(state.customTimeMinutes, 10) || 45) : ((state.timePreset !== "auto") ? parseInt(state.timePreset, 10) : null);
+    const questionCount = !isLogged ? (Number(state.questionCount) === 50 ? 50 : 25) : ((state.questionCount === "custom") ? (parseInt(state.customQuestionCount, 10) || "all") : state.questionCount);
+    const customTimeMinutes = !isLogged ? (Number(questionCount) === 50 ? 45 : 25) : ((state.timePreset === "custom") ? (parseInt(state.customTimeMinutes, 10) || 45) : ((state.timePreset !== "auto") ? parseInt(state.timePreset, 10) : null));
 
     const session = QuizEngine.createQuizSession(subject, {
       mode: selectedMode,
@@ -565,9 +666,21 @@ Object.assign(App, {
       autoSubmitOnTimeout: state.autoSubmitOnTimeout !== false
     });
 
-    if (session.questions.length === 0) {
+    if (session.isLimitReached) {
+      this.showToast("⚠️ Bạn đã sử dụng hết 5/5 lượt thi thử hôm nay. Vui lòng đăng nhập!", "warning", 4000);
+      this.renderQuizSetupView(document.getElementById("mainContent"), this.quizSetupSubjectId);
+      this.openLoginModal();
+      return;
+    }
+
+    if (!session.questions || session.questions.length === 0) {
       this.showToast("⚠️ Không có câu hỏi nào trong phạm vi lựa chọn!", "warning");
       return;
+    }
+
+    // Tiêu thụ 1 lượt thi của khách sau khi khởi tạo thành công
+    if (!isLogged) {
+      StorageService.consumeGuestAttempt();
     }
 
     this.activeSession = session;

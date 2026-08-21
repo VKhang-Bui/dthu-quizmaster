@@ -117,18 +117,27 @@ Object.assign(App, {
       `;
     }
 
+    const isLogged = StorageService.isLoggedIn();
+
     return subjects.map(sub => {
       const qCount = sub.questions ? sub.questions.length : 0;
       const cCount = sub.chapters ? sub.chapters.length : 0;
       const latest = StorageService.getLatestScoreForSubject(sub.id);
+      const isLockedForGuest = !isLogged && (sub.isGuestAllowed === false);
 
       return `
-        <div class="subject-card" style="${isDraft ? 'border-top: 3px solid #f59e0b;' : ''}">
+        <div class="subject-card" style="${isDraft ? 'border-top: 3px solid #f59e0b;' : ''} ${isLockedForGuest ? 'opacity: 0.85; border: 1.5px dashed var(--border); position: relative;' : 'position: relative;'}">
+          ${isLockedForGuest ? `
+            <span style="position: absolute; top: 14px; right: 14px; color: #94a3b8; display: flex; align-items: center;" title="Dành riêng cho sinh viên DThu">
+              ${Icons.get('lock', 16)}
+            </span>
+          ` : ''}
+
           <div class="subject-card-top">
             <span class="subject-code-badge">${sub.code || sub.id}</span>
             ${isDraft ? `<span class="badge" style="background:#fef3c7; color:#b45309; font-weight:700; display:inline-flex; align-items:center; gap:3px;">${Icons.get('sparkles', 11)} Thử nghiệm</span>` : `<span class="badge badge-gray">${cCount} chương</span>`}
           </div>
-          <h3>${sub.name}</h3>
+          <h3 style="padding-right: ${isLockedForGuest ? '24px' : '0'};">${sub.name}</h3>
           <div class="subject-card-dept" style="display:flex; align-items:center; gap:4px;">${Icons.get('home', 12)} <span>${sub.department || 'Đại học Đồng Tháp'}</span></div>
 
           <div class="subject-meta-stats">
@@ -140,13 +149,31 @@ Object.assign(App, {
             <div class="last-score-text">
               ${latest ? `Lần thi gần nhất: <strong>${latest.score10}/10</strong>` : `Chưa làm bài thi nào`}
             </div>
-            <button class="btn btn-primary btn-sm" onclick="App.openQuizConfigModal('${sub.id}')" style="display:inline-flex; align-items:center; gap:5px;">
-              <span>Vào Ôn Thi</span> ${Icons.get('arrowRight', 13)}
-            </button>
+            ${isLockedForGuest ? `
+              <button class="btn btn-sm" onclick="App.showGuestLockedSubjectPrompt('${sub.name.replace(/'/g, "\\'")}')" style="display:inline-flex; align-items:center; gap:5px; background:#f1f5f9; color:var(--text-secondary); border:1px solid var(--border); font-weight:700;">
+                ${Icons.get('lock', 12)} <span>Mở Khóa Môn</span>
+              </button>
+            ` : `
+              <button class="btn btn-primary btn-sm" onclick="App.openQuizConfigModal('${sub.id}')" style="display:inline-flex; align-items:center; gap:5px;">
+                <span>Vào Ôn Thi</span> ${Icons.get('arrowRight', 13)}
+              </button>
+            `}
           </div>
         </div>
       `;
     }).join('');
+  },
+
+  showGuestLockedSubjectPrompt(subjectName) {
+    this.showConfirmDialog({
+      title: "Môn học nội bộ DThu",
+      message: `Môn học "${subjectName}" chỉ mở cho sinh viên và giảng viên Trường Đại học Đồng Tháp. Vui lòng đăng nhập tài khoản để vào ôn thi toàn bộ nội dung.`,
+      icon: "🔒",
+      confirmText: "Đăng Nhập Ngay",
+      onConfirm: () => {
+        this.openLoginModal();
+      }
+    });
   },
 
   onSearchSubjects() {

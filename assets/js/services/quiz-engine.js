@@ -13,6 +13,73 @@ const QuizEngine = {
     return arr;
   },
 
+  // ── TRÍCH XUẤT BỘ CÂU HỎI MẪU CỐ ĐỊNH CHO MÁY KHÁCH (DETERMINISTIC GUEST POOL - TỐI ĐA 50 CÂU) ──
+  getDeterministicGuestQuestions(subject, requestedCount = 25, selectedChapters = ["all"]) {
+    const allQuestions = subject.questions || [];
+    const chapters = subject.chapters || [];
+    
+    // 1. Lọc các chương mở cho khách
+    const allowedChapters = chapters.filter(c => c.isGuestAllowed !== false);
+    const allowedChapterIds = allowedChapters.map(c => c.id);
+
+    let eligibleQuestions = allQuestions.filter(q => allowedChapterIds.includes(q.chapterId));
+
+    if (Array.isArray(selectedChapters) && selectedChapters.length > 0 && !selectedChapters.includes("all")) {
+      eligibleQuestions = eligibleQuestions.filter(q => selectedChapters.includes(q.chapterId));
+    }
+
+    if (eligibleQuestions.length === 0) return [];
+
+    // 2. Sắp xếp ổn định (Deterministic Sort) theo ID câu hỏi để 100% không đổi dù F5
+    eligibleQuestions.sort((a, b) => {
+      const idA = String(a.id || a.question || "");
+      const idB = String(b.id || b.question || "");
+      return idA.localeCompare(idB);
+    });
+
+    // 3. Phân bổ cố định tối đa 50 câu (Deterministic 50-Pool)
+    let fixed50Pool = [];
+    if (eligibleQuestions.length <= 50) {
+      fixed50Pool = [...eligibleQuestions];
+    } else {
+      const activeChapters = allowedChapters.filter(c => {
+        if (Array.isArray(selectedChapters) && selectedChapters.length > 0 && !selectedChapters.includes("all")) {
+          return selectedChapters.includes(c.id);
+        }
+        return true;
+      });
+
+      const totalActiveQ = eligibleQuestions.length;
+      const targetMax = 50;
+
+      activeChapters.forEach(c => {
+        const chapQ = eligibleQuestions.filter(q => q.chapterId === c.id);
+        if (chapQ.length > 0) {
+          const quota = Math.max(1, Math.round((chapQ.length / totalActiveQ) * targetMax));
+          fixed50Pool.push(...chapQ.slice(0, quota));
+        }
+      });
+
+      if (fixed50Pool.length > 50) {
+        fixed50Pool = fixed50Pool.slice(0, 50);
+      } else if (fixed50Pool.length < 50) {
+        const currentIds = new Set(fixed50Pool.map(q => q.id || q.question));
+        for (const q of eligibleQuestions) {
+          if (fixed50Pool.length >= 50) break;
+          const key = q.id || q.question;
+          if (!currentIds.has(key)) {
+            fixed50Pool.push(q);
+            currentIds.add(key);
+          }
+        }
+      }
+    }
+
+    // 4. Lấy theo số lượng khách yêu cầu (25 hoặc 50)
+    const targetCount = (Number(requestedCount) === 50) ? 50 : 25;
+    return fixed50Pool.slice(0, Math.min(targetCount, fixed50Pool.length));
+  },
+
   // Tạo bộ câu hỏi cho một phiên làm bài
   createQuizSession(subject, options = {}) {
     const {
@@ -30,6 +97,91 @@ const QuizEngine = {
       autoSubmitOnTimeout = true
     } = options;
 
+    const isLogged = (typeof StorageService !== "undefined" && typeof StorageService.isLoggedIn === "function") ? StorageService.isLoggedIn() : true;
+
+    // ── XỬ LÝ ĐẶC THÙ CHO MÁY KHÁCH (100% OFFLINE GUARD & DETERMINISTIC POOL) ──
+    if (!isLogged) {
+      if (typeof StorageService !== "undefined" && typeof StorageService.getGuestQuotaInfo === "function") {
+        const quota = StorageService.getGuestQuotaInfo();
+        if (quota.isLimitReached || quota.isTampered) {
+          return {
+            subjectId: subject.id,
+            subjectName: subject.name,
+            mode: "exam",
+            questions: [],
+            answers: {},
+            score: 0,
+            totalQuestions: 0,
+            timeSpentSeconds: 0,
+            isCompleted: false,
+            isLimitReached: true,
+            startedAt: new Date().toISOString()
+          };
+        }
+      }
+
+      if (subject.isGuestAllowed === false) {
+        return {
+          subjectId: subject.id,
+          subjectName: subject.name,
+          mode: "exam",
+          questions: [],
+          answers: {},
+          score: 0,
+          totalQuestions: 0,
+          timeSpentSeconds: 0,
+          isCompleted: false,
+          startedAt: new Date().toISOString()
+        };
+      }
+
+      // Lấy bộ câu hỏi mẫu CỐ ĐỊNH cho khách (25 hoặc 50 câu)
+      const targetCount = (Number(questionCount) === 50) ? 50 : 25;
+      let pool = this.getDeterministicGuestQuestions(subject, targetCount, chapterIds || (chapterId ? [chapterId] : ["all"]));
+
+      let timeLimitMinutes = (targetCount === 50) ? 45 : 25;
+      if (customTimeMinutes) {
+        timeLimitMinutes = (Number(customTimeMinutes) === 45) ? 45 : 25;
+      }
+
+      if (shuffleOptions) {
+        pool = pool.map(q => {
+          if (!q.options || q.options.length <= 1) return q;
+          const indexedOpts = q.options.map((opt, oi) => ({ ...opt, origIdx: oi }));
+          const shuffledOpts = this.shuffleArray(indexedOpts);
+          const newAnswerIndex = shuffledOpts.findIndex(opt => opt.origIdx === q.answerIndex);
+          const finalOpts = shuffledOpts.map(({ origIdx, ...rest }) => rest);
+          return {
+            ...q,
+            options: finalOpts,
+            answerIndex: newAnswerIndex >= 0 ? newAnswerIndex : q.answerIndex
+          };
+        });
+      }
+
+      return {
+        subjectId: subject.id,
+        subjectName: subject.name,
+        mode: "exam",
+        questions: pool,
+        answers: {},
+        flagged: {},
+        score: 0,
+        totalQuestions: pool.length,
+        timeLimitMinutes: timeLimitMinutes,
+        timeRemainingSeconds: timeLimitMinutes * 60,
+        timeSpentSeconds: 0,
+        isCompleted: false,
+        instantFeedback: false,
+        autoExpandNotes: false,
+        repeatMistakes: false,
+        warnTime: true,
+        autoSubmitOnTimeout: true,
+        startedAt: new Date().toISOString()
+      };
+    }
+
+    // ── XỬ LÝ CHO SINH VIÊN / GIẢNG VIÊN ĐÃ ĐĂNG NHẬP (FULL QUYỀN) ──
     let pool = [...(subject.questions || [])];
 
     // Lọc theo chương hoặc danh sách các chương được chọn
@@ -168,3 +320,5 @@ const QuizEngine = {
     return { result, details };
   }
 };
+
+window.QuizEngine = QuizEngine;

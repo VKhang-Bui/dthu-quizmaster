@@ -662,6 +662,12 @@ Object.assign(App, {
 
             this.closeModal();
             this.renderHeader();
+            if (typeof DynamicIsland !== "undefined" && typeof DynamicIsland.init === "function") {
+              DynamicIsland.init();
+            }
+            if (typeof StudyDockView !== "undefined" && typeof StudyDockView.init === "function") {
+              StudyDockView.init();
+            }
             this.showToast(`🎉 Đăng nhập thành công! Chào mừng ${cloudUser.fullName} (${(cloudUser.role || 'student').toUpperCase()})`, "success", 3500);
             this.navigateTo("home");
             return;
@@ -678,6 +684,12 @@ Object.assign(App, {
       const user = StorageService.authenticateUser(mssv, pin);
       this.closeModal();
       this.renderHeader();
+      if (typeof DynamicIsland !== "undefined" && typeof DynamicIsland.init === "function") {
+        DynamicIsland.init();
+      }
+      if (typeof StudyDockView !== "undefined" && typeof StudyDockView.init === "function") {
+        StudyDockView.init();
+      }
       this.showToast(`🎉 Đăng nhập thành công! Chào mừng ${user.fullName} (${user.role.toUpperCase()})`, "success", 3500);
       this.navigateTo("home");
     } catch (err) {

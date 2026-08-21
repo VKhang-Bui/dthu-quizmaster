@@ -179,7 +179,7 @@ export default {
         if (path === "/health" || path === "") {
           return new Response(JSON.stringify({
             status: "ok",
-            version: "4.2.0-beta.a1f8c3",
+            version: "4.2.2-beta.a1f8c3",
             provider: "Cloudflare D1 SQL Database",
             timestamp: new Date().toISOString()
           }), { headers: corsHeaders });
@@ -637,14 +637,18 @@ export default {
         }
 
         // ----------------------------------------------------
-        // 9. DRAFTS: LẤY DANH SÁCH ĐỀ THI ĐÓNG GÓP (ADMIN & EDITOR)
+        // 9. DRAFTS: LẤY DANH SÁCH ĐỀ THI ĐÓNG GÓP (PUBLIC & COMMUNITY)
         // ----------------------------------------------------
         if (path === "/drafts" && request.method === "GET") {
-          const isEditorOrAdmin = isAdmin || tokenPayload?.role === "editor";
-          if (!isEditorOrAdmin) {
-            return new Response(JSON.stringify({ success: false, error: "Lỗi 403: Cần quyền Ban Biên Tập hoặc Quản trị viên." }), { status: 403, headers: corsHeaders });
+          const targetId = url.searchParams.get("id");
+          let query = "SELECT * FROM draft_submissions WHERE status = 'pending' ORDER BY created_at DESC";
+          let params = [];
+          if (targetId) {
+            query = "SELECT * FROM draft_submissions WHERE id = ?";
+            params = [targetId];
           }
-          const { results } = await env.DB.prepare("SELECT * FROM draft_submissions WHERE status = 'pending' ORDER BY created_at DESC").all();
+
+          const { results } = await env.DB.prepare(query).bind(...params).all();
           const mapped = results.map(d => {
             let parsedData = {};
             try { parsedData = JSON.parse(d.data_json); } catch (e) {}
@@ -655,6 +659,7 @@ export default {
               name: d.subject_name,
               code: d.subject_code,
               status: d.status,
+              isDraft: true,
               createdAt: d.created_at
             });
           });
@@ -687,22 +692,6 @@ export default {
         }
 
         // ----------------------------------------------------
-        // 9.2. DRAFTS: CẬP NHẬT TRẠNG THÁI DUYỆT / TỪ CHỐI (ADMIN & EDITOR)
-        // ----------------------------------------------------
-        if (path === "/drafts/update-status" && request.method === "POST") {
-          const isEditorOrAdmin = isAdmin || tokenPayload?.role === "editor";
-          if (!isEditorOrAdmin) {
-            return new Response(JSON.stringify({ success: false, error: "Lỗi 403: Cần quyền Ban Biên Tập hoặc Quản trị viên." }), { status: 403, headers: corsHeaders });
-          }
-          const body = await safeParseJson(request);
-          if (!body || !body.id || !body.status) {
-            return new Response(JSON.stringify({ success: false, error: "Thiếu ID đề thi hoặc trạng thái cần cập nhật" }), { status: 400, headers: corsHeaders });
-          }
-          await env.DB.prepare("UPDATE draft_submissions SET status = ? WHERE id = ?").bind(String(body.status), String(body.id)).run();
-          return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
-        }
-
-        // ----------------------------------------------------
         // 9.3. DRAFTS: XÓA VĨNH VIỄN ĐỀ THI ĐÓNG GÓP (ADMIN & EDITOR)
         // ----------------------------------------------------
         if (path === "/drafts/delete" && request.method === "POST") {
@@ -719,6 +708,35 @@ export default {
         }
 
         // ----------------------------------------------------
+        // 9.4. DRAFTS: CẬP NHẬT HOẶC THÊM MỚI ĐỀ THI ĐÓNG GÓP
+        // ----------------------------------------------------
+        if (path === "/drafts/upsert" && request.method === "POST") {
+          const body = await safeParseJson(request);
+          if (!body || !body.id) {
+            return new Response(JSON.stringify({ success: false, error: "Thiếu ID đề thi" }), { status: 400, headers: corsHeaders });
+          }
+          const id = String(body.id);
+          const authorName = String(body.author || tokenPayload?.sub || "Sinh viên").trim();
+          const subName = String(body.name || "Bộ đề đóng góp").trim();
+          const subCode = String(body.code || "CONTRIB-01").trim();
+          const status = String(body.status || "pending").trim();
+          const dataJson = JSON.stringify(body);
+
+          await env.DB.prepare(`
+            INSERT INTO draft_submissions (id, user_id, author_name, subject_name, subject_code, status, data_json, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(id) DO UPDATE SET
+              author_name = EXCLUDED.author_name,
+              subject_name = EXCLUDED.subject_name,
+              subject_code = EXCLUDED.subject_code,
+              status = EXCLUDED.status,
+              data_json = EXCLUDED.data_json
+          `).bind(id, body.userId || tokenPayload?.sub || "", authorName, subName, subCode, status, dataJson).run();
+
+          return new Response(JSON.stringify({ success: true, id }), { headers: corsHeaders });
+        }
+
+        // ----------------------------------------------------
         // 10. QUIZ: LẤY LỊCH SỬ THI TỪ CLOUDFLARE D1
         // ----------------------------------------------------
         if (path === "/quiz/history" && request.method === "GET") {
@@ -728,36 +746,281 @@ export default {
           const targetStudentId = (isAdmin && url.searchParams.get("studentId")) ? url.searchParams.get("studentId") : tokenPayload.sub;
           const { results } = await env.DB.prepare(`
             SELECT id, student_id as studentId, full_name as userName, subject_id as subjectId,
-                   subject_name as subjectName, score as score10, correct_count as correctCount,
-                   total_questions as totalQuestions, time_spent_seconds as timeTakenSeconds,
-                   submitted_at as completedAt
+                   subject_name as subjectName, score, correct_count as correctCount,
+                   total_questions as totalQuestions, time_spent_seconds as timeSpentSeconds,
+                   submitted_at as submittedAt
             FROM quiz_submissions
             WHERE student_id = ?
             ORDER BY submitted_at DESC
-            LIMIT 30
+            LIMIT 100
           `).bind(targetStudentId).all();
 
-          const mapped = results.map(r => ({
-            ...r,
-            mode: "exam",
-            isSynced: true,
-            isPassed: (r.score10 >= 5.0),
-            percentage: r.totalQuestions > 0 ? Math.round((r.correctCount / r.totalQuestions) * 100) : 0,
-            gradeTitle: r.score10 >= 9.0 ? "Xuất sắc 🎉" : (r.score10 >= 8.0 ? "Giỏi ⭐" : (r.score10 >= 6.5 ? "Khá 👍" : (r.score10 >= 5.0 ? "Đạt Yêu Cầu ✓" : "Cần cố gắng thêm")))
-          }));
+          return new Response(JSON.stringify({ success: true, data: results }), { headers: corsHeaders });
+        }
+
+
+        // ----------------------------------------------------
+        // 11.1. LEADERBOARD: RESET ĐIỂM MÙA GIẢI (ADMIN ONLY)
+        // ----------------------------------------------------
+        if (path === "/leaderboard/reset-season" && request.method === "POST") {
+          if (!isAdmin) {
+            return new Response(JSON.stringify({ success: false, error: "Lỗi 403: Cần quyền Quản trị viên." }), { status: 403, headers: corsHeaders });
+          }
+          await env.DB.prepare("UPDATE users SET season_exp = 0, season_cp = 0, updated_at = CURRENT_TIMESTAMP").run();
+          return new Response(JSON.stringify({ success: true, message: "Đã đặt lại điểm mùa giải về 0 cho tất cả thành viên." }), { headers: corsHeaders });
+        }
+
+        // ----------------------------------------------------
+        // 12. OFFICIAL SUBJECTS: LẤY DANH SÁCH MÔN HỌC & CÂU HỎI TỪ CLOUD D1 (PUBLIC)
+        // ----------------------------------------------------
+        if (path === "/subjects" && request.method === "GET") {
+          const { results } = await env.DB.prepare(`
+            SELECT id, code, name, department, author, description, icon, status,
+                   is_guest_allowed as isGuestAllowed, chapters_json, questions_json,
+                   created_at as createdAt, updated_at as updatedAt
+            FROM official_subjects
+            ORDER BY created_at ASC
+          `).all();
+
+          const mapped = results.map(s => {
+            let chapters = [];
+            let questions = [];
+            let contributors = [];
+            let extraMeta = {};
+            try {
+              const parsedChapters = JSON.parse(s.chapters_json || "[]");
+              if (Array.isArray(parsedChapters)) {
+                chapters = parsedChapters;
+              } else if (parsedChapters && typeof parsedChapters === "object") {
+                chapters = parsedChapters.chapters || [];
+                contributors = parsedChapters.contributors || [];
+                extraMeta = parsedChapters.metadata || {};
+              }
+            } catch (e) {}
+            try { questions = JSON.parse(s.questions_json || "[]"); } catch (e) {}
+
+            return {
+              id: s.id,
+              code: s.code,
+              name: s.name,
+              department: s.department || "Khoa Kỹ thuật - Công nghệ",
+              author: s.author || "Ban Biên Tập",
+              description: s.description || "",
+              icon: s.icon || "📚",
+              status: s.status || "official",
+              isGuestAllowed: s.isGuestAllowed === 1 || s.isGuestAllowed === true,
+              credits: extraMeta.credits || 2,
+              durationMinutes: extraMeta.durationMinutes || 45,
+              passScore: extraMeta.passScore || 5.0,
+              chapters: chapters.map(c => ({
+                ...c,
+                isGuestAllowed: c.isGuestAllowed !== false
+              })),
+              questions: questions,
+              contributors: contributors,
+              createdAt: s.createdAt,
+              updatedAt: s.updatedAt
+            };
+          });
 
           return new Response(JSON.stringify({ success: true, data: mapped }), { headers: corsHeaders });
         }
 
         // ----------------------------------------------------
-        // 11. SEASON: ĐẶT LẠI ĐIỂM MÙA GIẢI (CHỈ ADMIN)
+        // 12.1. OFFICIAL SUBJECTS: THÊM / CẬP NHẬT MÔN HỌC LÊN CLOUD D1 (ADMIN & EDITOR)
         // ----------------------------------------------------
-        if (path === "/season/reset-points" && request.method === "POST") {
+        if (path === "/subjects/upsert" && request.method === "POST") {
+          const isEditorOrAdmin = isAdmin || tokenPayload?.role === "editor";
+          if (!isEditorOrAdmin) {
+            return new Response(JSON.stringify({ success: false, error: "Lỗi 403: Cần quyền Ban Biên Tập hoặc Quản trị viên." }), { status: 403, headers: corsHeaders });
+          }
+
+          const body = await safeParseJson(request);
+          if (!body || !body.id || !body.name) {
+            return new Response(JSON.stringify({ success: false, error: "Thiếu ID hoặc Tên môn học" }), { status: 400, headers: corsHeaders });
+          }
+
+          const id = String(body.id).trim();
+          const code = String(body.code || "SUB-01").trim();
+          const name = String(body.name).trim();
+          const department = String(body.department || "Khoa Kỹ thuật - Công nghệ").trim();
+          const author = String(body.author || tokenPayload?.sub || "Ban Biên Tập").trim();
+          const description = String(body.description || "").trim();
+          const icon = String(body.icon || "📚").trim();
+          const status = String(body.status || "official").trim();
+          const isGuestAllowed = (body.isGuestAllowed !== false) ? 1 : 0;
+          
+          const chaptersJson = JSON.stringify(body.chapters || []);
+          const questionsJson = JSON.stringify(body.questions || []);
+
+          await env.DB.prepare(`
+            INSERT INTO official_subjects (
+              id, code, name, department, author, description, icon, status,
+              is_guest_allowed, chapters_json, questions_json, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON CONFLICT(id) DO UPDATE SET
+              code = EXCLUDED.code,
+              name = EXCLUDED.name,
+              department = EXCLUDED.department,
+              author = EXCLUDED.author,
+              description = EXCLUDED.description,
+              icon = EXCLUDED.icon,
+              status = EXCLUDED.status,
+              is_guest_allowed = EXCLUDED.is_guest_allowed,
+              chapters_json = EXCLUDED.chapters_json,
+              questions_json = EXCLUDED.questions_json,
+              updated_at = CURRENT_TIMESTAMP
+          `).bind(id, code, name, department, author, description, icon, status, isGuestAllowed, chaptersJson, questionsJson).run();
+
+          return new Response(JSON.stringify({ success: true, id }), { headers: corsHeaders });
+        }
+
+        // ----------------------------------------------------
+        // 12.2. OFFICIAL SUBJECTS: XÓA VĨNH VIỄN MÔN HỌC KHỎI CLOUD D1 (ADMIN ONLY)
+        // ----------------------------------------------------
+        if (path === "/subjects/delete" && request.method === "POST") {
           if (!isAdmin) {
             return new Response(JSON.stringify({ success: false, error: "Lỗi 403: Cần quyền Quản trị viên." }), { status: 403, headers: corsHeaders });
           }
-          await env.DB.prepare("UPDATE users SET season_exp = 0, season_cp = 0, updated_at = CURRENT_TIMESTAMP WHERE status = 'active'").run();
-          return new Response(JSON.stringify({ success: true, message: "Đã đặt lại điểm mùa giải về 0 cho tất cả thành viên." }), { headers: corsHeaders });
+
+          const body = await safeParseJson(request);
+          if (!body || !body.id) {
+            return new Response(JSON.stringify({ success: false, error: "Thiếu ID môn học cần xóa" }), { status: 400, headers: corsHeaders });
+          }
+
+          await env.DB.prepare("DELETE FROM official_subjects WHERE id = ?").bind(String(body.id)).run();
+          return new Response(JSON.stringify({ success: true, message: "Đã xóa môn học khỏi Cloudflare D1." }), { headers: corsHeaders });
+        }
+
+        // ----------------------------------------------------
+        // 12.3. OFFICIAL SUBJECTS: ĐỒNG BỘ HÀNG LOẠT TOÀN BỘ MÔN LÊN CLOUD D1 (ADMIN ONLY)
+        // ----------------------------------------------------
+        if (path === "/subjects/sync-all" && request.method === "POST") {
+          if (!isAdmin) {
+            return new Response(JSON.stringify({ success: false, error: "Lỗi 403: Cần quyền Quản trị viên." }), { status: 403, headers: corsHeaders });
+          }
+
+          const list = await safeParseJson(request);
+          if (!Array.isArray(list)) {
+            return new Response(JSON.stringify({ success: false, error: "Dữ liệu phải là danh sách mảng môn học" }), { status: 400, headers: corsHeaders });
+          }
+
+          for (const sub of list) {
+            if (!sub.id || !sub.name) continue;
+            const id = String(sub.id).trim();
+            const code = String(sub.code || "SUB-01").trim();
+            const name = String(sub.name).trim();
+            const department = String(sub.department || "Khoa Kỹ thuật - Công nghệ").trim();
+            const author = String(sub.author || "Ban Biên Tập").trim();
+            const description = String(sub.description || "").trim();
+            const icon = String(sub.icon || "📚").trim();
+            const status = String(sub.status || "official").trim();
+            const isGuestAllowed = (sub.isGuestAllowed !== false) ? 1 : 0;
+            const chaptersJson = JSON.stringify(sub.chapters || []);
+            const questionsJson = JSON.stringify(sub.questions || []);
+
+            await env.DB.prepare(`
+              INSERT INTO official_subjects (
+                id, code, name, department, author, description, icon, status,
+                is_guest_allowed, chapters_json, questions_json, created_at, updated_at
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+              ON CONFLICT(id) DO UPDATE SET
+                code = EXCLUDED.code,
+                name = EXCLUDED.name,
+                department = EXCLUDED.department,
+                author = EXCLUDED.author,
+                description = EXCLUDED.description,
+                icon = EXCLUDED.icon,
+                status = EXCLUDED.status,
+                is_guest_allowed = EXCLUDED.is_guest_allowed,
+                chapters_json = EXCLUDED.chapters_json,
+                questions_json = EXCLUDED.questions_json,
+                updated_at = CURRENT_TIMESTAMP
+            `).bind(id, code, name, department, author, description, icon, status, isGuestAllowed, chaptersJson, questionsJson).run();
+          }
+
+          return new Response(JSON.stringify({ success: true, count: list.length }), { headers: corsHeaders });
+        }
+
+        // ----------------------------------------------------
+        // 13. AI: BÓC TÁCH ĐỀ THI BẰNG GOOGLE GEMINI AI STUDIO (DUAL GATEWAY)
+        // ----------------------------------------------------
+        if (path === "/ai/parse" && request.method === "POST") {
+          const userCustomKey = request.headers.get("X-User-Gemini-Key");
+          const apiKey = userCustomKey || env.GEMINI_API_KEY;
+
+          if (!apiKey) {
+            return new Response(JSON.stringify({
+              success: false,
+              error: "Hệ thống chưa được cấu hình GEMINI_API_KEY. Vui lòng nhập API Key cá nhân trong phần Cài đặt."
+            }), { status: 400, headers: corsHeaders });
+          }
+
+          // Áp dụng Rate Limit nếu dùng Server Key (Tối đa 15 lần / phút / IP)
+          if (!userCustomKey) {
+            if (!checkRateLimit(clientIP, "ai_parse", 15, 60000)) {
+              return new Response(JSON.stringify({
+                success: false,
+                error: "Lỗi 429: Bạn đã gửi quá nhiều yêu cầu bóc tách AI. Vui lòng đợi 1 phút hoặc sử dụng API Key cá nhân."
+              }), { status: 429, headers: corsHeaders });
+            }
+          }
+
+          const body = await safeParseJson(request);
+          if (!body || !body.payload) {
+            return new Response(JSON.stringify({ success: false, error: "Dữ liệu payload AI không hợp lệ" }), { status: 400, headers: corsHeaders });
+          }
+
+          const model = body.model || "gemini-3.5-flash-lite";
+          const googleUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+          const aiRes = await fetch(googleUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-goog-api-key": apiKey
+            },
+            body: JSON.stringify(body.payload)
+          });
+
+          const aiData = await aiRes.json();
+          if (!aiRes.ok) {
+            const errMsg = aiData.error?.message || `Lỗi từ Google AI API (${aiRes.status})`;
+            return new Response(JSON.stringify({ success: false, error: errMsg }), { status: aiRes.status, headers: corsHeaders });
+          }
+
+          const generatedText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          return new Response(JSON.stringify({
+            success: true,
+            text: generatedText,
+            model: model,
+            usageMetadata: aiData.usageMetadata || null
+          }), { headers: corsHeaders });
+        }
+
+        // ----------------------------------------------------
+        // 13.1. AI: ĐẾM TOKEN CHÍNH XÁC QUA GOOGLE TOKENIZER
+        // ----------------------------------------------------
+        if (path === "/ai/count-tokens" && request.method === "POST") {
+          const userCustomKey = request.headers.get("X-User-Gemini-Key");
+          const apiKey = userCustomKey || env.GEMINI_API_KEY;
+
+          if (!apiKey) {
+            return new Response(JSON.stringify({ success: false, error: "Hệ thống chưa được cấu hình GEMINI_API_KEY." }), { status: 400, headers: corsHeaders });
+          }
+
+          const body = await safeParseJson(request);
+          const model = body?.model || "gemini-3.5-flash-lite";
+          const countUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:countTokens?key=${encodeURIComponent(apiKey)}`;
+
+          const cRes = await fetch(countUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body?.payload || {})
+          });
+
+          const cData = await cRes.json();
+          return new Response(JSON.stringify(cData), { status: cRes.status, headers: corsHeaders });
         }
 
         return new Response(JSON.stringify({ error: "Endpoint not found" }), { status: 404, headers: corsHeaders });

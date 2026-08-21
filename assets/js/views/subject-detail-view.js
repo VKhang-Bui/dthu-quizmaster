@@ -1,465 +1,562 @@
 /**
- * SUBJECT DETAIL VIEW MODULE
- * Chi tiết môn học: Ngân hàng câu hỏi, Quản lý chương, CRUD câu hỏi.
- * Tách từ app.js để dễ quản lý.
+ * SHINORA QUIZMASTER - SUBJECT DETAIL VIEW MODULE (v4.2.1)
+ * Trang Tổng Quan & Bảng Điều Khiển Môn Học (Subject Control Hub):
+ * - Hỗ trợ 2 chế độ: Môn học chính thức & Đề thi đóng góp chờ phê duyệt (isDraft: true).
+ * - Khung kiểm duyệt Draft Moderation Hub Banner (màu vàng cam nổi bật kèm nút Duyệt, Từ chối, Sửa đề).
+ * - Nhân sự 3 lớp: Người tạo, Người duyệt, Danh sách sinh viên đóng góp (Contributors).
+ * - Bộ chỉ số tổng quan: Tổng câu hỏi, Số chương, Tổng lượt thi, Điểm số.
+ * - Lưới thẻ chi tiết từng chương (Chapter Tiles) — Click 1 chạm mở Ngân hàng câu hỏi riêng của chương.
+ * - Khung mở rộng "Xem thêm" metadata chuyên sâu.
  */
 
 Object.assign(App, {
-  renderSubjectDetailView(container, subjectId) {
-    this.selectedSubjectDetailId = subjectId;
-    const sub = StorageService.getSubjectById(subjectId);
+  selectedSubjectDetailId: null,
+  isSubjectDetailExpanded: false,
+  activeSubjectIsDraft: false,
+
+  renderSubjectDetailView(container, param) {
+    let subjectId = typeof param === "string" ? param : (param?.subjectId || param?.id || this.selectedSubjectDetailId);
+    let draftId = typeof param === "object" ? (param?.draftId) : null;
+    let isDraft = Boolean(draftId || (typeof param === "object" && param?.isDraft) || (param === "draft"));
+
+    let sub = null;
+    if (isDraft) {
+      sub = StorageService.getDraftById(draftId || subjectId);
+    } else {
+      sub = StorageService.getSubjectById(subjectId);
+    }
+
+    // Fallback tìm kiếm chéo
+    if (!sub && !isDraft) {
+      sub = StorageService.getDraftById(subjectId);
+      if (sub) isDraft = true;
+    }
+    if (!sub && isDraft) {
+      sub = StorageService.getSubjectById(subjectId);
+      if (sub) isDraft = false;
+    }
+
     if (!sub) {
-      this.navigateTo("manage");
+      if (typeof CloudflareClient !== "undefined") {
+        container.innerHTML = `
+          <div class="view-subject-detail" style="text-align: center; padding: 80px 20px;">
+            <div class="spinner" style="margin: 0 auto 16px auto; width: 36px; height: 36px; border: 3px solid #e2e8f0; border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Đang tải dữ liệu từ Cloudflare D1...</h3>
+            <p style="font-size: 13px; color: var(--text-secondary);">Hệ thống đang đồng bộ nội dung và danh sách câu hỏi</p>
+          </div>
+        `;
+        const fetchPromise = isDraft 
+          ? CloudflareClient.getDraftById(draftId || subjectId)
+          : CloudflareClient.getOfficialSubjects();
+
+        fetchPromise.then(res => {
+          if (isDraft && res) {
+            StorageService.saveDraftSubject(res);
+            this.renderSubjectDetailView(container, param);
+          } else if (!isDraft && Array.isArray(res)) {
+            StorageService.saveSubjects(res);
+            this.renderSubjectDetailView(container, param);
+          } else {
+            this.showToast("⚠️ Không tìm thấy thông tin môn học hoặc đề thi!", "warning");
+            this.navigateTo("home");
+          }
+        }).catch(e => {
+          this.showToast("⚠️ Lỗi kết nối tải dữ liệu!", "danger");
+          this.navigateTo("home");
+        });
+        return;
+      }
+
+      this.showToast("⚠️ Không tìm thấy thông tin môn học hoặc đề thi!", "warning");
+      this.navigateTo("home");
+      return;
+    }
+
+    this.selectedSubjectDetailId = sub.id;
+    this.activeSubjectIsDraft = isDraft;
+    const isLogged = StorageService.isLoggedIn();
+
+    // Chặn máy khách truy cập môn học bị khóa
+    if (!isDraft && !isLogged && sub.isGuestAllowed === false) {
+      container.innerHTML = `
+        <div class="view-subject-detail" style="padding: 48px 20px; max-width: 600px; margin: 40px auto; text-align: center; background: var(--surface); border: 1.5px dashed #cbd5e1; border-radius: var(--radius-md); box-shadow: 0 4px 14px rgba(0,0,0,0.04);">
+          <div style="width: 56px; height: 56px; border-radius: 50%; background: #fef2f2; color: #ef4444; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
+            ${Icons.get('lock', 26)}
+          </div>
+          <h2 style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin-bottom: 8px;">Môn Học Dành Riêng Cho Sinh Viên DThu</h2>
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px;">
+            Môn học <strong>"${sub.name}"</strong> hiện đang được thiết lập giới hạn cho sinh viên và giảng viên Trường Đại học Đồng Tháp. Vui lòng đăng nhập tài khoản để xem chi tiết và ôn thi.
+          </p>
+          <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+            <button class="btn" onclick="App.navigateTo('home')">← Về Trang Chủ</button>
+            <button class="btn btn-primary" onclick="App.openLoginModal()" style="display:inline-flex; align-items:center; gap:5px; font-weight:700;">
+              ${Icons.get('shieldCheck', 14)} <span>Đăng Nhập Tài Khoản</span>
+            </button>
+          </div>
+        </div>
+      `;
       return;
     }
 
     const allQuestions = sub.questions || [];
     const qCount = allQuestions.length;
     const chapters = sub.chapters || [];
-    const latestScore = StorageService.getLatestScoreForSubject(sub.id);
-    const activeTab = this.subjectDetailTab || "questions";
-    const activeFilter = this.selectedChapterFilter || "all";
-    const searchKeyword = (this.subjectSearchKeyword || "").toLowerCase().trim();
+    const latestScore = isDraft ? null : StorageService.getLatestScoreForSubject(sub.id);
+    const allHistory = typeof StorageService.getHistory === "function" ? StorageService.getHistory() : [];
+    const history = isDraft ? [] : (allHistory || []).filter(h => h.subjectId === sub.id || h.subjectName === sub.name);
+    const totalAttempts = history.length;
 
-    // 1. Lọc theo Chương
-    let filtered = (activeFilter === "all")
-      ? allQuestions
-      : allQuestions.filter(q => q.chapterId === activeFilter);
-
-    // 2. Lọc theo Từ khóa tìm kiếm
-    if (searchKeyword) {
-      filtered = filtered.filter(q => {
-        const qText = (q.question || "").toLowerCase();
-        const optText = (q.options || []).map(o => (o.text || "").toLowerCase()).join(" ");
-        const noteText = (q.options || []).map(o => (o.note || "").toLowerCase()).join(" ");
-        return qText.includes(searchKeyword) || optText.includes(searchKeyword) || noteText.includes(searchKeyword);
-      });
+    let avgScore = 0;
+    if (totalAttempts > 0) {
+      const sum = history.reduce((acc, h) => acc + (Number(h.score10) || 0), 0);
+      avgScore = (sum / totalAttempts).toFixed(1);
     }
 
-    // 3. Phân trang (100 câu hỏi / 1 trang)
-    const PAGE_SIZE = 100;
-    const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
-    const currentPage = Math.min(Math.max(this.subjectQuestionPage || 0, 0), totalPages - 1);
-    const pageQuestions = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
-    const startIndex = filtered.length > 0 ? (currentPage * PAGE_SIZE + 1) : 0;
-    const endIndex = Math.min((currentPage + 1) * PAGE_SIZE, filtered.length);
-
-    const isLogged = StorageService.isLoggedIn();
     const profile = StorageService.getUserProfile();
     const isEditor = isLogged && (profile.role === "admin" || profile.role === "editor" || (profile.permissions && profile.permissions.canEditSubjects));
 
-    // Tên chương đang lọc để hiển thị trên nút phễu
-    let activeFilterName = "Tất cả chương";
-    if (activeFilter !== "all") {
-      const cObj = chapters.find(c => c.id === activeFilter);
-      activeFilterName = cObj ? cObj.name : "Chương đã chọn";
+    // Môn học đích dự kiến nếu là bản draft
+    let targetSubObj = null;
+    if (isDraft) {
+      const allOfficial = StorageService.getSubjects();
+      if (sub.targetSubjectId && sub.targetSubjectId !== "NEW") {
+        targetSubObj = allOfficial.find(s => s.id === sub.targetSubjectId);
+      }
+      if (!targetSubObj && sub.code) {
+        targetSubObj = allOfficial.find(s => s.code && s.code.toLowerCase() === sub.code.toLowerCase());
+      }
     }
 
+    // Danh sách người đóng góp (Contributors)
+    const contributors = sub.contributors || [];
+
     container.innerHTML = `
-      <div class="view-subject-detail" style="padding: 20px; max-width: 1150px; margin: 0 auto; width: 100%;">
+      <div class="view-subject-detail" style="padding: 24px 20px; max-width: 1150px; margin: 0 auto; width: 100%;">
         
-        <!-- Back Navigation & Top Actions Bar -->
+        <!-- Top Navigation Bar & Action Buttons -->
         <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 14px;">
-          <button class="btn btn-sm" onclick="App.navigateTo('${isEditor ? 'manage' : 'home'}')" style="display:inline-flex; align-items:center; gap:6px;">
-            ${isEditor ? `${Icons.get('chevronLeft', 14)} <span>Quay lại danh sách môn</span>` : `${Icons.get('home', 14)} <span>Về Trang Chủ</span>`}
-          </button>
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--text-secondary);">
+            ${isDraft ? `
+              <button class="btn btn-sm" onclick="App.switchManageTab('drafts'); App.navigateTo('manage')" style="display:inline-flex; align-items:center; gap:6px;">
+                ${Icons.get('chevronLeft', 14)} <span>Quay lại Hàng Đợi Duyệt</span>
+              </button>
+            ` : `
+              <button class="btn btn-sm" onclick="App.navigateTo('${isEditor ? 'manage' : 'home'}')" style="display:inline-flex; align-items:center; gap:6px;">
+                ${isEditor ? `${Icons.get('chevronLeft', 14)} <span>Quản lý bộ đề</span>` : `${Icons.get('home', 14)} <span>Trang chủ</span>`}
+              </button>
+            `}
+            <span>/</span>
+            <span style="font-weight: 700; color: var(--text-primary); display:inline-flex; align-items:center; gap:4px;">
+              ${Icons.get('book', 14)} <span>${sub.name}</span>
+            </span>
+          </div>
+
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button class="btn btn-sm btn-primary" onclick="App.openQuizConfigModal('${sub.id}')" style="display:inline-flex; align-items:center; gap:6px;">
-              ${Icons.get('zap', 14)} <span>Vào Làm Bài Ngay</span>
-            </button>
-            ${isEditor ? `
-              <button class="btn btn-sm" onclick="App.navigateTo('parser', { subjectId: '${sub.id}' })" style="display:inline-flex; align-items:center; gap:6px;">
-                ${Icons.get('upload', 14)} <span>Nhập câu (Parser)</span>
+            ${isDraft ? `
+              <button class="btn btn-sm btn-primary" onclick="App.approveDraft('${sub.id}')" style="display:inline-flex; align-items:center; gap:6px; font-weight:700;">
+                ${Icons.get('checkCircle', 14)} <span>Duyệt Chính Thức</span>
               </button>
-              <button class="btn btn-sm" onclick="App.shuffleSubjectQuestions('${sub.id}')" style="display:inline-flex; align-items:center; gap:6px;">
-                ${Icons.get('refresh', 14)} <span>Xáo trộn đề</span>
+              <button class="btn btn-sm" onclick="App.navigateTo('question-bank', { draftId: '${sub.id}', isDraft: true })" style="display:inline-flex; align-items:center; gap:6px; font-weight:700; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">
+                ${Icons.get('fileText', 14)} <span>Ngân Hàng Câu Hỏi (${qCount})</span>
               </button>
-            ` : ''}
-            <button class="btn btn-sm" onclick="ImportExportService.exportSubject('${sub.id}')" style="display:inline-flex; align-items:center; gap:6px;">
-              ${Icons.get('download', 14)} <span>Xuất JSON</span>
-            </button>
+              <button class="btn btn-sm" onclick="App.openEditDraftInfoModal('${sub.id}')" style="display:inline-flex; align-items:center; gap:6px;">
+                ${Icons.get('edit', 14)} <span>Sửa Đề / Đổi Môn Đích</span>
+              </button>
+              <button class="btn btn-sm btn-danger" onclick="App.rejectDraftConfirm('${sub.id}')" style="display:inline-flex; align-items:center; gap:6px;">
+                ${Icons.get('trash', 14)} <span>Từ Chối</span>
+              </button>
+            ` : `
+              <button class="btn btn-sm btn-primary" onclick="App.openQuizConfigModal('${sub.id}')" style="display:inline-flex; align-items:center; gap:6px; font-weight:700;">
+                ${Icons.get('zap', 14)} <span>Vào Làm Bài Ngay</span>
+              </button>
+              <button class="btn btn-sm" onclick="App.navigateTo('question-bank', { subjectId: '${sub.id}' })" style="display:inline-flex; align-items:center; gap:6px; font-weight:700; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">
+                ${Icons.get('fileText', 14)} <span>Ngân Hàng Câu Hỏi (${qCount})</span>
+              </button>
+              ${isEditor ? `
+                <button class="btn btn-sm" onclick="App.navigateTo('parser', { subjectId: '${sub.id}' })" style="display:inline-flex; align-items:center; gap:6px;">
+                  ${Icons.get('upload', 14)} <span>Nhập Đề (Parser)</span>
+                </button>
+                <button class="btn btn-sm" onclick="App.openEditSubjectModal('${sub.id}')" style="display:inline-flex; align-items:center; gap:6px;">
+                  ${Icons.get('edit', 14)} <span>Chỉnh Sửa Môn</span>
+                </button>
+              ` : ''}
+              <button class="btn btn-sm" onclick="ImportExportService.exportSubject('${sub.id}')" style="display:inline-flex; align-items:center; gap:6px;">
+                ${Icons.get('download', 14)} <span>Xuất JSON</span>
+              </button>
+            `}
           </div>
         </div>
 
-        <!-- Header Info Card -->
-        <div class="detail-header-card" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 22px 24px; margin-bottom: 20px;">
-          <div class="detail-header-top" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
-            <div>
-              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-                <span class="subject-code-badge" style="font-size: 13.5px; font-weight: 700; padding: 4px 12px;">${sub.code || sub.id}</span>
-                <span class="badge badge-blue">${sub.department || 'Đại học Đồng Tháp'}</span>
+        <!-- 0. KHUNG KIỂM DUYỆT ĐỀ CHỜ DUYỆT (DRAFT MODERATION HUB BANNER) -->
+        ${isDraft ? `
+          <div style="background: #fffbeb; border: 1.5px solid #fcd34d; border-radius: var(--radius-md); padding: 18px 22px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(245,158,11,0.08);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; border-bottom: 1px dashed #fde68a; padding-bottom: 10px;">
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span class="badge" style="background:#f59e0b; color:#fff; font-weight:800; font-size:12.5px; padding: 4px 10px;">
+                  🟡 ĐỀ THI ĐÓNG GÓP CHỜ PHÊ DUYỆT
+                </span>
+                <span style="font-size: 13px; color: #92400e; font-weight: 600;">
+                  Ngày gửi: ${sub.submissionDate ? new Date(sub.submissionDate).toLocaleDateString('vi-VN') : 'Gần đây'}
+                </span>
               </div>
-              <h2 style="font-size: 24px; font-weight: 800; color: var(--text-primary); margin-bottom: 6px;">
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-sm btn-primary" onclick="App.approveDraft('${sub.id}')" style="display:inline-flex; align-items:center; gap:5px; font-weight:700;">
+                  ${Icons.get('checkCircle', 13)} <span>Duyệt & Xuất Bản Ngay</span>
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="App.rejectDraftConfirm('${sub.id}')" style="display:inline-flex; align-items:center; gap:5px;">
+                  ${Icons.get('trash', 13)} <span>Từ Chối</span>
+                </button>
+              </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; font-size: 13px; color: #78350f;">
+              <div><strong>👨‍🎓 Tác giả gửi:</strong> ${sub.author || 'Ẩn danh'} ${sub.studentId ? `(MSSV: ${sub.studentId})` : ''}</div>
+              <div><strong>🎯 Môn học đích:</strong> ${targetSubObj ? `${targetSubObj.name} (${targetSubObj.code})` : 'Tạo thành Môn Mới'}</div>
+              <div><strong>🎁 Điểm thưởng:</strong> +30 EXP sau khi phê duyệt</div>
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- 1. KHỐI HEADER ĐỊNH DANH & THÔNG TIN CHÍNH -->
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.03);">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px; margin-bottom: 16px;">
+            <div style="flex: 1; min-width: 280px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
+                <span class="badge" style="background:#e0e7ff; color:#4338ca; font-weight:800; font-family:var(--font-mono); font-size: 14px; padding: 4px 10px;">
+                  ${sub.code || sub.id}
+                </span>
+                <span class="badge badge-blue" style="font-size: 12.5px;">
+                  ${sub.department || 'Đại học Đồng Tháp'}
+                </span>
+                ${isDraft ? `
+                  <span class="badge" style="background: #fef3c7; color: #92400e; font-weight: 700; border: 1px solid #fde68a;">
+                    🟡 Bản Đề Chờ Duyệt
+                  </span>
+                ` : `
+                  <span class="badge" style="background: #f0fdf4; color: #15803d; font-weight: 700; border: 1px solid #bbf7d0;">
+                    🟢 Chuẩn Khảo Thí
+                  </span>
+                `}
+              </div>
+              <h1 style="font-size: 24px; font-weight: 800; color: var(--text-primary); margin: 0 0 8px 0; line-height: 1.3;">
                 ${sub.name}
-              </h2>
-              <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5;">
-                ${sub.description || 'Chưa có mô tả chi tiết cho môn học này.'}
+              </h1>
+              <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin: 0;">
+                ${sub.description || 'Chưa có mô tả chi tiết cho bộ đề này.'}
               </p>
             </div>
-            <button class="btn btn-sm" onclick="App.openEditSubjectModal('${sub.id}')" style="display:inline-flex; align-items:center; gap:6px;">
-              ${Icons.get('edit', 14)} <span>Chỉnh sửa thông tin môn</span>
-            </button>
-          </div>
 
-          <!-- Stats Bar -->
-          <div class="detail-stats-bar" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border);">
-            <div class="detail-stat-box">
-              <div class="num" style="font-size: 22px; font-weight: 800; color: var(--brand-primary);">${qCount}</div>
-              <div class="lbl" style="font-size: 12px; color: var(--text-tertiary);">Tổng số câu hỏi</div>
-            </div>
-            <div class="detail-stat-box">
-              <div class="num" style="font-size: 22px; font-weight: 800; color: #8b5cf6;">${chapters.length}</div>
-              <div class="lbl" style="font-size: 12px; color: var(--text-tertiary);">Số lượng chương</div>
-            </div>
-            <div class="detail-stat-box">
-              <div class="num" style="font-size: 14.5px; font-weight: 700; padding-top: 4px; color: var(--text-primary);">${sub.author || 'Chưa cập nhật'}</div>
-              <div class="lbl" style="font-size: 12px; color: var(--text-tertiary);">Người biên soạn</div>
-            </div>
-            <div class="detail-stat-box">
-              <div class="num" style="font-size: 22px; font-weight: 800; color: var(--success);">${latestScore ? `${latestScore.score10}/10` : 'Chưa thi'}</div>
-              <div class="lbl" style="font-size: 12px; color: var(--text-tertiary);">Điểm thi gần nhất</div>
+            <!-- Nút thao tác nhanh bên phải -->
+            <div>
+              ${isDraft ? `
+                <button class="btn btn-primary" onclick="App.approveDraft('${sub.id}')" style="display:inline-flex; align-items:center; gap:8px; padding: 10px 20px; font-weight:800; font-size: 15px; box-shadow: 0 4px 12px rgba(37,99,235,0.2);">
+                  ${Icons.get('checkCircle', 16)} <span>Duyệt Môn Này</span>
+                </button>
+              ` : `
+                <button class="btn btn-primary" onclick="App.openQuizConfigModal('${sub.id}')" style="display:inline-flex; align-items:center; gap:8px; padding: 10px 20px; font-weight:800; font-size: 15px; box-shadow: 0 4px 12px rgba(37,99,235,0.2);">
+                  ${Icons.get('zap', 16)} <span>Luyện Thi Ngay</span>
+                </button>
+              `}
             </div>
           </div>
-        </div>
 
-        <!-- 2 TAB NAVIGATION TOÀN MÀN HÌNH (FULL WIDTH) -->
-        <div style="display: flex; gap: 8px; border-bottom: 2px solid var(--border); margin-bottom: 20px;">
-          <button class="btn ${activeTab === 'questions' ? 'btn-primary' : ''}" style="border-radius: var(--radius-sm) var(--radius-sm) 0 0; padding: 10px 20px; font-size: 14.5px; font-weight: 700; border-bottom: none; display:inline-flex; align-items:center; gap:7px;" onclick="App.switchSubjectDetailTab('questions')">
-            ${Icons.get('fileText', 16)} <span>Ngân Hàng Câu Hỏi (${qCount})</span>
-          </button>
-          <button class="btn ${activeTab === 'chapters' ? 'btn-primary' : ''}" style="border-radius: var(--radius-sm) var(--radius-sm) 0 0; padding: 10px 20px; font-size: 14.5px; font-weight: 700; border-bottom: none; display:inline-flex; align-items:center; gap:7px;" onclick="App.switchSubjectDetailTab('chapters')">
-            ${Icons.get('manage', 16)} <span>Quản Lý Cấu Trúc Các Chương (${chapters.length})</span>
-          </button>
-        </div>
+          <!-- 2. KHỐI NHÂN SỰ & NGƯỜI ĐÓNG GÓP (CONTRIBUTORS HUB) -->
+          <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: var(--radius-sm); padding: 14px 18px; margin-top: 16px;">
+            <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+              ${Icons.get('user', 14)} <span>Nhân sự biên soạn & Đóng góp học thuật:</span>
+            </div>
 
-        <!-- TAB CONTENT -->
-        ${activeTab === 'questions' ? `
-          <!-- TAB 1: NGÂN HÀNG CÂU HỎI (100% CHIỀU RỘNG) -->
-          <div id="subjectQuestionsContainer" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px;">
-            
-            <!-- Thanh Tìm Kiếm + Icon Phễu Lọc + Các Nút Thao Tác -->
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 16px;">
-              
-              <!-- Khối Tìm Kiếm & Icon Phễu Lọc -->
-              <div style="display: flex; gap: 8px; align-items: center; flex: 1; min-width: 260px; max-width: 600px;">
-                <div style="position: relative; flex: 1;">
-                  <input type="text" id="subjectQuestionSearchInput" class="form-control" placeholder="Tìm kiếm câu hỏi, nội dung đáp án..." value="${this.subjectSearchKeyword || ''}" oninput="App.onSubjectSearchInput(this.value)" style="padding-right: 32px; font-size: 13.5px;">
-                  ${this.subjectSearchKeyword ? `
-                    <button style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 14px; cursor: pointer; color: var(--text-tertiary); display:flex; align-items:center;" onclick="App.clearSubjectSearch()">${Icons.get('close', 13)}</button>
-                  ` : ''}
-                </div>
-
-                <!-- Icon Cái Phễu Lọc Dropdown -->
-                <div style="position: relative;">
-                  <button class="btn ${activeFilter !== 'all' ? 'btn-primary' : ''}" style="padding: 8px 12px; display: flex; align-items: center; gap: 6px; font-size: 13.5px;" onclick="App.toggleChapterFilterMenu()" title="Lọc theo chương">
-                    <span style="display:flex; align-items:center;">${Icons.get('filter', 15)}</span>
-                    <span style="font-weight: 600; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px;">${activeFilterName}</span>
-                    <span style="display:flex; align-items:center; margin-left: 2px;">${Icons.get('chevronDown', 11)}</span>
-                  </button>
-
-                  <!-- Popover Dropdown Danh Sách Chương -->
-                  ${this.isChapterFilterMenuOpen ? `
-                    <div style="position: absolute; top: calc(100% + 6px); left: 0; min-width: 260px; max-width: 320px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 100; padding: 6px; display: flex; flex-direction: column; gap: 2px;">
-                      <div style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-tertiary); padding: 6px 10px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-                        <span>Lọc theo chương</span>
-                        <span style="cursor: pointer; display:flex; align-items:center;" onclick="App.toggleChapterFilterMenu()">${Icons.get('close', 13)}</span>
-                      </div>
-                      <button class="btn btn-sm ${activeFilter === 'all' ? 'btn-primary' : ''}" style="width: 100%; text-align: left; justify-content: space-between; display: flex; align-items: center; border: none; margin-top: 4px; padding: 8px 10px; font-size: 13px;" onclick="App.selectChapterFilter('all')">
-                        <span style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('book', 14)} <span>Tất cả chương</span></span>
-                        <span class="badge ${activeFilter === 'all' ? 'badge-gray' : ''}">${allQuestions.length}</span>
-                      </button>
-                      ${chapters.map(c => {
-                        const countInCh = allQuestions.filter(q => q.chapterId === c.id).length;
-                        const isAct = (activeFilter === c.id);
-                        return `
-                          <button class="btn btn-sm ${isAct ? 'btn-primary' : ''}" style="width: 100%; text-align: left; justify-content: space-between; display: flex; align-items: center; border: none; padding: 8px 10px; font-size: 13px;" onclick="App.selectChapterFilter('${c.id}')">
-                            <span style="max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${c.name}</span>
-                            <span class="badge ${isAct ? 'badge-gray' : ''}">${countInCh}</span>
-                          </button>
-                        `;
-                      }).join('')}
+            <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center; font-size: 13px;">
+              <div>
+                <span style="color: var(--text-tertiary);">${isDraft ? '👨‍🎓 Người đóng góp:' : '👑 Người tạo:'}</span>
+                <strong style="color: var(--text-primary); margin-left: 4px;">${sub.author || 'Sinh viên'} ${sub.studentId ? `(${sub.studentId})` : ''}</strong>
+              </div>
+              <span style="color: #cbd5e1;">|</span>
+              <div>
+                <span style="color: var(--text-tertiary);">🛡️ Trạng thái duyệt:</span>
+                <strong style="color: ${isDraft ? '#d97706' : '#15803d'}; margin-left: 4px;">
+                  ${isDraft ? 'Đang chờ Admin phê duyệt' : (sub.approvedBy || 'Admin Hệ Thống')}
+                </strong>
+              </div>
+              ${!isDraft ? `
+                <span style="color: #cbd5e1;">|</span>
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  <span style="color: var(--text-tertiary);">🤝 Người đóng góp:</span>
+                  ${contributors.length > 0 ? `
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+                      ${contributors.map(c => `
+                        <span class="badge" style="background: #ffffff; border: 1px solid #cbd5e1; color: var(--text-primary); display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; font-weight: 600;" title="MSSV: ${c.studentId || ''} · Đóng góp: ${c.contributedQuestions || 0} câu">
+                          <span>${c.avatar || '👨‍🎓'}</span>
+                          <span>${c.fullName || c.name || 'Sinh viên'}</span>
+                          <span style="color: #2563eb; font-weight: 700; font-size: 11px;">+${c.contributedQuestions || 0} câu</span>
+                        </span>
+                      `).join('')}
                     </div>
-                  ` : ''}
-                </div>
-              </div>
-
-              <!-- Nhóm Nút Thao Tác Câu Hỏi -->
-              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                <button class="btn btn-sm btn-primary" onclick="App.openAddQuestionModal('${sub.id}', '${activeFilter}')" style="display:inline-flex; align-items:center; gap:6px;">
-                  ${Icons.get('plus', 14)} <span>Soạn câu hỏi mới</span>
-                </button>
-                <button class="btn btn-sm" onclick="App.shuffleSubjectQuestions('${sub.id}')" title="Xáo trộn thứ tự các câu hỏi" style="display:inline-flex; align-items:center; gap:6px;">
-                  ${Icons.get('refresh', 14)} <span>Xáo trộn</span>
-                </button>
-                <button class="btn btn-sm btn-danger" onclick="App.clearAllQuestionsConfirm('${sub.id}')" title="Xóa toàn bộ câu hỏi của môn" style="display:inline-flex; align-items:center; gap:6px;">
-                  ${Icons.get('trash', 14)} <span>Xóa tất cả</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Thanh Trạng Thái & Phân Trang Trên -->
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; padding: 10px 14px; background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm);">
-              <div style="font-size: 13px; color: var(--text-secondary);">
-                Đang hiển thị <strong>${startIndex} - ${endIndex}</strong> trong tổng số <strong>${filtered.length}</strong> câu hỏi
-                ${activeFilter !== 'all' ? `(đã lọc theo <em>${activeFilterName}</em>)` : ''}
-                ${searchKeyword ? `(tìm kiếm: "<em>${this.subjectSearchKeyword}</em>")` : ''}
-              </div>
-
-              <!-- Điều Khiển Phân Trang -->
-              ${totalPages > 1 ? `
-                <div style="display: flex; gap: 4px; align-items: center;">
-                  <button class="btn btn-sm" style="padding: 3px 10px; font-size: 12px; display:inline-flex; align-items:center; gap:4px;" ${currentPage === 0 ? 'disabled' : ''} onclick="App.changeSubjectQuestionPage(${currentPage - 1})">
-                    ${Icons.get('chevronLeft', 12)} <span>Trước</span>
-                  </button>
-                  <span style="font-size: 12.5px; font-weight: 700; padding: 0 6px;">
-                    Trang ${currentPage + 1} / ${totalPages}
-                  </span>
-                  <button class="btn btn-sm" style="padding: 3px 10px; font-size: 12px; display:inline-flex; align-items:center; gap:4px;" ${currentPage >= totalPages - 1 ? 'disabled' : ''} onclick="App.changeSubjectQuestionPage(${currentPage + 1})">
-                    <span>Sau</span> ${Icons.get('chevronRight', 12)}
-                  </button>
+                  ` : `
+                    <span style="color: var(--text-tertiary); font-style: italic;">Chưa có sinh viên đóng góp thêm</span>
+                  `}
                 </div>
               ` : ''}
             </div>
+          </div>
 
-            <!-- Danh Sách Câu Hỏi (100 câu/trang) -->
-            <div style="display: flex; flex-direction: column; gap: 14px;">
-              ${filtered.length === 0 ? `
-                <div style="text-align: center; padding: 50px 20px; color: var(--text-tertiary); font-size: 14px;">
-                  <div style="color: var(--text-tertiary); margin-bottom: 10px; display:flex; justify-content:center;">${Icons.get('fileText', 40)}</div>
-                  Không tìm thấy câu hỏi nào phù hợp với bộ lọc hiện tại.<br>
-                  <div style="display: flex; gap: 8px; justify-content: center; margin-top: 14px;">
-                    ${searchKeyword ? `<button class="btn btn-sm" onclick="App.clearSubjectSearch()">Xóa tìm kiếm</button>` : ''}
-                    ${activeFilter !== 'all' ? `<button class="btn btn-sm" onclick="App.selectChapterFilter('all')">Xem tất cả chương</button>` : ''}
-                    <button class="btn btn-sm btn-primary" onclick="App.openAddQuestionModal('${sub.id}', '${activeFilter}')" style="display:inline-flex; align-items:center; gap:5px;">${Icons.get('plus', 13)} Soạn câu hỏi mới</button>
-                  </div>
-                </div>
-              ` : pageQuestions.map((q, qIdx) => {
-                const globalIndex = currentPage * PAGE_SIZE + qIdx + 1;
-                const chapObj = chapters.find(c => c.id === q.chapterId);
-                const chapName = chapObj ? chapObj.name : (q.chapterId || 'Chương 1');
+          <!-- 3. BỘ CHỈ SỐ TỔNG QUAN (CORE METRICS) -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 14px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border);">
+            <div style="background: #fafafa; border: 1px solid #f1f5f9; border-radius: var(--radius-sm); padding: 12px 14px; text-align: center;">
+              <div style="font-size: 24px; font-weight: 800; color: var(--brand-primary);">${qCount}</div>
+              <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 2px;">Tổng Số Câu Hỏi</div>
+            </div>
+
+            <div style="background: #fafafa; border: 1px solid #f1f5f9; border-radius: var(--radius-sm); padding: 12px 14px; text-align: center;">
+              <div style="font-size: 24px; font-weight: 800; color: #8b5cf6;">${chapters.length}</div>
+              <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 2px;">Số Lượng Chương</div>
+            </div>
+
+            <div style="background: #fafafa; border: 1px solid #f1f5f9; border-radius: var(--radius-sm); padding: 12px 14px; text-align: center;">
+              <div style="font-size: 24px; font-weight: 800; color: #f59e0b;">${isDraft ? '+30 EXP' : totalAttempts}</div>
+              <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 2px;">${isDraft ? 'Điểm Thưởng Tác Giả' : 'Lượt Sinh Viên Thi'}</div>
+            </div>
+
+            <div style="background: #fafafa; border: 1px solid #f1f5f9; border-radius: var(--radius-sm); padding: 12px 14px; text-align: center;">
+              <div style="font-size: 24px; font-weight: 800; color: var(--success);">${isDraft ? 'Chờ Duyệt' : (latestScore ? `${latestScore.score10}/10` : 'Chưa thi')}</div>
+              <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 2px;">${isDraft ? 'Tình Trạng' : 'Điểm Gần Nhất'}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. LƯỚI THẺ CHI TIẾT TỪNG CHƯƠNG (INTERACTIVE CHAPTER TILES) -->
+        <div style="margin-bottom: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 8px;">
+                ${Icons.get('folder', 18)} <span>Cấu Trúc Các Chương Kiến Thức (${chapters.length} Chương)</span>
+              </h3>
+              <p style="font-size: 12.5px; color: var(--text-secondary); margin: 2px 0 0 0;">
+                Bấm vào từng thẻ chương để xem và chỉnh sửa ngân hàng câu hỏi riêng của chương đó.
+              </p>
+            </div>
+
+            <button class="btn btn-sm" onclick="App.navigateTo('question-bank', { ${isDraft ? `draftId: '${sub.id}', isDraft: true` : `subjectId: '${sub.id}'`} })" style="display:inline-flex; align-items:center; gap:5px; font-weight:700;">
+              ${Icons.get('fileText', 13)} <span>Mở Toàn Bộ Ngân Hàng Câu Hỏi</span>
+            </button>
+          </div>
+
+          <!-- Lưới Thẻ Chương -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px;">
+            ${chapters.length === 0 ? `
+              <div style="padding: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); text-align: center; color: var(--text-tertiary);">
+                Đề thi chưa phân chia chương cụ thể. Toàn bộ ${qCount} câu hỏi đang nằm trong danh mục chung.
+              </div>
+            ` : `
+              ${chapters.map((c, cIdx) => {
+                const cQuestions = allQuestions.filter(q => q.chapterId === c.id);
+                const cQCount = cQuestions.length;
+                const percent = qCount > 0 ? Math.round((cQCount / qCount) * 100) : 0;
+                const isGuestAllowed = c.isGuestAllowed !== false;
+
                 return `
-                  <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px 18px;">
+                  <div 
+                    class="chapter-tile-card" 
+                    style="background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-md); padding: 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.02); transition: all 0.2s ease; display: flex; flex-direction: column; justify-content: space-between; gap: 14px;"
+                    onmouseenter="this.style.borderColor='var(--brand-primary)'; this.style.boxShadow='0 4px 12px rgba(37,99,235,0.08)';"
+                    onmouseleave="this.style.borderColor='var(--border)'; this.style.boxShadow='0 1px 4px rgba(0,0,0,0.02)';">
                     
-                    <!-- Header Câu Hỏi -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
-                      <div style="display: flex; align-items: center; gap: 8px;">
-                        <span class="badge badge-gray" style="font-weight: 800; font-size: 12.5px;">Câu ${globalIndex}</span>
-                        <span class="badge badge-blue" style="font-size: 11.5px;">${chapName}</span>
-                        <span class="badge" style="background:#16a34a; color:#ffffff; font-size: 11.5px; font-weight:700; padding: 3px 10px; border-radius: 6px; box-shadow: 0 1px 2px rgba(22,163,74,0.2); display:inline-flex; align-items:center; gap:4px;">
-                          ${Icons.get('check', 12)} Đáp án đúng: ${App.letters[q.answerIndex] || 'A'}
+                    <div>
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span class="badge" style="background: #f1f5f9; color: #334155; font-weight: 800; font-size: 11.5px;">
+                          Chương ${cIdx + 1}
+                        </span>
+                        <span class="badge" style="background: ${isGuestAllowed ? '#f0fdf4' : '#fef3c7'}; color: ${isGuestAllowed ? '#15803d' : '#92400e'}; font-size: 11px; font-weight: 700;">
+                          ${isGuestAllowed ? '🟢 Mở cho Khách' : '🔒 Khóa với Khách'}
                         </span>
                       </div>
-                      <div style="display: flex; gap: 4px;">
-                        <button class="btn btn-sm" style="padding: 3px 10px; font-size: 12px; display:inline-flex; align-items:center; gap:4px;" onclick="App.openEditQuestionModal('${sub.id}', '${q.id}')" title="Sửa nội dung câu hỏi">
-                          ${Icons.get('edit', 12)} <span>Sửa</span>
-                        </button>
-                        <button class="btn btn-sm" style="padding: 3px 10px; font-size: 12px; display:inline-flex; align-items:center; gap:4px;" onclick="App.openMoveQuestionModal('${sub.id}', '${q.id}')" title="Đổi sang chương khác">
-                          ${Icons.get('refresh', 12)} <span>Đổi chương</span>
-                        </button>
-                        <button class="btn btn-sm btn-danger" style="padding: 3px 8px; font-size: 12px; display:inline-flex; align-items:center;" onclick="App.deleteQuestionFromSubject('${sub.id}', '${q.id}')" title="Xóa câu này">
-                          ${Icons.get('trash', 12)}
-                        </button>
+
+                      <h4 style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin: 0 0 6px 0; line-height: 1.4;">
+                        ${c.name}
+                      </h4>
+
+                      <!-- Thanh tiến độ dung lượng câu hỏi -->
+                      <div style="margin-top: 10px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-tertiary); margin-bottom: 4px;">
+                          <span>${cQCount} câu hỏi</span>
+                          <span>${percent}% ngân hàng đề</span>
+                        </div>
+                        <div style="height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+                          <div style="height: 100%; width: ${percent}%; background: var(--brand-primary); border-radius: 3px;"></div>
+                        </div>
                       </div>
                     </div>
 
-                    <!-- Nội Dung Câu Hỏi -->
-                    <div style="font-size: 14.5px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary); line-height: 1.5;">
-                      ${SmartParserService.formatRichText(q.question)}
+                    <!-- Nút thao tác 1-Click -->
+                    <div style="display: flex; gap: 8px; border-top: 1px dashed var(--border); padding-top: 12px;">
+                      <button 
+                        type="button" 
+                        onclick="App.navigateTo('question-bank', { ${isDraft ? `draftId: '${sub.id}', isDraft: true` : `subjectId: '${sub.id}'`}, chapterId: '${c.id}' })" 
+                        class="btn btn-sm" 
+                        style="flex: 1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:600; background:#f8fafc; border:1px solid #cbd5e1;">
+                        ${Icons.get('edit', 12)} <span>Quản lý ${cQCount} câu</span>
+                      </button>
+                      ${!isDraft ? `
+                        <button 
+                          type="button" 
+                          onclick="App.openQuizConfigModal('${sub.id}')" 
+                          class="btn btn-sm btn-primary" 
+                          style="display:inline-flex; align-items:center; justify-content:center; gap:4px;" 
+                          title="Ôn tập riêng chương này">
+                          ${Icons.get('target', 12)} <span>Ôn Thi</span>
+                        </button>
+                      ` : ''}
                     </div>
 
-                    <!-- Các Phương Án Lựa Chọn (Mỗi Hàng 1 Lựa Chọn Dọc Xuống Dòng Rõ Ràng) -->
-                    <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; width: 100%;">
-                      ${(q.options || []).map((opt, optIdx) => {
-                        const isAns = (optIdx === q.answerIndex);
-                        return `
-                          <div style="display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px; padding: 10px 14px; border-radius: 6px; border: ${isAns ? '1.5px solid #16a34a' : '1px solid #cbd5e1'}; background: ${isAns ? '#dcfce7' : '#ffffff'}; box-shadow: ${isAns ? '0 1px 3px rgba(22, 163, 74, 0.15)' : 'none'}; width: 100%; box-sizing: border-box;">
-                            <span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; min-width: 24px; background: ${isAns ? '#16a34a' : '#f1f5f9'}; color: ${isAns ? '#ffffff' : '#475569'}; border: ${isAns ? 'none' : '1px solid #cbd5e1'}; border-radius: 4px; font-weight: 800; font-size: 12.5px; flex-shrink: 0; margin-top: 1px;">
-                              ${App.letters[optIdx]}
-                            </span>
-                            <div style="font-weight: ${isAns ? '700' : '400'}; color: ${isAns ? '#14532d' : '#334155'}; flex: 1; min-width: 0; word-break: break-word; overflow-wrap: break-word; line-height: 1.5;">
-                              ${SmartParserService.formatRichText(opt.text || '')}
-                            </div>
-                            ${isAns ? `
-                              <span style="margin-left: 8px; background: #16a34a; color: #ffffff; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 10px; display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0;">
-                                ✓ Đúng
-                              </span>
-                            ` : ''}
-                          </div>
-                        `;
-                      }).join('')}
-                    </div>
-
-                    <!-- Giải Thích Đáp Án (Nếu Có) -->
-                    ${(q.options && q.options[q.answerIndex] && q.options[q.answerIndex].note) ? `
-                      <div style="font-size: 13px; color: #14532d; background: #f0fdf4; padding: 10px 14px; border-radius: 6px; border: 1.5px dashed #22c55e; margin-top: 8px;">
-                        💡 <strong>Giải thích:</strong> ${SmartParserService.formatRichText(q.options[q.answerIndex].note)}
-                      </div>
-                    ` : ''}
                   </div>
                 `;
               }).join('')}
-            </div>
-
-            <!-- Điều Khiển Phân Trang Dưới Cùng -->
-            ${totalPages > 1 ? `
-              <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);">
-                <button class="btn btn-sm" ${currentPage === 0 ? 'disabled' : ''} onclick="App.changeSubjectQuestionPage(${currentPage - 1})">
-                  ◀ Trang trước
-                </button>
-                <div style="display: flex; gap: 4px;">
-                  ${Array.from({ length: totalPages }, (_, i) => `
-                    <button class="btn btn-sm ${i === currentPage ? 'btn-primary' : ''}" style="min-width: 32px; padding: 4px 8px; font-size: 12px;" onclick="App.changeSubjectQuestionPage(${i})">
-                      ${i + 1}
-                    </button>
-                  `).join('')}
-                </div>
-                <button class="btn btn-sm" ${currentPage >= totalPages - 1 ? 'disabled' : ''} onclick="App.changeSubjectQuestionPage(${currentPage + 1})">
-                  Trang sau ▶
-                </button>
-              </div>
-            ` : ''}
-
+            `}
           </div>
-        ` : `
-          <!-- TAB 2: QUẢN LÝ CẤU TRÚC CÁC CHƯƠNG (100% CHIỀU RỘNG) -->
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 22px 24px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px;">
+        </div>
+
+        <!-- 5. KHUNG MỞ RỘNG "XEM THÊM" (EXPANDABLE ADVANCED METADATA) -->
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px 20px;">
+          <div 
+            onclick="App.toggleSubjectDetailAccordion()" 
+            style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;">
+            <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--text-primary); font-size: 14px;">
+              ${Icons.get('info', 16)} <span>Xem thêm thông tin giáo trình, đề cương và thiết lập nâng cao</span>
+            </div>
+            <span style="font-size: 13px; color: var(--brand-primary); font-weight: 600;">
+              ${this.isSubjectDetailExpanded ? 'Thu gọn ▲' : 'Mở rộng ▼'}
+            </span>
+          </div>
+
+          ${this.isSubjectDetailExpanded ? `
+            <div style="margin-top: 16px; pt: 14px; border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; font-size: 13px;">
               <div>
-                <h3 style="font-size: 17px; font-weight: 800; color: var(--text-primary); margin-bottom: 2px;">
-                  📂 Danh Sách Các Chương (${chapters.length})
-                </h3>
-                <p style="font-size: 13px; color: var(--text-secondary);">
-                  Phân loại câu hỏi theo từng chương giúp sinh viên ôn tập theo chuyên đề hiệu quả.
-                </p>
+                <strong style="color: var(--text-primary); display: block; margin-bottom: 4px;">📅 Thời gian & Phiên bản:</strong>
+                <div style="color: var(--text-secondary);">Thời điểm tạo: ${sub.createdAt || sub.submissionDate ? new Date(sub.createdAt || sub.submissionDate).toLocaleDateString('vi-VN') : 'Gốc hệ thống'}</div>
+                <div style="color: var(--text-secondary);">Cập nhật gần nhất: ${sub.updatedAt ? new Date(sub.updatedAt).toLocaleDateString('vi-VN') : 'Đồng bộ Cloud'}</div>
               </div>
-              <button class="btn btn-primary" onclick="App.openAddChapterModal('${sub.id}')">
-                ➕ Thêm chương mới
-              </button>
-            </div>
 
-            <!-- Danh Sách Các Chương Dạng Thẻ Rộng Rãi -->
-            <div style="display: flex; flex-direction: column; gap: 12px;">
-              ${chapters.length === 0 ? `
-                <div style="text-align: center; padding: 40px 16px; color: var(--text-tertiary); font-size: 14px;">
-                  <div style="font-size: 40px; margin-bottom: 10px;">📂</div>
-                  Môn học này chưa có chương nào.<br>
-                  Bấm <strong>"➕ Thêm chương mới"</strong> để bắt đầu chia nhóm câu hỏi.
+              <div>
+                <strong style="color: var(--text-primary); display: block; margin-bottom: 4px;">⚙️ Cấu hình phòng thi chuẩn:</strong>
+                <div style="color: var(--text-secondary);">Thời gian làm bài đề xuất: <strong>45 phút</strong></div>
+                <div style="color: var(--text-secondary);">Số câu chuẩn kỳ thi kết thúc học phần: <strong>50 câu</strong></div>
+              </div>
+
+              <div>
+                <strong style="color: var(--text-primary); display: block; margin-bottom: 4px;">📥 Sao lưu & Thao tác:</strong>
+                <div style="display: flex; gap: 8px; margin-top: 4px;">
+                  <button class="btn btn-sm" onclick="ImportExportService.exportSubject('${sub.id}')" style="display:inline-flex; align-items:center; gap:4px;">
+                    ${Icons.get('download', 12)} <span>Tải file .JSON</span>
+                  </button>
+                  ${isDraft ? `
+                    <button class="btn btn-sm btn-danger" onclick="App.rejectDraftConfirm('${sub.id}')" style="display:inline-flex; align-items:center; gap:4px;">
+                      ${Icons.get('trash', 12)} <span>Từ Chối & Xóa</span>
+                    </button>
+                  ` : (isEditor ? `
+                    <button class="btn btn-sm btn-danger" onclick="App.deleteSubjectConfirm('${sub.id}')" style="display:inline-flex; align-items:center; gap:4px;">
+                      ${Icons.get('trash', 12)} <span>Xóa Môn</span>
+                    </button>
+                  ` : '')}
                 </div>
-              ` : chapters.map(c => {
-                const countInCh = allQuestions.filter(q => q.chapterId === c.id).length;
-                return `
-                  <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
-                    <div style="flex: 1; min-width: 250px;">
-                      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-                        <h4 style="font-size: 15.5px; font-weight: 800; color: var(--text-primary); margin: 0;">
-                          ${c.name}
-                        </h4>
-                        <span class="badge badge-blue" style="font-size: 12px;">
-                          ${countInCh} câu hỏi
-                        </span>
-                        <span class="badge badge-gray" style="font-size: 11px;">
-                          Mã: ${c.id}
-                        </span>
-                      </div>
-                      ${c.description ? `
-                        <p style="font-size: 13px; color: var(--text-secondary); margin: 4px 0 0 0; line-height: 1.4;">
-                          ${c.description}
-                        </p>
-                      ` : `
-                        <p style="font-size: 12.5px; color: var(--text-tertiary); margin: 4px 0 0 0; font-style: italic;">
-                          Chưa có mô tả nội dung cho chương này.
-                        </p>
-                      `}
-                    </div>
-
-                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                      <button class="btn btn-sm btn-primary" onclick="App.viewChapterQuestions('${sub.id}', '${c.id}')" title="Xem các câu hỏi thuộc chương này">
-                        👁️ Xem câu hỏi (${countInCh})
-                      </button>
-                      <button class="btn btn-sm" onclick="App.openEditChapterModal('${sub.id}', '${c.id}')" title="Sửa tên và mô tả chương">
-                        ✏️ Sửa
-                      </button>
-                      <button class="btn btn-sm btn-danger" onclick="App.deleteChapter('${sub.id}', '${c.id}')" title="Xóa chương này">
-                        🗑️ Xóa
-                      </button>
-                    </div>
-                  </div>
-                `;
-              }).join('')}
+              </div>
             </div>
-          </div>
-        `}
+          ` : ''}
+        </div>
 
       </div>
     `;
   },
 
-  switchSubjectDetailTab(tab) {
-    this.subjectDetailTab = tab;
-    this.isChapterFilterMenuOpen = false;
-    const main = document.getElementById("mainContent");
-    if (main && this.selectedSubjectDetailId) {
-      this.renderSubjectDetailView(main, this.selectedSubjectDetailId);
-    }
+  toggleSubjectDetailAccordion() {
+    this.isSubjectDetailExpanded = !this.isSubjectDetailExpanded;
+    this.renderSubjectDetailView(document.getElementById("mainContent"), {
+      subjectId: this.selectedSubjectDetailId,
+      isDraft: this.activeSubjectIsDraft
+    });
   },
 
-  toggleChapterFilterMenu() {
-    this.isChapterFilterMenuOpen = !this.isChapterFilterMenuOpen;
-    const main = document.getElementById("mainContent");
-    if (main && this.selectedSubjectDetailId) {
-      this.renderSubjectDetailView(main, this.selectedSubjectDetailId);
-    }
+  openEditDraftInfoModal(draftId) {
+    const draft = StorageService.getDraftById(draftId);
+    if (!draft) return;
+
+    const allSubjects = StorageService.getSubjects();
+    const modal = document.getElementById("globalModal");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    const footer = document.getElementById("modalFooter");
+
+    title.innerHTML = `<span style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('edit', 16)} <span>Chỉnh Sửa Thông Tin Bản Đề Chờ Duyệt</span></span>`;
+
+    body.innerHTML = `
+      <div class="form-group">
+        <label class="form-label">Tên môn học / Tiêu đề đề thi (*):</label>
+        <input type="text" id="editDraftName" class="form-control" value="${draft.name.replace(/"/g, '&quot;')}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mã môn (*):</label>
+        <input type="text" id="editDraftCode" class="form-control" value="${(draft.code || draft.id).replace(/"/g, '&quot;')}" style="text-transform: uppercase;">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Môn học đích gán vào khi duyệt:</label>
+        <select id="editDraftTargetSelect" class="form-control">
+          <option value="NEW" ${(!draft.targetSubjectId || draft.targetSubjectId === 'NEW') ? 'selected' : ''}>➕ Tạo thành môn học mới hoàn toàn</option>
+          ${allSubjects.map(s => `
+            <option value="${s.id}" ${(draft.targetSubjectId === s.id || draft.code === s.code) ? 'selected' : ''}>
+              ${s.name} (${s.code || s.id})
+            </option>
+          `).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Khoa / Ngành:</label>
+        <input type="text" id="editDraftDept" class="form-control" value="${(draft.department || 'Khoa Kỹ thuật - Công nghệ').replace(/"/g, '&quot;')}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Người gửi đóng góp:</label>
+        <input type="text" id="editDraftAuthor" class="form-control" value="${(draft.author || 'Sinh viên').replace(/"/g, '&quot;')}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mô tả / Ghi chú đóng góp:</label>
+        <textarea id="editDraftDesc" class="form-control" rows="3">${draft.description || ''}</textarea>
+      </div>
+    `;
+
+    footer.innerHTML = `
+      <button class="btn" onclick="App.closeModal()">Hủy</button>
+      <button class="btn btn-primary" onclick="App.saveEditedDraftInfo('${draft.id}')">Lưu Thay Đổi</button>
+    `;
+
+    modal.classList.add("active");
   },
 
-  selectChapterFilter(chapId) {
-    this.selectedChapterFilter = chapId;
-    this.subjectQuestionPage = 0;
-    this.isChapterFilterMenuOpen = false;
-    const main = document.getElementById("mainContent");
-    if (main && this.selectedSubjectDetailId) {
-      this.renderSubjectDetailView(main, this.selectedSubjectDetailId);
-    }
-  },
+  saveEditedDraftInfo(draftId) {
+    const draft = StorageService.getDraftById(draftId);
+    if (!draft) return;
 
-  onSubjectSearchInput(value) {
-    this.subjectSearchKeyword = (value || "").trim();
-    this.subjectQuestionPage = 0;
-    const main = document.getElementById("mainContent");
-    if (main && this.selectedSubjectDetailId) {
-      this.renderSubjectDetailView(main, this.selectedSubjectDetailId);
-      const input = document.getElementById("subjectQuestionSearchInput");
-      if (input) {
-        input.focus();
-        input.setSelectionRange(input.value.length, input.value.length);
-      }
-    }
-  },
+    const name = document.getElementById("editDraftName")?.value.trim();
+    const code = document.getElementById("editDraftCode")?.value.trim().toUpperCase();
+    const targetSubId = document.getElementById("editDraftTargetSelect")?.value;
+    const dept = document.getElementById("editDraftDept")?.value.trim();
+    const author = document.getElementById("editDraftAuthor")?.value.trim();
+    const desc = document.getElementById("editDraftDesc")?.value.trim();
 
-  clearSubjectSearch() {
-    this.subjectSearchKeyword = "";
-    this.subjectQuestionPage = 0;
-    const main = document.getElementById("mainContent");
-    if (main && this.selectedSubjectDetailId) {
-      this.renderSubjectDetailView(main, this.selectedSubjectDetailId);
+    if (!name || !code) {
+      this.showToast("⚠️ Vui lòng nhập đầy đủ Tên và Mã môn!", "warning");
+      return;
     }
-  },
 
-  changeSubjectQuestionPage(pageIndex) {
-    this.subjectQuestionPage = pageIndex;
-    const main = document.getElementById("mainContent");
-    if (main && this.selectedSubjectDetailId) {
-      this.renderSubjectDetailView(main, this.selectedSubjectDetailId);
-      const listEl = document.getElementById("subjectQuestionsContainer");
-      if (listEl) listEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  },
+    draft.name = name;
+    draft.code = code;
+    draft.targetSubjectId = targetSubId;
+    draft.department = dept;
+    draft.author = author;
+    draft.description = desc;
+    draft.updatedAt = new Date().toISOString();
 
-  viewChapterQuestions(subjectId, chapterId) {
-    this.subjectDetailTab = "questions";
-    this.selectedChapterFilter = chapterId;
-    this.subjectQuestionPage = 0;
-    this.isChapterFilterMenuOpen = false;
-    this.navigateTo("subject-detail", { subjectId: subjectId });
+    StorageService.saveDraftSubject(draft);
+    this.closeModal();
+    this.showToast("✅ Đã cập nhật thông tin bản đề chờ duyệt!", "success", 2500);
+    this.renderSubjectDetailView(document.getElementById("mainContent"), { draftId: draft.id, isDraft: true });
   },
 
   openEditSubjectModal(subjectId) {
@@ -471,34 +568,40 @@ Object.assign(App, {
     const body = document.getElementById("modalBody");
     const footer = document.getElementById("modalFooter");
 
-    title.textContent = `Chỉnh sửa môn: ${sub.name}`;
+    title.innerHTML = `<span style="display:inline-flex; align-items:center; gap:6px;">${Icons.get('edit', 16)} <span>Chỉnh Sửa Thông Tin Môn Học</span></span>`;
 
     body.innerHTML = `
       <div class="form-group">
         <label class="form-label">Tên môn học (*):</label>
-        <input type="text" id="editSubName" class="form-control" value="${sub.name}">
+        <input type="text" id="editSubName" class="form-control" value="${sub.name.replace(/"/g, '&quot;')}">
       </div>
       <div class="form-group">
         <label class="form-label">Mã môn học (*):</label>
-        <input type="text" id="editSubCode" class="form-control" value="${sub.code || sub.id}">
+        <input type="text" id="editSubCode" class="form-control" value="${(sub.code || sub.id).replace(/"/g, '&quot;')}" style="text-transform: uppercase;">
       </div>
       <div class="form-group">
         <label class="form-label">Khoa / Ngành:</label>
-        <input type="text" id="editSubDept" class="form-control" value="${sub.department || ''}">
+        <input type="text" id="editSubDept" class="form-control" value="${(sub.department || 'Khoa Kỹ thuật - Công nghệ').replace(/"/g, '&quot;')}">
       </div>
       <div class="form-group">
-        <label class="form-label">Người biên soạn / Sinh viên đóng góp:</label>
-        <input type="text" id="editSubAuthor" class="form-control" value="${sub.author || ''}">
+        <label class="form-label">Người biên soạn:</label>
+        <input type="text" id="editSubAuthor" class="form-control" value="${(sub.author || 'Shina Sanora').replace(/"/g, '&quot;')}">
       </div>
       <div class="form-group">
-        <label class="form-label">Mô tả môn học:</label>
+        <label class="form-label">Mô tả chi tiết:</label>
         <textarea id="editSubDesc" class="form-control" rows="3">${sub.description || ''}</textarea>
+      </div>
+      <div class="form-group" style="margin-top: 10px;">
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13.5px; font-weight: 700; color: var(--text-primary);">
+          <input type="checkbox" id="editSubGuestAllowed" ${sub.isGuestAllowed !== false ? 'checked' : ''} style="width: 17px; height: 17px; cursor: pointer;">
+          <span>Mở cho máy khách ôn tập (Guest Access Allowed)</span>
+        </label>
       </div>
     `;
 
     footer.innerHTML = `
       <button class="btn" onclick="App.closeModal()">Hủy</button>
-      <button class="btn btn-primary" onclick="App.saveEditedSubject('${sub.id}')">Lưu thay đổi</button>
+      <button class="btn btn-primary" onclick="App.saveEditedSubject('${sub.id}')">Lưu Thay Đổi</button>
     `;
 
     modal.classList.add("active");
@@ -513,9 +616,10 @@ Object.assign(App, {
     const dept = document.getElementById("editSubDept")?.value.trim();
     const author = document.getElementById("editSubAuthor")?.value.trim();
     const desc = document.getElementById("editSubDesc")?.value.trim();
+    const isGuestAllowed = document.getElementById("editSubGuestAllowed")?.checked;
 
     if (!name || !code) {
-      this.showToast("⚠️ Vui lòng nhập đầy đủ Tên môn học và Mã môn học!", "warning");
+      this.showToast("⚠️ Vui lòng nhập đầy đủ Tên và Mã môn học!", "warning");
       return;
     }
 
@@ -524,461 +628,12 @@ Object.assign(App, {
     sub.department = dept;
     sub.author = author;
     sub.description = desc;
+    sub.isGuestAllowed = Boolean(isGuestAllowed);
+    sub.updatedAt = new Date().toISOString();
 
     StorageService.saveSubject(sub);
     this.closeModal();
-    this.showToast("✅ Đã cập nhật thông tin môn học!", "success", 2500);
-    this.navigateTo("subject-detail", { subjectId: sub.id });
-  },
-
-  openAddChapterModal(subjectId) {
-    const sub = StorageService.getSubjectById(subjectId);
-    if (!sub) return;
-
-    const modal = document.getElementById("globalModal");
-    const title = document.getElementById("modalTitle");
-    const body = document.getElementById("modalBody");
-    const footer = document.getElementById("modalFooter");
-
-    const nextIndex = (sub.chapters || []).length + 1;
-    title.textContent = "➕ Thêm Chương Mới";
-
-    body.innerHTML = `
-      <div class="form-group">
-        <label class="form-label">Tên chương (*):</label>
-        <input type="text" id="newChapterName" class="form-control" value="Chương ${nextIndex}: " placeholder="Ví dụ: Chương 1: Giới thiệu chung...">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Mô tả chương (Tùy chọn):</label>
-        <textarea id="newChapterDesc" class="form-control" rows="2" placeholder="Ghi chú thêm về nội dung chương này..."></textarea>
-      </div>
-    `;
-
-    footer.innerHTML = `
-      <button class="btn" onclick="App.closeModal()">Hủy</button>
-      <button class="btn btn-primary" onclick="App.saveNewChapter('${sub.id}')">Thêm chương</button>
-    `;
-
-    modal.classList.add("active");
-  },
-
-  saveNewChapter(subjectId) {
-    const sub = StorageService.getSubjectById(subjectId);
-    if (!sub) return;
-
-    const name = document.getElementById("newChapterName")?.value.trim();
-    const desc = document.getElementById("newChapterDesc")?.value.trim() || "";
-
-    if (!name) {
-      this.showToast("⚠️ Vui lòng nhập tên chương!", "warning");
-      return;
-    }
-
-    if (!sub.chapters) sub.chapters = [];
-    const nextIndex = sub.chapters.length + 1;
-    const newChap = {
-      id: `c${nextIndex}`,
-      name: name,
-      description: desc
-    };
-
-    sub.chapters.push(newChap);
-    StorageService.saveSubject(sub);
-    this.closeModal();
-    this.showToast(`🎉 Đã thêm "${name}" thành công!`, "success", 2500);
-    this.navigateTo("subject-detail", { subjectId: sub.id });
-  },
-
-  openEditChapterModal(subjectId, chapterId) {
-    const sub = StorageService.getSubjectById(subjectId);
-    if (!sub || !sub.chapters) return;
-
-    const chap = sub.chapters.find(c => c.id === chapterId);
-    if (!chap) return;
-
-    const modal = document.getElementById("globalModal");
-    const title = document.getElementById("modalTitle");
-    const body = document.getElementById("modalBody");
-    const footer = document.getElementById("modalFooter");
-
-    title.textContent = `✏️ Chỉnh Sửa Chương: ${chap.name}`;
-
-    body.innerHTML = `
-      <div class="form-group">
-        <label class="form-label">Tên chương (*):</label>
-        <input type="text" id="editChapterName" class="form-control" value="${(chap.name || '').replace(/"/g, '&quot;')}">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Mô tả chương:</label>
-        <textarea id="editChapterDesc" class="form-control" rows="2">${chap.description || ''}</textarea>
-      </div>
-    `;
-
-    footer.innerHTML = `
-      <button class="btn" onclick="App.closeModal()">Hủy</button>
-      <button class="btn btn-primary" onclick="App.saveEditedChapter('${sub.id}', '${chap.id}')">Lưu thay đổi</button>
-    `;
-
-    modal.classList.add("active");
-  },
-
-  saveEditedChapter(subjectId, chapterId) {
-    const sub = StorageService.getSubjectById(subjectId);
-    if (!sub || !sub.chapters) return;
-
-    const chap = sub.chapters.find(c => c.id === chapterId);
-    if (!chap) return;
-
-    const name = document.getElementById("editChapterName")?.value.trim();
-    const desc = document.getElementById("editChapterDesc")?.value.trim() || "";
-
-    if (!name) {
-      this.showToast("⚠️ Vui lòng nhập tên chương!", "warning");
-      return;
-    }
-
-    chap.name = name;
-    chap.description = desc;
-
-    StorageService.saveSubject(sub);
-    this.closeModal();
-    this.showToast("✅ Đã cập nhật chương thành công!", "success", 2500);
-    this.navigateTo("subject-detail", { subjectId: sub.id });
-  },
-
-  deleteChapter(subjectId, chapterId) {
-    this.showConfirmDialog({
-      title: "Xác nhận xóa chương",
-      message: "Bạn có chắc chắn muốn xóa chương này không? Các câu hỏi thuộc chương này vẫn sẽ được giữ lại an toàn trong môn học.",
-      icon: "🗑️",
-      confirmText: "Xóa chương",
-      isDanger: true,
-      warningKey: "delete_chapter",
-      onConfirm: () => {
-        const sub = StorageService.getSubjectById(subjectId);
-        if (sub) {
-          sub.chapters = (sub.chapters || []).filter(c => c.id !== chapterId);
-          if (this.selectedChapterFilter === chapterId) this.selectedChapterFilter = "all";
-          StorageService.saveSubject(sub);
-          this.navigateTo("subject-detail", { subjectId: sub.id });
-        }
-      }
-    });
-  },
-
-  openAddQuestionModal(subjectId, preselectedChapterId) {
-    const sub = StorageService.getSubjectById(subjectId);
-    if (!sub) return;
-
-    const modal = document.getElementById("globalModal");
-    const title = document.getElementById("modalTitle");
-    const body = document.getElementById("modalBody");
-    const footer = document.getElementById("modalFooter");
-
-    title.textContent = "➕ Soạn Câu Hỏi Mới";
-
-    const chapters = sub.chapters || [{ id: "c1", name: "Chương 1: Mở đầu" }];
-    const defaultChap = (preselectedChapterId && preselectedChapterId !== "all") ? preselectedChapterId : (chapters[0]?.id || "c1");
-
-    body.innerHTML = `
-      <div class="form-group" style="margin-bottom: 12px;">
-        <label class="form-label" style="font-size: 13px;">Gán vào chương (*):</label>
-        <select id="newQChapter" class="form-control">
-          ${chapters.map(c => `<option value="${c.id}" ${c.id === defaultChap ? 'selected' : ''}>${c.name}</option>`).join('')}
-        </select>
-      </div>
-
-      <div class="form-group" style="margin-bottom: 14px;">
-        <label class="form-label" style="font-size: 13px; font-weight: 700;">Nội dung câu hỏi (*):</label>
-        <textarea id="newQText" class="form-control" rows="3" placeholder="Nhập câu hỏi..."></textarea>
-      </div>
-
-      <div style="margin-bottom: 14px;">
-        <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 8px; display: block;">
-          Các phương án lựa chọn (Tích chọn nút tròn để chọn đáp án đúng):
-        </label>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          ${[0, 1, 2, 3].map(oi => `
-            <div style="display: flex; gap: 8px; align-items: center; background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 10px;">
-              <input type="radio" name="newQAnswer" id="newQAns_${oi}" value="${oi}" ${oi === 0 ? 'checked' : ''} style="transform: scale(1.1); cursor: pointer;">
-              <label for="newQAns_${oi}" style="font-weight: 800; cursor: pointer; min-width: 20px;">${App.letters[oi]}.</label>
-              <input type="text" id="newQOpt_${oi}" class="form-control" placeholder="Phương án ${App.letters[oi]}..." style="font-size: 13px;">
-            </div>
-          `).join('')}
-        </div>
-      </div>
-
-      <div class="form-group" style="margin: 0;">
-        <label class="form-label" style="font-size: 13px;">Giải thích đáp án (Tùy chọn):</label>
-        <input type="text" id="newQNote" class="form-control" placeholder="Ghi chú / Giải thích tại sao đáp án này đúng...">
-      </div>
-    `;
-
-    footer.innerHTML = `
-      <button class="btn" onclick="App.closeModal()">Hủy</button>
-      <button class="btn btn-primary" onclick="App.saveNewQuestionToSubject('${sub.id}')">Lưu câu hỏi</button>
-    `;
-
-    modal.classList.add("active");
-  },
-
-  saveNewQuestionToSubject(subjectId) {
-    const sub = StorageService.getSubjectById(subjectId);
-    if (!sub) return;
-
-    const qText = document.getElementById("newQText")?.value.trim();
-    const chapterId = document.getElementById("newQChapter")?.value || "c1";
-    const note = document.getElementById("newQNote")?.value.trim() || "";
-
-    if (!qText) {
-      this.showToast("⚠️ Vui lòng nhập nội dung câu hỏi!", "warning");
-      return;
-    }
-
-    const radios = document.querySelectorAll('input[name="newQAnswer"]');
-    let selectedAns = 0;
-    radios.forEach(r => {
-      if (r.checked) selectedAns = parseInt(r.value, 10);
-    });
-
-    const options = [0, 1, 2, 3].map(oi => {
-      const optText = document.getElementById(`newQOpt_${oi}`)?.value.trim() || `Phương án ${this.letters[oi]}`;
-      return {
-        text: optText,
-        isCorrect: (oi === selectedAns),
-        note: (oi === selectedAns ? note : "")
-      };
-    });
-
-    if (!sub.questions) sub.questions = [];
-    const newQuestion = {
-      id: `q-${Date.now()}-${sub.questions.length + 1}`,
-      chapterId: chapterId,
-      question: qText,
-      options: options,
-      answerIndex: selectedAns
-    };
-
-    sub.questions.push(newQuestion);
-    StorageService.saveSubject(sub);
-    this.closeModal();
-    this.showToast("🎉 Đã thêm câu hỏi mới thành công!", "success", 2500);
-    this.navigateTo("subject-detail", { subjectId: sub.id });
-  },
-
-  openEditQuestionModal(subjectId, questionId) {
-    const sub = StorageService.getSubjectById(subjectId);
-    if (!sub || !sub.questions) return;
-
-    const q = sub.questions.find(item => item.id === questionId);
-    if (!q) return;
-
-    const modal = document.getElementById("globalModal");
-    const title = document.getElementById("modalTitle");
-    const body = document.getElementById("modalBody");
-    const footer = document.getElementById("modalFooter");
-
-    title.textContent = "✏️ Chỉnh Sửa Câu Hỏi";
-    const chapters = sub.chapters || [{ id: "c1", name: "Chương 1: Mở đầu" }];
-
-    body.innerHTML = `
-      <div class="form-group" style="margin-bottom: 12px;">
-        <label class="form-label" style="font-size: 13px;">Chương (*):</label>
-        <select id="editQChapter" class="form-control">
-          ${chapters.map(c => `<option value="${c.id}" ${c.id === q.chapterId ? 'selected' : ''}>${c.name}</option>`).join('')}
-        </select>
-      </div>
-
-      <div class="form-group" style="margin-bottom: 14px;">
-        <label class="form-label" style="font-size: 13px; font-weight: 700;">Nội dung câu hỏi (*):</label>
-        <textarea id="editQText" class="form-control" rows="3">${q.question || ''}</textarea>
-      </div>
-
-      <div style="margin-bottom: 14px;">
-        <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 8px; display: block;">
-          Các phương án lựa chọn (Tích chọn nút tròn để chọn đáp án đúng):
-        </label>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          ${[0, 1, 2, 3].map(oi => {
-            const opt = (q.options && q.options[oi]) ? q.options[oi] : { text: '', note: '' };
-            const isCorrect = (q.answerIndex === oi);
-            return `
-              <div style="display: flex; gap: 8px; align-items: center; background: ${isCorrect ? '#f0fdf4' : '#f8fafc'}; border: 1px solid ${isCorrect ? '#86efac' : 'var(--border)'}; border-radius: var(--radius-sm); padding: 8px 10px;">
-                <input type="radio" name="editQAnswer" id="editQAns_${oi}" value="${oi}" ${isCorrect ? 'checked' : ''} style="transform: scale(1.1); cursor: pointer;">
-                <label for="editQAns_${oi}" style="font-weight: 800; cursor: pointer; min-width: 20px;">${App.letters[oi]}.</label>
-                <input type="text" id="editQOpt_${oi}" class="form-control" value="${(opt.text || '').replace(/"/g, '&quot;')}" style="font-size: 13px;">
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
-
-      <div class="form-group" style="margin: 0;">
-        <label class="form-label" style="font-size: 13px;">Giải thích đáp án:</label>
-        <input type="text" id="editQNote" class="form-control" value="${(q.options && q.options[q.answerIndex] && q.options[q.answerIndex].note ? q.options[q.answerIndex].note : '').replace(/"/g, '&quot;')}" placeholder="Ghi chú / Giải thích...">
-      </div>
-    `;
-
-    footer.innerHTML = `
-      <button class="btn" onclick="App.closeModal()">Hủy</button>
-      <button class="btn btn-primary" onclick="App.saveEditedQuestionToSubject('${sub.id}', '${q.id}')">Lưu thay đổi</button>
-    `;
-
-    modal.classList.add("active");
-  },
-
-  saveEditedQuestionToSubject(subjectId, questionId) {
-    const sub = StorageService.getSubjectById(subjectId);
-    if (!sub || !sub.questions) return;
-
-    const q = sub.questions.find(item => item.id === questionId);
-    if (!q) return;
-
-    const qText = document.getElementById("editQText")?.value.trim();
-    const chapterId = document.getElementById("editQChapter")?.value || "c1";
-    const note = document.getElementById("editQNote")?.value.trim() || "";
-
-    if (!qText) {
-      this.showToast("⚠️ Vui lòng nhập nội dung câu hỏi!", "warning");
-      return;
-    }
-
-    const radios = document.querySelectorAll('input[name="editQAnswer"]');
-    let selectedAns = 0;
-    radios.forEach(r => {
-      if (r.checked) selectedAns = parseInt(r.value, 10);
-    });
-
-    const options = [0, 1, 2, 3].map(oi => {
-      const optText = document.getElementById(`editQOpt_${oi}`)?.value.trim() || `Phương án ${this.letters[oi]}`;
-      return {
-        text: optText,
-        isCorrect: (oi === selectedAns),
-        note: (oi === selectedAns ? note : "")
-      };
-    });
-
-    q.question = qText;
-    q.chapterId = chapterId;
-    q.options = options;
-    q.answerIndex = selectedAns;
-
-    StorageService.saveSubject(sub);
-    this.closeModal();
-    this.showToast("✅ Đã cập nhật câu hỏi thành công!", "success", 2500);
-    this.navigateTo("subject-detail", { subjectId: sub.id });
-  },
-
-  openMoveQuestionModal(subjectId, questionId) {
-    const sub = StorageService.getSubjectById(subjectId);
-    if (!sub || !sub.questions) return;
-
-    const q = sub.questions.find(item => item.id === questionId);
-    if (!q) return;
-
-    const modal = document.getElementById("globalModal");
-    const title = document.getElementById("modalTitle");
-    const body = document.getElementById("modalBody");
-    const footer = document.getElementById("modalFooter");
-
-    title.textContent = "🔀 Chuyển Câu Hỏi Sang Chương Khác";
-    const chapters = sub.chapters || [{ id: "c1", name: "Chương 1: Mở đầu" }];
-
-    body.innerHTML = `
-      <div style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 12px;">
-        Đang chuyển: <strong>${SmartParserService.formatRichText(q.question).slice(0, 80)}...</strong>
-      </div>
-      <div class="form-group" style="margin: 0;">
-        <label class="form-label">Chọn chương đích:</label>
-        <select id="moveTargetChapter" class="form-control">
-          ${chapters.map(c => `<option value="${c.id}" ${c.id === q.chapterId ? 'selected' : ''}>${c.name}</option>`).join('')}
-        </select>
-      </div>
-    `;
-
-    footer.innerHTML = `
-      <button class="btn" onclick="App.closeModal()">Hủy</button>
-      <button class="btn btn-primary" onclick="App.saveMoveQuestion('${sub.id}', '${q.id}')">Xác nhận chuyển</button>
-    `;
-
-    modal.classList.add("active");
-  },
-
-  saveMoveQuestion(subjectId, questionId) {
-    const sub = StorageService.getSubjectById(subjectId);
-    if (!sub || !sub.questions) return;
-
-    const q = sub.questions.find(item => item.id === questionId);
-    if (!q) return;
-
-    const targetChap = document.getElementById("moveTargetChapter")?.value;
-    if (targetChap) {
-      q.chapterId = targetChap;
-      StorageService.saveSubject(sub);
-      this.closeModal();
-      this.showToast("✅ Đã chuyển câu hỏi sang chương mới!", "success", 2500);
-      this.navigateTo("subject-detail", { subjectId: sub.id });
-    }
-  },
-
-  shuffleSubjectQuestions(subjectId) {
-    const sub = StorageService.getSubjectById(subjectId);
-    if (!sub || !sub.questions || sub.questions.length < 2) {
-      this.showToast("⚠️ Cần ít nhất 2 câu hỏi để xáo trộn!", "warning");
-      return;
-    }
-
-    // Fisher-Yates shuffle
-    const arr = sub.questions;
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-
-    StorageService.saveSubject(sub);
-    this.showToast("🎉 Đã xáo trộn ngẫu nhiên thứ tự toàn bộ câu hỏi!", "success", 3000);
-    this.navigateTo("subject-detail", { subjectId: sub.id });
-  },
-
-  clearAllQuestionsConfirm(subjectId) {
-    const sub = StorageService.getSubjectById(subjectId);
-    if (!sub || !sub.questions || sub.questions.length === 0) {
-      this.showToast("⚠️ Môn học này hiện không có câu hỏi nào để xóa!", "info");
-      return;
-    }
-
-    this.showConfirmDialog({
-      title: "Xác nhận xóa toàn bộ câu hỏi",
-      message: `Bạn có chắc chắn muốn xóa TOÀN BỘ ${sub.questions.length} câu hỏi của môn "${sub.name}" không? Hành động này sẽ xóa cả trên máy và Cloud.`,
-      icon: "⚠️",
-      confirmText: "Xóa toàn bộ câu hỏi",
-      isDanger: true,
-      warningKey: "clear_all_questions",
-      onConfirm: () => {
-        sub.questions = [];
-        StorageService.saveSubject(sub);
-        this.showToast("🗑️ Đã xóa toàn bộ câu hỏi của môn học!", "info", 3000);
-        this.navigateTo("subject-detail", { subjectId: sub.id });
-      }
-    });
-  },
-
-  deleteQuestionFromSubject(subjectId, questionId) {
-    this.showConfirmDialog({
-      title: "Xác nhận xóa câu hỏi",
-      message: "Bạn có chắc chắn muốn xóa câu hỏi này khỏi ngân hàng đề không?",
-      icon: "🗑️",
-      confirmText: "Xóa câu hỏi",
-      isDanger: true,
-      warningKey: "delete_question",
-      onConfirm: () => {
-        const sub = StorageService.getSubjectById(subjectId);
-        if (sub) {
-          sub.questions = (sub.questions || []).filter(q => q.id !== questionId);
-          StorageService.saveSubject(sub);
-          this.navigateTo("subject-detail", { subjectId: sub.id });
-        }
-      }
-    });
+    this.showToast("✅ Đã cập nhật thông tin môn học thành công!", "success", 2500);
+    this.renderSubjectDetailView(document.getElementById("mainContent"), sub.id);
   }
 });

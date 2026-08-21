@@ -111,6 +111,12 @@ Object.assign(App, {
     this.closeUserDrawer();
     this.closeModal();
     this.renderHeader();
+    if (typeof DynamicIsland !== "undefined" && typeof DynamicIsland.init === "function") {
+      DynamicIsland.init();
+    }
+    if (typeof StudyDockView !== "undefined" && typeof StudyDockView.init === "function") {
+      StudyDockView.init();
+    }
     if (typeof this.updateFloatingDocksVisibility === "function") {
       this.updateFloatingDocksVisibility();
     }
@@ -329,6 +335,12 @@ Object.assign(App, {
               <button class="drawer-nav-btn" onclick="App.renderDrawerLevel('settings-shortcuts')">
                 <span class="drawer-icon" style="color:#10b981;">${Icons.get('keyboard', 18)}</span>
                 <span class="drawer-label">Quản Lý Phím Tắt Hệ Thống</span>
+                <span class="drawer-arrow">${Icons.get('chevronRight', 13)}</span>
+              </button>
+
+              <button class="drawer-nav-btn" onclick="App.renderDrawerLevel('settings-parser')">
+                <span class="drawer-icon" style="color:#059669;">${Icons.get('upload', 18)}</span>
+                <span class="drawer-label">Cài Đặt Soạn Thảo &amp; Bóc Tách</span>
                 <span class="drawer-arrow">${Icons.get('chevronRight', 13)}</span>
               </button>
 
@@ -709,6 +721,207 @@ Object.assign(App, {
         `;
         break;
 
+      // ── CẤP 2: CÀI ĐẶT SOẠN THẢO & BÓC TÁCH ĐỀ THI ─────────────────────
+      case "settings-parser":
+        const appSet = StorageService.getAppSettings();
+        const pCfg = appSet.parser || {
+          scrollMode: "adaptive",
+          triggerMoment: "afterScroll",
+          highlightDuration: 1.8,
+          pageSize: 20
+        };
+
+        headerHtml = `
+          <div class="drawer-header-left">
+            <button class="drawer-back-btn" onclick="App.renderDrawerLevel('settings')" style="display: inline-flex; align-items: center; gap: 4px;">
+              ${Icons.get('chevronLeft', 14)} <span>Cài đặt</span>
+            </button>
+            <h3 style="display: flex; align-items: center; gap: 8px;">${Icons.get('upload', 18, '', 'var(--brand-primary)')} <span>Cài Đặt Soạn &amp; Bóc Tách</span></h3>
+          </div>
+          <button class="drawer-close" onclick="App.closeUserDrawer()">${Icons.get('close', 16)}</button>
+        `;
+
+        bodyHtml = `
+          <div class="drawer-slide-content">
+            <!-- 1. Chế độ cuộn màn hình -->
+            <div>
+              <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                ${Icons.get('arrowRight', 14)} <span>Chế độ cuộn khi nhấp câu hỏi:</span>
+              </label>
+              <div class="setting-desc" style="font-size: 11.5px; color: var(--text-secondary); margin-bottom: 8px;">Tự động tối ưu tốc độ cuộn để chống giật lag khi đề thi có hàng trăm câu.</div>
+              <div class="theme-options-grid">
+                <div class="theme-option-card ${pCfg.scrollMode === 'adaptive' ? 'active' : ''}" onclick="App.updateParserSettingFromDrawer('scrollMode', 'adaptive', this)">
+                  <div style="font-weight: 700; font-size: 13px;">⚡ Thích ứng</div>
+                  <div style="font-size: 11px; margin-top: 2px;">Adaptive (Tối ưu)</div>
+                </div>
+                <div class="theme-option-card ${pCfg.scrollMode === 'smooth' ? 'active' : ''}" onclick="App.updateParserSettingFromDrawer('scrollMode', 'smooth', this)">
+                  <div style="font-weight: 700; font-size: 13px;">🌊 Mượt mà</div>
+                  <div style="font-size: 11px; margin-top: 2px;">Smooth</div>
+                </div>
+                <div class="theme-option-card ${pCfg.scrollMode === 'instant' ? 'active' : ''}" onclick="App.updateParserSettingFromDrawer('scrollMode', 'instant', this)">
+                  <div style="font-weight: 700; font-size: 13px;">🚀 Tức thì</div>
+                  <div style="font-size: 11px; margin-top: 2px;">0ms Instant</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Thời điểm kích hoạt dạ quang -->
+            <div style="border-top: 1px dashed var(--border); padding-top: 12px; margin-top: 6px;">
+              <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                ${Icons.get('sparkles', 14)} <span>Thời điểm chớp sáng dạ quang:</span>
+              </label>
+              <div class="theme-options-grid">
+                <div class="theme-option-card ${pCfg.triggerMoment === 'afterScroll' ? 'active' : ''}" onclick="App.updateParserSettingFromDrawer('triggerMoment', 'afterScroll', this)">
+                  <div style="font-weight: 700; font-size: 12.5px;">⏳ Sau khi dừng cuộn</div>
+                  <div style="font-size: 11px; margin-top: 2px;">Scroll-End (Chuẩn)</div>
+                </div>
+                <div class="theme-option-card ${pCfg.triggerMoment === 'immediate' ? 'active' : ''}" onclick="App.updateParserSettingFromDrawer('triggerMoment', 'immediate', this)">
+                  <div style="font-weight: 700; font-size: 12.5px;">⚡ Ngay lúc bấm</div>
+                  <div style="font-size: 11px; margin-top: 2px;">Immediate</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Thời gian sáng dạ quang -->
+            <div style="border-top: 1px dashed var(--border); padding-top: 12px; margin-top: 6px;">
+              <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                ${Icons.get('eye', 14)} <span>Thời gian sáng của dải dạ quang:</span>
+              </label>
+              <div class="theme-options-grid" style="grid-template-columns: repeat(4, 1fr);">
+                <div class="theme-option-card ${pCfg.highlightDuration == 1.0 ? 'active' : ''}" onclick="App.updateParserSettingFromDrawer('highlightDuration', 1.0, this)">
+                  <div style="font-weight: 700; font-size: 12.5px;">1.0s</div>
+                  <div style="font-size: 10.5px;">Nhanh</div>
+                </div>
+                <div class="theme-option-card ${pCfg.highlightDuration == 1.8 ? 'active' : ''}" onclick="App.updateParserSettingFromDrawer('highlightDuration', 1.8, this)">
+                  <div style="font-weight: 700; font-size: 12.5px;">1.8s</div>
+                  <div style="font-size: 10.5px;">Vừa</div>
+                </div>
+                <div class="theme-option-card ${pCfg.highlightDuration == 2.5 ? 'active' : ''}" onclick="App.updateParserSettingFromDrawer('highlightDuration', 2.5, this)">
+                  <div style="font-weight: 700; font-size: 12.5px;">2.5s</div>
+                  <div style="font-size: 10.5px;">Lâu</div>
+                </div>
+                <div class="theme-option-card ${pCfg.highlightDuration == 0 ? 'active' : ''}" onclick="App.updateParserSettingFromDrawer('highlightDuration', 0, this)">
+                  <div style="font-weight: 700; font-size: 12.5px;">Tắt</div>
+                  <div style="font-size: 10.5px;">Không</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. Số câu mỗi trang (Pagination) -->
+            <div style="border-top: 1px dashed var(--border); padding-top: 12px; margin-top: 6px;">
+              <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                ${Icons.get('layers', 14)} <span>Số câu mỗi trang (Phân trang):</span>
+              </label>
+              <div class="theme-options-grid" style="grid-template-columns: repeat(4, 1fr);">
+                <div class="theme-option-card ${pCfg.pageSize == 10 ? 'active' : ''}" onclick="App.updateParserSettingFromDrawer('pageSize', 10, this)">
+                  <div style="font-weight: 700; font-size: 13px;">10</div>
+                  <div style="font-size: 10.5px;">câu/trang</div>
+                </div>
+                <div class="theme-option-card ${pCfg.pageSize == 20 ? 'active' : ''}" onclick="App.updateParserSettingFromDrawer('pageSize', 20, this)">
+                  <div style="font-weight: 700; font-size: 13px;">20</div>
+                  <div style="font-size: 10.5px;">câu/trang</div>
+                </div>
+                <div class="theme-option-card ${pCfg.pageSize == 30 ? 'active' : ''}" onclick="App.updateParserSettingFromDrawer('pageSize', 30, this)">
+                  <div style="font-weight: 700; font-size: 13px;">30</div>
+                  <div style="font-size: 10.5px;">câu/trang</div>
+                </div>
+                <div class="theme-option-card ${pCfg.pageSize == 50 ? 'active' : ''}" onclick="App.updateParserSettingFromDrawer('pageSize', 50, this)">
+                  <div style="font-weight: 700; font-size: 13px;">50</div>
+                  <div style="font-size: 10.5px;">câu/trang</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 5. Cấu hình Google Gemini AI Key (Bóc tách tự động) -->
+            <div style="border-top: 1px dashed var(--border); padding-top: 12px; margin-top: 6px;">
+              <label class="form-label" style="font-size: 13px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+                <span style="display: flex; align-items: center; gap: 6px;">
+                  ${Icons.get('sparkles', 14, '', '#7c3aed')} <span>Nguồn Google Gemini AI Key:</span>
+                </span>
+                <span class="badge" style="font-size: 10px; background: rgba(16, 185, 129, 0.1); color: #059669; font-weight: 700;">Cloud Secret</span>
+              </label>
+
+              <!-- 3 Chế độ chọn Key -->
+              <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; font-weight: 600; color: var(--text-primary);">
+                  <input type="radio" name="drawerAiKeyMode" value="server" ${(typeof GeminiAIParser !== 'undefined' && !GeminiAIParser.hasApiKey()) ? 'checked' : ''} onchange="App.onAiKeyModeChanged('server')">
+                  <span>☁️ Dùng Key của Server (Mặc định - Miễn phí)</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; font-weight: 600; color: var(--text-primary);">
+                  <input type="radio" name="drawerAiKeyMode" value="personal" ${(typeof GeminiAIParser !== 'undefined' && GeminiAIParser.hasApiKey()) ? 'checked' : ''} onchange="App.onAiKeyModeChanged('personal')">
+                  <span>🔑 Dùng API Key cá nhân (Hạn mức độc lập)</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; font-weight: 600; color: var(--text-primary);">
+                  <input type="radio" name="drawerAiKeyMode" value="contribute" onchange="App.onAiKeyModeChanged('contribute')">
+                  <span>🎁 Đóng góp API Key cho Server cộng đồng</span>
+                </label>
+              </div>
+
+              <!-- Khung nhập Key cá nhân / Đóng góp -->
+              <div id="drawerAiKeyInputSection" style="display: ${(typeof GeminiAIParser !== 'undefined' && GeminiAIParser.hasApiKey()) ? 'block' : 'none'};">
+                <div style="font-size: 11.5px; color: var(--text-secondary); margin-bottom: 6px;" id="drawerAiKeyInputHelp">
+                  Dán mã API Key của bạn (bắt đầu bằng <code>AQ...</code> hoặc <code>AIzaSy...</code>):
+                </div>
+                <div style="position: relative; display: flex; gap: 6px; align-items: center;">
+                  <div style="position: relative; flex: 1;">
+                    <input type="password" id="drawerParserAiKeyInput" class="form-control" placeholder="Dán API Key vào đây..." value="${(typeof GeminiAIParser !== 'undefined') ? GeminiAIParser.getApiKey() : ''}" oninput="App.onAiKeyInputChanged(this.value)" style="padding-right: 36px; font-size: 12px; font-family: var(--font-mono, monospace);">
+                    <button type="button" onclick="App.toggleParserAiKeyVisibility()" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-secondary); padding: 4px;" title="Hiện / Ẩn Key">
+                      ${Icons.get('eye', 14)}
+                    </button>
+                  </div>
+                  <button class="btn btn-sm btn-primary" id="btnSaveAiKey" onclick="App.saveAiKeyFromDrawerParser()" style="white-space: nowrap;">Lưu</button>
+                  <button class="btn btn-sm" id="btnTestAiConnection" onclick="App.testAiKeyFromDrawerParser()" style="white-space: nowrap;" title="Kiểm tra kết nối tới Google AI">⚡ Test</button>
+                  <button class="btn btn-sm btn-danger" onclick="App.clearAiKeyFromDrawerParser()" style="white-space: nowrap;" title="Xóa Key">Xóa</button>
+                </div>
+              </div>
+
+              <div id="drawerAiKeyStatus" style="font-size: 11.5px; margin-top: 6px;">
+                ${(typeof GeminiAIParser !== 'undefined' && GeminiAIParser.hasApiKey()) ? '<span style="color:#059669; font-weight:700;">🟢 Đang sử dụng API Key cá nhân</span>' : '<span style="color:#0284c7; font-weight:700;">☁️ Đang sử dụng Key Server mặc định (Cloud Secret)</span>'}
+              </div>
+
+              <!-- Lựa chọn Model AI -->
+              <div style="margin-top: 10px;">
+                <label class="form-label" style="font-size: 12px; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
+                  <span>Mô hình AI sử dụng:</span>
+                  <span class="badge" style="font-size: 10px; background: rgba(124, 58, 237, 0.1); color: #7c3aed; font-weight: 700;">Google Gemini 3.5</span>
+                </label>
+                <select id="drawerParserAiModelSelect" class="form-control" style="font-size: 12px; font-weight: 600;" onchange="App.onParserAiModelChanged(this.value)">
+                  ${(typeof GeminiAIParser !== 'undefined' ? GeminiAIParser.MODELS : []).map(m => `
+                    <option value="${m.id}" ${m.id === (typeof GeminiAIParser !== 'undefined' ? GeminiAIParser.getSelectedModel() : '') ? 'selected' : ''}>
+                      ${m.name} — ${m.badge}
+                    </option>
+                  `).join('')}
+                </select>
+              </div>
+            </div>
+
+            <!-- 6. Giám sát Định Mức API (RPM, TPM, RPD) - Tùy chọn (Mặc định: TẮT) -->
+            <div style="border-top: 1px dashed var(--border); padding-top: 12px; margin-top: 6px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                <label class="form-label" style="font-size: 13px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 6px;">
+                  ${Icons.get('zap', 14, '', '#f59e0b')} <span>Giám sát mức dùng (RPM, TPM, RPD):</span>
+                </label>
+                <label class="toggle-switch" style="margin: 0;">
+                  <input type="checkbox" id="toggleAiQuotaTracker" ${(typeof AIQuotaTracker !== 'undefined' && AIQuotaTracker.isEnabled()) ? 'checked' : ''} onchange="App.toggleAiQuotaTracking(this.checked)">
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 4px;">
+                Đo lường Req/phút, Token/phút và Req/ngày theo thời gian thực (Mặc định: <strong>Tắt</strong> để tiết kiệm tài nguyên).
+              </div>
+
+              <div id="aiQuotaMetricsBox" style="margin-top: 8px;">
+                ${(typeof App !== 'undefined' && typeof App.renderAiQuotaDashboardHtml === 'function') ? App.renderAiQuotaDashboardHtml() : ''}
+              </div>
+            </div>
+
+            <div style="margin-top: 14px; display: flex; gap: 8px;">
+              <button class="btn btn-sm" style="flex: 1;" onclick="App.resetParserSettingFromDrawer()">🔄 Khôi phục mặc định</button>
+            </div>
+          </div>
+        `;
+        break;
+
       // ── CẤP 2: CÀI ĐẶT ĐẢO ĐỘNG (DYNAMIC ISLAND) ────────────────────────
       case "settings-island":
         const di = (typeof DynamicIsland !== "undefined") ? DynamicIsland.settings : { enabled: true, colorTheme: "purple", scaleSize: "md", autoCollapseDelay: 3500, autoSkipOnError: false, mobilePosition: "bottom", enableOnExam: true };
@@ -847,7 +1060,7 @@ Object.assign(App, {
           <div class="drawer-slide-content" style="text-align: center; padding: 12px 0;">
             <div style="color: var(--brand-primary); margin-bottom: 8px; display: flex; justify-content: center;">${Icons.get('logo', 48)}</div>
             <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0;">Shinora QuizMaster</h3>
-            <div style="font-size: 13px; color: var(--brand-text); font-weight: 700; margin-top: 2px;">Phiên bản v4.2.0 (Pure Cloudflare D1 Edition)</div>
+            <div style="font-size: 13px; color: var(--brand-text); font-weight: 700; margin-top: 2px;">Phiên bản v4.2.2-fix (Pure Cloudflare D1 Edition)</div>
 
             <div style="text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; margin-top: 16px; font-size: 13px; line-height: 1.6; color: var(--text-secondary);">
               <div style="display: flex; align-items: center; gap: 6px;">${Icons.get('book', 14)} <strong>Dự án:</strong> Shinora QuizMaster (Học tập & Nghiên cứu)</div>
@@ -936,6 +1149,79 @@ Object.assign(App, {
     StorageService.saveAppSettings(settings);
     this.showToast(checked ? "✓ Đã bật phím tắt Cây Mục Lục (F2, Del, Ctrl+C/X/V)!" : "⚠️ Đã tắt phím tắt Cây Mục Lục.", "info", 2500);
     this.renderDrawerLevel("settings-shortcuts");
+  },
+
+  updateParserSettingFromDrawer(key, value, el = null) {
+    const settings = StorageService.getAppSettings();
+    if (!settings.parser) {
+      settings.parser = {
+        scrollMode: "adaptive",
+        triggerMoment: "afterScroll",
+        highlightDuration: 1.8,
+        pageSize: 20
+      };
+    }
+
+    if (key === "highlightDuration") value = parseFloat(value);
+    if (key === "pageSize") value = parseInt(value, 10);
+
+    settings.parser[key] = value;
+    StorageService.saveAppSettings(settings);
+
+    // 1. Cập nhật ngay lập tức class 'active' trên giao diện DOM (0ms)
+    if (el) {
+      const parent = el.closest(".theme-options-grid");
+      if (parent) {
+        parent.querySelectorAll(".theme-option-card").forEach(card => card.classList.remove("active"));
+        el.classList.add("active");
+      }
+    }
+
+    // 2. Đồng bộ vào parserState nếu đang mở trang parser
+    if (this.parserState) {
+      this.parserState.settings = Object.assign({}, settings.parser);
+      if (key === "pageSize") {
+        this.parserState.pageSize = value;
+        this.parserState.currentPage = 1;
+      }
+    }
+
+    if (window.SourceSync) {
+      SourceSync.applyConfig(settings.parser);
+    }
+
+    if (typeof this.renderParserPreviewList === "function") {
+      this.renderParserPreviewList();
+    }
+
+    this.showToast("✓ Đã cập nhật cài đặt tức thì!", "success", 1200);
+  },
+
+  resetParserSettingFromDrawer() {
+    const settings = StorageService.getAppSettings();
+    settings.parser = {
+      scrollMode: "adaptive",
+      triggerMoment: "afterScroll",
+      highlightDuration: 1.8,
+      pageSize: 20
+    };
+    StorageService.saveAppSettings(settings);
+
+    if (this.parserState) {
+      this.parserState.settings = Object.assign({}, settings.parser);
+      this.parserState.pageSize = 20;
+    }
+
+    if (window.SourceSync) {
+      SourceSync.applyConfig(settings.parser);
+    }
+
+    if (typeof this.renderParserPreviewList === "function") {
+      this.renderParserPreviewList();
+    }
+
+    this.renderDrawerLevel("settings-parser");
+    this.showToast("🔄 Đã khôi phục cài đặt bóc tách mặc định!", "info", 2000);
   },
 
   async selectAvatarDrawer(avatarId) {
@@ -1316,6 +1602,272 @@ Object.assign(App, {
       DynamicIsland.toggleExamMode(checked);
     }
     this.renderDrawerLevel("settings-island");
+  },
+
+  // ── CÁC PHƯƠNG THỨC ĐIỀU KHIỂN GEMINI AI TỪ DRAWER ─────────────────
+  onAiKeyModeChanged(mode) {
+    const inputSec = document.getElementById("drawerAiKeyInputSection");
+    const inputHelp = document.getElementById("drawerAiKeyInputHelp");
+    const statusEl = document.getElementById("drawerAiKeyStatus");
+    const saveBtn = document.getElementById("btnSaveAiKey");
+
+    if (mode === "server") {
+      if (inputSec) inputSec.style.display = "none";
+      if (typeof GeminiAIParser !== "undefined") {
+        GeminiAIParser.setApiKey("");
+        GeminiAIParser.setPrivacyMode("proxy");
+      }
+      if (statusEl) statusEl.innerHTML = '<span style="color:#0284c7; font-weight:700;">☁️ Đang sử dụng Key Server mặc định (Cloud Secret)</span>';
+      this.showToast("☁️ Đã chuyển sang sử dụng Key của Server (Miễn phí & Bảo mật)", "info", 3000);
+    } else if (mode === "personal") {
+      if (inputSec) inputSec.style.display = "block";
+      if (inputHelp) inputHelp.innerHTML = "Dán mã API Key cá nhân của bạn (bắt đầu bằng <code>AQ...</code> hoặc <code>AIzaSy...</code>):";
+      if (saveBtn) saveBtn.textContent = "Lưu Key";
+      if (typeof GeminiAIParser !== "undefined") {
+        GeminiAIParser.setPrivacyMode("direct");
+      }
+      if (statusEl) statusEl.innerHTML = '<span style="color:#059669; font-weight:700;">🔑 Đang sử dụng API Key cá nhân</span>';
+    } else if (mode === "contribute") {
+      if (inputSec) inputSec.style.display = "block";
+      if (inputHelp) inputHelp.innerHTML = "Dán mã API Key bạn muốn <strong>đóng góp cho Server</strong> (Mã sẽ được kiểm tra và ghi nhận):";
+      if (saveBtn) saveBtn.textContent = "Gửi Đóng Góp";
+      if (statusEl) statusEl.innerHTML = '<span style="color:#7c3aed; font-weight:700;">🎁 Đang mở chế độ đóng góp Key cho cộng đồng</span>';
+    }
+  },
+
+  toggleParserAiKeyVisibility() {
+    const input = document.getElementById("drawerParserAiKeyInput");
+    if (!input) return;
+    input.type = input.type === "password" ? "text" : "password";
+  },
+
+  onAiKeyInputChanged(val) {
+    if (typeof GeminiAIParser !== "undefined") {
+      GeminiAIParser.setApiKey(val);
+    }
+    const statusEl = document.getElementById("drawerAiKeyStatus");
+    if (statusEl) {
+      statusEl.innerHTML = val.trim() ? '<span style="color:#059669; font-weight:700;">🟢 Đang nhập Key cá nhân</span>' : '<span style="color:var(--text-secondary);">⚪ Chưa có Key cá nhân (dùng Key Server mặc định)</span>';
+    }
+  },
+
+  saveAiKeyFromDrawerParser() {
+    const input = document.getElementById("drawerParserAiKeyInput");
+    const key = input ? input.value.trim() : "";
+    if (typeof GeminiAIParser !== "undefined") {
+      GeminiAIParser.setApiKey(key);
+    }
+    const statusEl = document.getElementById("drawerAiKeyStatus");
+    if (statusEl) {
+      statusEl.innerHTML = key ? '<span style="color:#059669; font-weight:700;">🟢 Đã lưu API Key cá nhân</span>' : '<span style="color:var(--text-secondary);">⚪ Chưa có Key cá nhân (dùng Key Server mặc định)</span>';
+    }
+    this.showToast(key ? "🎉 Đã lưu API Key thành công!" : "ℹ️ Đã xóa Key cá nhân (dùng Key Server mặc định).", "success", 2500);
+  },
+
+  async testAiKeyFromDrawerParser() {
+    const input = document.getElementById("drawerParserAiKeyInput");
+    const key = input ? input.value.trim() : "";
+    const btn = document.getElementById("btnTestAiConnection");
+
+    if (!key) {
+      this.showToast("⚠️ Vui lòng dán mã API Key trước khi kiểm tra!", "warning", 3000);
+      return;
+    }
+
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "⏳ Đang test...";
+    }
+
+    try {
+      const res = await GeminiAIParser.testApiKey(key);
+      const statusEl = document.getElementById("drawerAiKeyStatus");
+      if (res.success) {
+        if (statusEl) statusEl.innerHTML = `<span style="color:#059669; font-weight:700;">🟢 ${res.message}</span>`;
+        this.showToast(`✅ ${res.message}`, "success", 4000);
+      } else {
+        if (statusEl) statusEl.innerHTML = `<span style="color:#dc2626; font-weight:700;">❌ ${res.message}</span>`;
+        this.showToast(`❌ ${res.message}`, "danger", 5000);
+      }
+    } catch (e) {
+      this.showToast(`❌ Lỗi kiểm tra: ${e.message}`, "danger", 4000);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "⚡ Test";
+      }
+    }
+  },
+
+  clearAiKeyFromDrawerParser() {
+    if (typeof GeminiAIParser !== "undefined") {
+      GeminiAIParser.setApiKey("");
+    }
+    const input = document.getElementById("drawerParserAiKeyInput");
+    if (input) input.value = "";
+    const statusEl = document.getElementById("drawerAiKeyStatus");
+    if (statusEl) {
+      statusEl.innerHTML = '<span style="color:var(--text-secondary);">⚪ Chưa có Key cá nhân (dùng Key Server mặc định)</span>';
+    }
+    this.showToast("🗑️ Đã xóa Key cá nhân.", "info", 2000);
+  },
+
+  onParserAiModelChanged(modelId) {
+    if (typeof GeminiAIParser !== "undefined") {
+      GeminiAIParser.setSelectedModel(modelId);
+      const name = GeminiAIParser.getModelDisplayName(modelId);
+      const el = document.getElementById("parserActiveModelName");
+      if (el) el.textContent = name;
+      this.showToast(`🤖 Đã chuyển sang mô hình AI: ${name}`, "info", 2500);
+    }
+  },
+
+  toggleAiQuotaTracking(checked) {
+    if (typeof AIQuotaTracker !== "undefined") {
+      AIQuotaTracker.setEnabled(checked);
+    }
+    const toggleInput = document.getElementById("toggleAiQuotaTracker");
+    if (toggleInput) toggleInput.checked = Boolean(checked);
+
+    const box = document.getElementById("aiQuotaMetricsBox");
+    if (box) {
+      box.innerHTML = this.renderAiQuotaDashboardHtml();
+    }
+    this.updateQuotaUI();
+    this.showToast(checked ? "🟢 Đã bật giám sát mức dùng API (RPM, TPM, RPD)!" : "⚪ Đã tắt giám sát mức dùng API.", "info", 2000);
+  },
+
+  renderAiQuotaDashboardHtml() {
+    if (typeof AIQuotaTracker === "undefined") return "";
+    const isEn = AIQuotaTracker.isEnabled();
+    const activeModel = (typeof GeminiAIParser !== "undefined") ? GeminiAIParser.getSelectedModel() : "gemini-3.5-flash-lite";
+    const m = AIQuotaTracker.getMetrics(activeModel);
+
+    if (!isEn) {
+      return `
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm, 6px); padding: 10px 12px; font-size: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <span style="color: var(--text-secondary); font-size: 11.5px;">Chế độ giám sát hiện đang <strong>TẮT</strong>.</span>
+          <button class="btn btn-sm btn-primary" onclick="App.toggleAiQuotaTracking(true)" style="padding: 4px 10px; font-size: 11px; white-space: nowrap;">⚡ Bật Giám Sát</button>
+        </div>
+      `;
+    }
+
+    const tpmLimitStr = (m.tpm.limit >= 1000) ? `${Math.round(m.tpm.limit / 1000)}K` : m.tpm.limit;
+    const tpmCurStr = (m.tpm.current >= 1000) ? `${(m.tpm.current / 1000).toFixed(1)}K` : m.tpm.current;
+
+    const allModels = AIQuotaTracker.getAllModelMetrics();
+
+    return `
+      <div style="background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm, 6px); padding: 10px; font-size: 12px; margin-top: 6px;">
+        
+        <!-- Header Active Model -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div style="font-size: 12px; font-weight: 800; color: #7c3aed; display: flex; align-items: center; gap: 5px;">
+            ${Icons.get('sparkles', 13, '', '#7c3aed')} <span>${m.modelName}</span>
+          </div>
+          <span class="badge" style="font-size: 10px; background: rgba(124, 58, 237, 0.08); color: #7c3aed;">${m.category}</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; text-align: center;">
+          
+          <!-- RPM -->
+          <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 4px; padding: 6px 3px;">
+            <div style="font-size: 10px; color: var(--text-secondary); font-weight: 700;">RPM (Req/phút)</div>
+            <div style="font-size: 13.5px; font-weight: 800; color: #2563eb; margin-top: 2px;">
+              ${m.rpm.current} <span style="font-size: 10.5px; font-weight: normal; color: var(--text-secondary);">/ ${m.rpm.limit}</span>
+            </div>
+            <div style="font-size: 9.5px; color: var(--text-tertiary); margin-top: 2px;">${m.rpm.percent}% mức trần</div>
+          </div>
+
+          <!-- TPM -->
+          <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 4px; padding: 6px 3px;">
+            <div style="font-size: 10px; color: var(--text-secondary); font-weight: 700;">TPM (Token/phút)</div>
+            <div style="font-size: 13.5px; font-weight: 800; color: #059669; margin-top: 2px;">
+              ${tpmCurStr} <span style="font-size: 10.5px; font-weight: normal; color: var(--text-secondary);">/ ${tpmLimitStr}</span>
+            </div>
+            <div style="font-size: 9.5px; color: var(--text-tertiary); margin-top: 2px;">${m.tpm.percent}% mức trần</div>
+          </div>
+
+          <!-- RPD -->
+          <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 4px; padding: 6px 3px;">
+            <div style="font-size: 10px; color: var(--text-secondary); font-weight: 700;">RPD (Req/ngày)</div>
+            <div style="font-size: 13.5px; font-weight: 800; color: #d97706; margin-top: 2px;">
+              ${m.rpd.current} <span style="font-size: 10.5px; font-weight: normal; color: var(--text-secondary);">/ ${m.rpd.limit}</span>
+            </div>
+            <div style="font-size: 9.5px; color: var(--text-tertiary); margin-top: 2px;">${m.rpd.percent}% mức trần</div>
+          </div>
+
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--border); font-size: 11px; color: var(--text-secondary);">
+          <span>Đã dùng hôm nay: <strong>${m.tokensToday.toLocaleString()} tokens</strong></span>
+          <button class="btn btn-sm" onclick="App.resetAiQuotaTracker()" style="padding: 2px 6px; font-size: 10.5px;" title="Đặt lại bộ đếm về 0">Xóa đếm</button>
+        </div>
+
+        <!-- BẢNG ĐẦY ĐỦ TẤT CẢ MODEL -->
+        <details style="margin-top: 8px; border-top: 1px dashed var(--border); padding-top: 6px;">
+          <summary style="cursor: pointer; font-size: 11px; font-weight: 700; color: var(--brand-primary); user-select: none;">
+            📋 Xem Bảng Hạn Ngạch Toàn Bộ Model (${allModels.length} models)
+          </summary>
+          <div style="margin-top: 6px; max-height: 180px; overflow-y: auto; font-size: 10.5px; border: 1px solid var(--border); border-radius: 4px;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+              <thead>
+                <tr style="background: var(--bg); border-bottom: 1px solid var(--border);">
+                  <th style="padding: 4px 6px;">Model</th>
+                  <th style="padding: 4px 6px; text-align:center;">RPM</th>
+                  <th style="padding: 4px 6px; text-align:center;">TPM</th>
+                  <th style="padding: 4px 6px; text-align:center;">RPD</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${allModels.map(mod => `
+                  <tr style="border-bottom: 1px solid var(--border); background: ${mod.modelId === activeModel ? 'rgba(124, 58, 237, 0.06)' : 'transparent'};">
+                    <td style="padding: 4px 6px; font-weight: ${mod.modelId === activeModel ? '800' : 'normal'};">
+                      ${mod.modelId === activeModel ? '👉 ' : ''}${mod.name}
+                    </td>
+                    <td style="padding: 4px 6px; text-align:center; color: #2563eb;">${mod.rpm.current}/${mod.rpm.limit}</td>
+                    <td style="padding: 4px 6px; text-align:center; color: #059669;">${mod.tpm.current > 1000 ? (mod.tpm.current/1000).toFixed(1)+'K' : mod.tpm.current}/${mod.tpm.limit >= 1000 ? (mod.tpm.limit/1000).toFixed(0)+'K' : mod.tpm.limit}</td>
+                    <td style="padding: 4px 6px; text-align:center; color: #d97706;">${mod.rpd.current}/${mod.rpd.limit}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+    `;
+  },
+
+  resetAiQuotaTracker() {
+    if (typeof AIQuotaTracker !== "undefined") {
+      AIQuotaTracker.resetMetrics();
+    }
+    const box = document.getElementById("aiQuotaMetricsBox");
+    if (box) box.innerHTML = this.renderAiQuotaDashboardHtml();
+    this.updateQuotaUI();
+    this.showToast("🗑️ Đã đặt lại bộ đếm mức dùng API về 0.", "info", 1500);
+  },
+
+  updateQuotaUI() {
+    const box = document.getElementById("aiQuotaMetricsBox");
+    if (box && typeof AIQuotaTracker !== "undefined" && AIQuotaTracker.isEnabled()) {
+      box.innerHTML = this.renderAiQuotaDashboardHtml();
+    }
+    const pill = document.getElementById("parserAiQuotaPill");
+    if (pill) {
+      if (typeof AIQuotaTracker !== "undefined" && AIQuotaTracker.isEnabled()) {
+        const activeModel = (typeof GeminiAIParser !== "undefined") ? GeminiAIParser.getSelectedModel() : "gemini-3.5-flash-lite";
+        const m = AIQuotaTracker.getMetrics(activeModel);
+        const tpmLimitStr = (m.tpm.limit >= 1000) ? `${Math.round(m.tpm.limit / 1000)}K` : m.tpm.limit;
+        const tpmCurStr = (m.tpm.current >= 1000) ? `${(m.tpm.current / 1000).toFixed(1)}K` : m.tpm.current;
+
+        pill.style.display = "inline-flex";
+        pill.innerHTML = `📊 ${m.rpm.current}/${m.rpm.limit} RPM · ${tpmCurStr}/${tpmLimitStr} TPM · ${m.rpd.current}/${m.rpd.limit} RPD`;
+        pill.title = `Mức dùng hiện tại của model ${m.modelName} (RPM: ${m.rpm.current}/${m.rpm.limit}, TPM: ${tpmCurStr}/${tpmLimitStr}, RPD: ${m.rpd.current}/${m.rpd.limit})`;
+      } else {
+        pill.style.display = "none";
+      }
+    }
   },
 
   toggleUserRole() {

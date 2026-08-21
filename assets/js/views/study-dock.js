@@ -73,6 +73,13 @@ const StudyDockView = {
   ],
 
   init() {
+    if (typeof StorageService !== "undefined" && !StorageService.isLoggedIn()) {
+      const existingTrigger = document.getElementById("studyDockFloatingTrigger");
+      const existingContainer = document.getElementById("studyDockContainer");
+      if (existingTrigger) existingTrigger.style.display = "none";
+      if (existingContainer) existingContainer.style.display = "none";
+      return;
+    }
     this.renderContainer();
     this.bindEvents();
     this.initDraggableDock();

@@ -127,9 +127,28 @@ INSERT INTO users (
   email = EXCLUDED.email,
   phone = EXCLUDED.phone,
   role = EXCLUDED.role,
-  pin_code = EXCLUDED.pin_code,
   avatar = EXCLUDED.avatar,
   status = EXCLUDED.status,
   permissions = EXCLUDED.permissions,
   updated_at = CURRENT_TIMESTAMP;
+
+-- 6. BẢNG OFFICIAL_SUBJECTS (NGÂN HÀNG MÔN HỌC & CÂU HỎI CHÍNH THỨC TRÊN CLOUDFLARE D1)
+CREATE TABLE IF NOT EXISTS official_subjects (
+  id TEXT PRIMARY KEY,                             -- ID môn học (POL102, BT4026, SUB_xxx)
+  code TEXT NOT NULL,                              -- Mã học phần
+  name TEXT NOT NULL,                              -- Tên môn học
+  department TEXT DEFAULT 'Khoa Kỹ thuật - Công nghệ',
+  author TEXT DEFAULT 'Ban Biên Tập',
+  description TEXT DEFAULT '',
+  icon TEXT DEFAULT '📚',
+  status TEXT DEFAULT 'official',
+  is_guest_allowed INTEGER DEFAULT 1,              -- 1: Mở cho khách, 0: Khóa nội bộ
+  chapters_json TEXT NOT NULL DEFAULT '[]' CHECK(json_valid(chapters_json)),
+  questions_json TEXT NOT NULL DEFAULT '[]' CHECK(json_valid(questions_json)),
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_official_subjects_code ON official_subjects(code);
+CREATE INDEX IF NOT EXISTS idx_official_subjects_updated ON official_subjects(updated_at DESC);
 
